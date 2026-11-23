@@ -1,0 +1,9 @@
+{
+  "name": "myfitnessguide",
+  "version": "0.2.0",
+  "description": "Coach and log household training and nutrition through the myfitnessguide MCP server.",
+  "author": {
+    "name": "Hritvik Dinkar"
+  },
+  "skills": "./skills/"
+}

@@ -1,0 +1,16 @@
+{
+  "name": "@myfitnessguide/skills",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Thin gym-training and gym-nutrition skills over the MCP server, staged here until cutover",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "vitest": "5.0.3"
+  }
+}

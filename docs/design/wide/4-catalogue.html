@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wide Catalogue</title>
+<style>
+/* ===== Tokens: docs/design/DESIGN.md and app/web/src/styles.css. No new colours. ===== */
+:root{--bg:#eef1f3;--card:#fff;--steel:#dfe5ea;--steel-2:#c9d2da;--ink:#1f2a30;--dim:#56646e;--haldi:#e3a008;--haldi-ink:#5c3d00;--leaf:#2f6b3f;--chilli:#b4321f;--on-haldi:#2b1d00;--shadow-near:rgb(31 42 48/.08);--shadow-far:rgb(31 42 48/.06);--page:#f7f8f9;
+  --font:Mukta,"Noto Sans",system-ui,sans-serif;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15191c;--card:#1c2328;--steel:#232b31;--steel-2:#34404a;--ink:#e8edf0;--dim:#9aa8b2;--haldi:#f0b429;--haldi-ink:#f7d47c;--leaf:#7cc790;--chilli:#f07a63;--shadow-near:rgb(0 0 0/.32);--shadow-far:rgb(0 0 0/.24);--page:#0f1417}}
+:root[data-theme="dark"]{--bg:#15191c;--card:#1c2328;--steel:#232b31;--steel-2:#34404a;--ink:#e8edf0;--dim:#9aa8b2;--haldi:#f0b429;--haldi-ink:#f7d47c;--leaf:#7cc790;--chilli:#f07a63;--shadow-near:rgb(0 0 0/.32);--shadow-far:rgb(0 0 0/.24);--page:#0f1417}
+*,*::before,*::after{box-sizing:border-box}
+
+/* ===== The mockup page (outside the frames) ===== */
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;padding:24px 16px 80px}
+.pg{max-width:2600px;margin:0 auto}
+.pg h1{font-size:24px;margin:0 0 4px}
+.pg>h2,.pg>section>h2{font-size:19px;margin:36px 0 4px}
+.pg .sub{color:var(--dim);margin:0 0 12px;max-width:900px}
+.pg-nav{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
+.pg-nav a,.pg-nav button{font:inherit;font-size:14px;border:1px solid var(--steel-2);border-radius:999px;padding:3px 12px;color:var(--ink);text-decoration:none;background:transparent;cursor:pointer}
+.pg-nav a[aria-current="page"],.pg-nav button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.pg-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:12px;max-width:1400px}
+.pg-opt{background:var(--card);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;box-shadow:0 1px 2px var(--shadow-near)}
+.pg-opt .letter{font-weight:700;font-size:20px;width:34px;height:34px;border-radius:50%;background:var(--steel);display:grid;place-items:center}
+.pg-opt h3{margin:0;font-size:16px}
+.pg-opt p{margin:2px 0 0;color:var(--dim);font-size:14px}
+.pg-opt.rec .letter{background:var(--haldi);color:var(--on-haldi)}
+.pg-rec{border-left:3px solid var(--haldi);padding:4px 0 4px 10px;margin:12px 0;max-width:1000px}
+.pg-note{border-left:3px solid var(--steel-2);padding-left:10px;color:var(--dim);font-size:14px;max-width:1000px;margin:8px 0}
+.frames{display:grid;gap:20px;margin-top:10px}
+.frame{margin:0;display:grid;gap:6px}
+.frame figcaption{font-size:13px;color:var(--dim)}
+.frame figcaption b{color:var(--ink)}
+.stage{position:relative;overflow:hidden;border:1px solid var(--steel-2);border-radius:8px;background:var(--bg)}
+.pg.actual .stage{overflow:visible}
+.pg.actual .scroller{overflow-x:auto}
+.vp{position:absolute;top:0;left:0;transform-origin:0 0}
+.fold{position:absolute;left:0;right:0;border-top:2px dashed var(--haldi);pointer-events:none;z-index:5}
+.fold span{position:absolute;right:8px;top:-22px;background:var(--haldi);color:var(--on-haldi);font-size:12px;padding:0 6px;border-radius:4px}
+.phone-row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.phone-row .stage{flex:none}
+
+/* ===== The app, inside a frame (mirrors app/web/src/styles.css) ===== */
+.app{font-family:var(--font);font-size:16px;line-height:1.45;color:var(--ink);background:var(--bg);font-variant-numeric:tabular-nums;position:relative}
+.app :is(h1,h2,h3,h4,p,ul,ol,dl,dd,figure,table){margin:0}
+.app :is(ul,ol){padding:0;list-style:none}
+.app.wide{display:grid;grid-template-columns:220px minmax(0,1fr);container:app/inline-size}
+.app.phone{width:390px;padding-bottom:140px}
+.sidebar{background:var(--steel);padding:16px 12px;display:flex;flex-direction:column;gap:4px;min-height:100%}
+.sidebar-top{display:flex;justify-content:space-between;align-items:center;padding:0 4px 8px}
+.sidebar nav{display:grid;gap:2px}
+.sidebar nav a{padding:6px 10px;border-radius:8px;font-size:.9rem}
+.sidebar nav a.on{background:var(--ink);color:var(--bg)}
+.sidebar h2{margin:12px 10px 4px;font-size:.8rem;font-weight:500;color:var(--dim)}
+.sidebar .memberbar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 4px 0;margin-top:24px}
+.keyhint{font-size:.75rem;color:var(--dim);padding:8px 4px 0}
+kbd{font:inherit;font-size:.75rem;border:1px solid var(--steel-2);border-radius:4px;padding:0 4px;color:var(--dim)}
+.pill{min-height:36px;display:inline-flex;align-items:center;border:1px solid var(--steel-2);color:var(--dim);border-radius:999px;padding:2px 12px;font-size:.85rem;font-weight:500}
+.pill.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.app.phone .memberbar{display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px 0}
+.tabbar{position:absolute;inset:auto 0 0 0;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--steel-2);padding:6px 8px;background:var(--bg)}
+.tabbar a{display:grid;justify-items:center;padding-block:6px;border-radius:10px;color:var(--dim);font-size:.8rem}
+.tabbar a.on{background:var(--ink);color:var(--bg)}
+.fab{position:absolute;right:24px;bottom:24px;width:56px;height:56px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:28px;border:0}
+.app.phone .fab{bottom:84px;right:16px}
+
+/* The screen. Today: max-width 1180px, padding 20 24 104. Proposed: no cap below 2,400 px; the gutter steps with the band. */
+.screen{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start;container:screen/inline-size}
+.app.phone .screen{padding:12px 16px 16px}
+.app.wide .screen{padding:20px 24px 104px;max-width:2400px}
+@container app (min-width:1900px){.app.wide .screen{padding:24px 32px 104px;gap:20px;--gap:20px}}
+
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.top h1{font-size:1.15rem;font-weight:700;line-height:1.2}
+.leftnote{color:var(--dim);font-size:.9rem;text-wrap:pretty}
+.banner{background:var(--steel);border-radius:10px;padding:8px 12px;font-size:.85rem}
+.btn{min-height:40px;border-radius:8px;padding:4px 12px;border:1px solid var(--ink);background:transparent;color:var(--ink);font:inherit;font-size:.85rem;font-weight:500;display:inline-flex;align-items:center}
+.btn.primary{background:var(--ink);color:var(--bg)}
+.btn.sm{min-height:32px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.chip{justify-self:start;border:1px solid var(--steel-2);border-radius:999px;padding:2px 10px;font-size:.85rem;width:fit-content;max-width:100%}
+.chip.ready{color:var(--leaf);border-color:currentColor}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.dim{color:var(--dim)} .est{color:var(--haldi-ink)} .ok{color:var(--leaf)}
+.hist{font-size:.8rem;color:var(--dim);text-decoration:underline;text-underline-offset:2px}
+.h2{font-size:1rem;font-weight:700}
+
+/* ===== Layout primitives (proposed; docs/design/wide/layout-system.md). Children never set their own width. ===== */
+.l-stack{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s,16px);align-content:start}
+.l-stack>*,.l-grid>*,.l-split>*,.l-cluster>*{min-width:0}
+.l-cluster{display:flex;flex-wrap:wrap;gap:var(--s,8px);align-items:baseline}
+.l-split{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline}
+/* Auto-fit grid: as many columns of at least --min as fit, never more than --max (default: unlimited). */
+.l-grid{--min:320px;--max:99;--s:16px;display:grid;gap:var(--s);align-items:start;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,max(var(--min),(100% - (var(--max) - 1) * var(--s)) / var(--max))),1fr))}
+.l-grid.fill{grid-template-columns:repeat(auto-fill,minmax(min(100%,max(var(--min),(100% - (var(--max) - 1) * var(--s)) / var(--max))),1fr))}
+/* Switcher: side by side when the container is at least --at wide, stacked below it. */
+.l-switch{--at:900px;display:flex;flex-wrap:wrap;gap:var(--s,24px);align-items:flex-start}
+.l-switch>*{flex-grow:1;flex-basis:calc((var(--at) - 100%) * 999);min-width:0}
+
+/* Text: every text slot declares wrap, clamp or truncate. */
+.t-wrap{overflow-wrap:anywhere}
+.t-clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--lines,2);line-clamp:var(--lines,2);overflow:hidden;overflow-wrap:anywhere}
+.t-trunc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.measure{max-inline-size:72ch}
+
+/* ===== Train ===== */
+.rx{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;background:var(--steel);border-radius:12px;padding:12px;align-content:start}
+.rx header{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.rx h2{font-size:1rem;font-weight:700;overflow-wrap:anywhere;min-width:0}
+.rx header span{flex-shrink:0;font-size:.9rem}
+.rx .cue{font-size:.85rem;color:var(--dim)}
+.rx .cue::before{content:"";display:inline-block;margin-inline-end:.52em;border-inline-start:.55em solid currentColor;border-block:.35em solid transparent}
+.rx .cue.open{display:block;-webkit-line-clamp:none}
+.rx .cue.open::before{border-inline:.35em solid transparent;border-block-start:.55em solid currentColor;border-block-end:0}
+.loadval{font-size:.9rem}
+.plates figcaption{font-size:.85rem}
+.gaps{font-size:.9rem;display:grid;gap:4px}
+.gaps li::before{content:"· "}
+.ask-inv{display:grid;gap:8px;border-top:1px solid var(--steel-2);padding-top:12px;font-size:.9rem}
+.history{display:grid;gap:8px;align-content:start}
+.session-list{display:grid;gap:2px}
+.session-row{display:grid;grid-template-columns:minmax(0,1fr);gap:0;padding:7px 10px;border-radius:8px;font-size:.9rem}
+.session-row span{color:var(--dim);font-size:.85rem}
+.session-row.on{background:var(--card);box-shadow:0 1px 2px var(--shadow-near)}
+.session-row.draft b::after{content:" · draft";color:var(--haldi-ink);font-weight:400}
+.session-open{display:grid;gap:8px;background:var(--steel);border-radius:12px;padding:12px 14px;align-content:start}
+.session-open h3{font-size:1rem;font-weight:700}
+.session-open h3 span{color:var(--dim);font-weight:400}
+.sets{display:grid;gap:2px;font-size:.9rem}
+.sets li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline;padding-block:3px;border-bottom:1px solid var(--steel-2)}
+.sets li.ex{border:0;padding-top:8px;font-weight:700}
+.sets .draftbar{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.85rem}
+/* Density: an open session at least 560 px wide lists its sets in two columns (by exercise). */
+.session-open{container:sess/inline-size}
+@container sess (min-width:560px){.sets.split2{columns:2;column-gap:24px;display:block}.sets.split2 li{break-inside:avoid}}
+
+/* ===== Today ===== */
+.leftline{font-size:1.1rem;line-height:1.4;text-wrap:pretty}
+.macros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:8px;row-gap:4px}
+.macro{display:grid;gap:4px;font-size:.8rem;color:var(--dim);line-height:1.25;align-content:end}
+.macro .amount{color:var(--ink);font-size:1rem;font-weight:700}
+.track{display:block;height:6px;background:var(--steel-2);border-radius:3px;overflow:hidden}
+.track span{display:block;height:100%;background:var(--ink);border-radius:3px}
+.strip{display:grid;gap:4px}
+.needs{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px;background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem}
+.tiers{display:grid;gap:4px}
+.tier{background:var(--steel);border-radius:12px;padding:12px 14px;display:grid;gap:6px;align-content:start;container:tier/inline-size}
+.tiers>.tier:first-child{border-radius:16px 16px 12px 12px}
+.tier header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.tier h2{font-size:1rem;font-weight:700}
+.tier header span{font-size:.85rem;color:var(--dim)}
+.tier.nothing_yet{background:transparent;border:1.5px dashed var(--steel-2);padding-block:10px}
+.tier.skipped{background:transparent;border:1.5px solid var(--steel-2);padding-block:10px}
+.tier.skipped header span{color:var(--ink)}
+.items{display:grid;gap:4px;font-size:.9rem}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline}
+.item .amount{color:var(--dim)}
+.item .num{display:none}
+.item .prov{font-size:.8rem;color:var(--dim);text-align:right}
+.item .prov.est{color:var(--haldi-ink)}
+.item .draftbar{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.85rem}
+/* Density: a tier at least 520 px wide shows each item's kcal and protein in their own columns. */
+@container tier (min-width:520px){.item{grid-template-columns:minmax(0,1fr) 5.5em 4.5em 9em}.item .num{display:block;text-align:right;color:var(--dim)}}
+.tier-add{justify-self:start}
+.foot{display:grid;font-size:.9rem}
+.foot>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-block:8px;border-top:1px solid var(--steel-2)}
+.foot dd{color:var(--dim);text-align:right;flex-shrink:0;max-width:50%}
+.closeday{background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem;display:grid;gap:6px}
+.pots{display:grid;gap:14px}
+.pot{background:var(--card);border-radius:14px;padding:14px;display:grid;gap:12px;box-shadow:0 1px 2px var(--shadow-near),0 6px 18px var(--shadow-far)}
+.pot header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.pot h2{font-size:1rem;font-weight:700;overflow-wrap:anywhere}
+.pot h2 span{font-weight:400}
+.pot .meta{color:var(--dim);font-size:.85rem}
+.split{display:flex;height:38px;border-radius:8px;overflow:hidden;gap:2px}
+.seg{flex:0 1 0px;display:flex;align-items:center;padding-inline:8px;font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:6px}
+.seg>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.seg.you{background:var(--haldi);color:var(--on-haldi)}
+.seg.other{background:var(--steel-2)}
+.seg.unaccounted{background:repeating-linear-gradient(135deg,var(--steel-2) 0 2px,transparent 2px 8px);border:1px dashed var(--steel-2);border-radius:0 8px 8px 0;color:var(--dim)}
+.legend{display:flex;gap:4px 14px;flex-wrap:wrap;font-size:.85rem;color:var(--dim)}
+.ask{background:var(--steel);border-radius:10px;padding:12px;font-size:.9rem;display:grid;gap:8px}
+.glance{display:grid;gap:8px}
+.wide-table{width:100%;border-collapse:collapse;font-size:.9rem}
+.wide-table th,.wide-table td{text-align:left;padding:4px 8px;border-bottom:1px solid var(--steel-2);font-weight:400;vertical-align:baseline}
+.wide-table thead th{color:var(--dim);font-size:.8rem}
+.wide-table tbody th{font-weight:500}
+.wide-table td.n,.wide-table th.n{text-align:right}
+.nb{white-space:nowrap}
+.fridge{display:grid;font-size:.9rem}
+.fridge li{display:flex;flex-wrap:wrap;gap:4px 12px;padding-block:8px;border-top:1px solid var(--steel-2)}
+
+/* ===== Progress ===== */
+.chart{background:var(--card);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.chart h2{font-size:1rem;font-weight:700}
+.chart .sum{font-size:.85rem;color:var(--dim)}
+.chart svg{width:100%;height:auto;display:block}
+.chart .tbl{font-size:.8rem;color:var(--dim);text-decoration:underline;text-underline-offset:2px}
+.keyrow{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.8rem;color:var(--dim)}
+.keyrow i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.tablewrap{overflow-x:auto}
+.week-empty td{color:var(--dim)}
+.views{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ===== Catalogue ===== */
+.cat-list{display:grid;gap:8px;align-content:start}
+.search{border:1px solid var(--steel-2);background:var(--card);border-radius:8px;padding:8px 10px;color:var(--dim);font-size:.9rem}
+.cat-rows{display:grid;gap:2px}
+.cat-row{display:flex;justify-content:space-between;gap:12px;padding:6px 8px;border-radius:8px;font-size:.9rem}
+.cat-row>:first-child{min-width:0;overflow-wrap:anywhere}
+.cat-row>:last-child{flex-shrink:0;color:var(--dim);font-size:.85rem}
+.cat-row.on{background:var(--card);box-shadow:0 1px 2px var(--shadow-near)}
+.record{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;background:var(--card);border-radius:14px;padding:14px 16px;align-content:start}
+.record-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px 12px;flex-wrap:wrap}
+.record-head h2{font-size:1.1rem;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.rsec{display:grid;gap:6px;align-content:start}
+.rsec h3{font-size:.9rem;font-weight:700}
+.micros{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px 12px;font-size:.9rem}
+.micros div{display:flex;justify-content:space-between;gap:8px}
+.micros dd.unknown{color:var(--dim)}
+.used-by{background:var(--steel);border-left:3px solid var(--dim);border-radius:10px;padding:8px 12px;display:grid;gap:4px;font-size:.9rem}
+.used-by h3{font-size:.9rem;font-weight:700}
+.words li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:.9rem;padding-block:3px;border-bottom:1px solid var(--steel-2)}
+.hlist{display:grid;gap:4px;font-size:.85rem}
+.hlist li{display:grid;grid-template-columns:7.5em minmax(0,1fr);gap:8px}
+.back{color:var(--dim);font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="pg">
+<nav class="pg-nav" aria-label="Mockups"><a href="0-index.html">Index</a><a href="1-train.html">Train</a><a href="2-today.html">Today</a><a href="3-progress.html">Progress</a><a href="4-catalogue.html" aria-current="page">Catalogue</a></nav>
+<h1>Catalogue at 1,440, 1,920 and 2,560 px</h1>
+<p class="sub">Foods &amp; recipes with 40 foods (long names, label text, a unit in the name) and an open food that is used by 6 recipes, 14 cooks and 31 logged items, with unknown micronutrients, four measures, a yield and five learned words.</p>
+<div class="pg-nav"><button data-size="fit" aria-pressed="true">Fit to page</button><button data-size="actual" aria-pressed="false">Actual size</button>
+<span class="dim" style="align-self:center;margin:0 4px">Theme</span><button data-theme-set="auto" aria-pressed="true">System</button><button data-theme-set="light" aria-pressed="false">Light</button><button data-theme-set="dark" aria-pressed="false">Dark</button></div>
+<div class="pg-opts"><div class="pg-opt rec"><div class="letter">A</div><div><h3>List and a wider record, sections in a grid</h3><p>The list keeps 260–320 px; the record's sections (per 100 g, micronutrients, measures and yields, Used by, words, history) flow into an auto-fit grid of up to three columns.</p></div></div><div class="pg-opt"><div class="letter">B</div><div><h3>List · record · a Used-by and history rail</h3><p>Three panes: the list, the record as one column, and a rail with Used by, the record's history and its words.</p></div></div></div>
+<p class="pg-rec"><b>Recommendation: A.</b> The record's sections are independent blocks, so an auto-fit grid (at most 3 across) uses the width without a new pane to keep in sync; B's rail repeats what the record already shows and leaves the record a narrow column at 1,440.</p>
+<section><h2>Phone, 390 px (unchanged, for reference)</h2><p class="pg-note">Unchanged: the five panes as pills, then the list; a record opens on its own with a back link.</p><div class="phone-row" id="phone"></div></section>
+<section id="opt-a"><h2>A · List and a wider record, sections in a grid</h2><p class="pg-note">The record head, its facts line and the edit actions stay full width. Sections are a l-grid with a 340 px minimum and a maximum of 3, so 2,560 gets 3 wide sections rather than 5 thin ones.</p><p class="pg-note">Editing in place keeps the same grid: each section's fields become inputs where they are.</p><div class="frames" id="a-frames"></div></section><section id="opt-b"><h2>B · List · record · a Used-by and history rail</h2><p class="pg-note">Columns: minmax(260px,300px) minmax(0,1fr) minmax(320px,380px). Used by sits beside Save while editing, which the spec wants above the buttons.</p><div class="frames" id="b-frames"></div></section>
+<p class="pg-note">All content is invented (the sample household Asha, Kabir and Noor). Frames are drawn at their real CSS width and scaled to the page; the dashed line is the window's fold. The caption under each frame is read back from the rendered grids, not written by hand.</p>
+</div>
+<script>
+/* Frames: each option is rendered at its real CSS width (1,440, 1,920, 2,560) and scaled to fit the page.
+   The layout inside a frame is the frame's own (container queries on .app and .screen), so the
+   scaling never changes what wraps. "Actual size" shows the frames 1:1 in a sideways scroller. */
+const SIZES = [
+  { w: 1440, h: 900 },
+  { w: 1920, h: 1080 },
+  { w: 2560, h: 1440 },
+];
+const MEMBERS = ["Asha", "Kabir", "Noor"];
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const fmt = (n) => n.toLocaleString("en-IN");
+
+function sidebar(active) {
+  const main = ["Today", "Train", "Progress", "Household"];
+  const cat = ["Foods & recipes", "Workouts", "Exercises", "Gyms & equipment", "Words I've learned"];
+  return `<aside class="sidebar">
+    <div class="sidebar-top"><b>Household</b><span class="dim">⋯</span></div>
+    <nav>${main.map((m) => `<a class="${m === active ? "on" : ""}">${m}</a>`).join("")}</nav>
+    <h2>Catalogue</h2>
+    <nav>${cat.map((m) => `<a class="${m === active ? "on" : ""}">${esc(m)}</a>`).join("")}</nav>
+    <div class="memberbar">${MEMBERS.map((m, i) => `<span class="pill ${i === 0 ? "on" : ""}">${m}</span>`).join("")}</div>
+    <p class="keyhint"><kbd>N</kbd> log · <kbd>/</kbd> search · <kbd>?</kbd> keys</p>
+  </aside>`;
+}
+
+function wideApp(active, screenClass, body) {
+  return `<div class="app wide">${sidebar(active)}<main class="screen ${screenClass}">${body}</main><button class="fab" aria-label="Add">+</button></div>`;
+}
+
+function phoneApp(tab, screenClass, body) {
+  const tabs = ["Today", "Train", "Progress", "Household"];
+  return `<div class="app phone"><nav class="memberbar">${MEMBERS.map((m, i) => `<span class="pill ${i === 0 ? "on" : ""}">${m}</span>`).join("")}<span class="pill" style="margin-left:auto">⋯</span></nav>
+    <main class="screen ${screenClass}">${body}</main>
+    <button class="fab" aria-label="Add">+</button>
+    <nav class="tabbar">${tabs.map((t) => `<a class="${t === tab ? "on" : ""}">${t}</a>`).join("")}</nav></div>`;
+}
+
+/** One frame: a figure with a caption, a stage the scaled viewport sits in, and the fold line. */
+function frame(html, w, h, label) {
+  return `<figure class="frame" data-w="${w}" data-h="${h}">
+    <figcaption><b>${label ?? `${fmt(w)} × ${fmt(h)}`}</b> <span class="measure-out"></span></figcaption>
+    <div class="scroller"><div class="stage"><div class="vp" style="width:${w}px">${html}</div>
+    <div class="fold"><span>fold · ${fmt(h)} px</span></div></div></div></figure>`;
+}
+
+function renderFrames(id, make) {
+  const el = document.getElementById(id);
+  el.innerHTML = SIZES.map((s) => frame(make(), s.w, s.h)).join("");
+}
+
+function renderPhone(id, html) {
+  document.getElementById(id).innerHTML = frame(html, 390, 844, "Phone, 390 × 844 (unchanged)");
+}
+
+/** Caption: what the layout decided at this width, read back from the computed grids (data-cols="name"). */
+function measure(fig) {
+  const out = [];
+  fig.querySelectorAll(".vp [data-cols]").forEach((g) => {
+    const cs = getComputedStyle(g);
+    let n;
+    if (cs.display === "flex") {
+      const tops = new Set([...g.children].map((c) => Math.round(c.getBoundingClientRect().top)));
+      n = g.children.length && tops.size === 1 ? g.children.length : 1;
+      if (tops.size > 1 && tops.size < g.children.length) n = g.children.length - tops.size + 1;
+    } else n = cs.gridTemplateColumns.split(" ").filter((t) => t && parseFloat(t) > 0).length;
+    out.push(`${g.dataset.cols}: ${n} ${n === 1 ? "column" : "columns"}`);
+  });
+  const screen = fig.querySelector(".vp .screen");
+  if (screen && fig.dataset.w !== "390") out.unshift(`screen ${fmt(Math.round(screen.getBoundingClientRect().width / scaleOf(fig)))} px`);
+  fig.querySelector(".measure-out").textContent = out.length ? "· " + out.join(" · ") : "";
+}
+const scaleOf = (fig) => Number(fig.dataset.scale || 1);
+
+function fit() {
+  const actual = document.querySelector(".pg").classList.contains("actual");
+  document.querySelectorAll(".frame").forEach((fig) => {
+    const w = Number(fig.dataset.w);
+    const h = Number(fig.dataset.h);
+    const stage = fig.querySelector(".stage");
+    const vp = fig.querySelector(".vp");
+    const avail = fig.parentElement.getBoundingClientRect().width - 2;
+    const s = actual ? 1 : Math.min(1, avail / w);
+    fig.dataset.scale = s;
+    vp.style.transform = s === 1 ? "" : `scale(${s})`;
+    const vh = Math.max(vp.scrollHeight, h);
+    stage.style.width = `${w * s + 2}px`;
+    stage.style.height = `${vh * s}px`;
+    fig.querySelector(".fold").style.top = `${h * s}px`;
+    measure(fig);
+  });
+}
+
+function setupPage() {
+  const pg = document.querySelector(".pg");
+  document.querySelectorAll("[data-size]").forEach((b) =>
+    b.addEventListener("click", () => {
+      pg.classList.toggle("actual", b.dataset.size === "actual");
+      document.querySelectorAll("[data-size]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      fit();
+    }),
+  );
+  document.querySelectorAll("[data-theme-set]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const t = b.dataset.themeSet;
+      if (t === "auto") document.documentElement.removeAttribute("data-theme");
+      else document.documentElement.setAttribute("data-theme", t);
+      document.querySelectorAll("[data-theme-set]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    }),
+  );
+  fit();
+  addEventListener("resize", fit);
+  if (document.fonts) document.fonts.ready.then(fit);
+  // Interactions inside a frame that change its height (open a cue) refit.
+  document.addEventListener("click", (e) => {
+    const c = e.target.closest(".cue");
+    if (c) {
+      c.classList.toggle("open");
+      fit();
+    }
+  });
+}
+
+/* Seeded pseudo-random numbers, so every render draws the same invented data. */
+function rng(seed) {
+  let s = seed >>> 0;
+  return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+}
+
+/* Catalogue → Foods & recipes, with one food open. Invented content only. */
+const FOODS = [
+  ["Paneer, malai, homemade from 1 L full-cream milk (pressed 20 min)", "per 100 g"],
+  ["High-protein lassi, rose, 200 ml tetra pack (label 2026)", "per piece"],
+  ["Atta, whole-wheat, chakki-ground (the 10 kg bag)", "per 100 g"],
+  ["Basmati rice, aged, raw", "per 100 g"],
+  ["Besan (gram flour)", "per 100 g"],
+  ["Bhindi masala, dry, with amchur", "recipe · 9 lines"],
+  ["Boiled chana for salads", "per 100 g"],
+  ["Bread, multigrain, 400 g loaf (the bakery near the station), one slice ≈ 28 g", "per piece"],
+  ["Buttermilk, salted with roasted jeera", "per 100 ml"],
+  ["Chicken breast, boneless, skinless, raw", "per 100 g"],
+  ["Chicken curry, home style, with 2 onions and 3 tomatoes for 1 kg", "recipe · 14 lines"],
+  ["Coconut chutney", "recipe · 6 lines"],
+  ["Curd, homemade from full-cream milk, set overnight", "per 100 g"],
+  ["Dal tadka (toor and masoor, tempered with garlic and dried red chilli)", "recipe · 11 lines"],
+  ["Dosa, plain, from home batter", "per piece"],
+  ["Egg, whole, large", "per piece"],
+  ["Egg white, liquid, pasteurised, 1 L carton", "per 100 ml"],
+  ["Ghee, cow", "per 100 g"],
+  ["Greek yoghurt, unsweetened, 0% fat, 400 g tub", "per 100 g"],
+  ["Idli", "per piece"],
+  ["Jaggery", "per 100 g"],
+  ["Kachumber: cucumber, onion, tomato, lemon and chaat masala", "recipe · 6 lines"],
+  ["Masala chai, half sugar", "recipe · 5 lines"],
+  ["Milk, toned, 3% fat", "per 100 ml"],
+  ["Moong dal chilla with grated paneer", "recipe · 8 lines"],
+  ["Oats, rolled", "per 100 g"],
+  ["Peanut butter, crunchy, no added sugar", "per 100 g"],
+  ["Phulka, whole-wheat atta, no ghee", "per piece"],
+  ["Poha with peanuts and peas", "recipe · 10 lines"],
+  ["Rajma masala, the Sunday batch", "recipe · 13 lines"],
+  ["Roasted papad, moong dal", "per piece"],
+  ["Sambar with drumstick and pumpkin", "recipe · 15 lines"],
+  ["Soya chunks, dry", "per 100 g"],
+  ["Sprouts salad (moong and matki) with lemon", "recipe · 7 lines"],
+  ["Tofu, firm, 200 g block", "per 100 g"],
+  ["Upma, rava, with vegetables", "recipe · 11 lines"],
+  ["Vegetable pulao with peas, carrots, beans and whole spices", "recipe · 16 lines"],
+  ["Whey isolate, unflavoured (the 2 kg tub)", "per scoop"],
+  ["Whole moong, dry", "per 100 g"],
+  ["Zucchini, green", "per 100 g"],
+];
+
+const LIST = `<section class="cat-list"><div class="l-cluster"><span class="chip on">All</span><span class="chip">Foods</span><span class="chip">Recipes</span></div><div class="search">Search foods and recipes <kbd>/</kbd></div>
+  <nav class="cat-rows">${FOODS.map((f, i) => `<a class="cat-row ${i === 0 ? "on" : ""}"><span>${esc(f[0])}</span><span>${f[1]}</span></a>`).join("")}</nav>
+  <div class="acts"><button class="btn">New food</button><button class="btn">New recipe</button></div></section>`;
+
+const HEAD = `<header class="record-head"><h2>Paneer, malai, homemade from 1 L full-cream milk (pressed 20 min)</h2><div class="acts"><button class="btn primary">Edit <kbd style="margin-left:6px;color:inherit">E</kbd></button><a class="hist" style="align-self:center">History</a></div></header>
+  <p class="leftnote">A homemade food, weighed fresh. Values from the household's own label card, checked against two cooks on 3 Aug and 14 Sep.</p>`;
+const S_MACROS = `<section class="rsec"><h3>Per 100 g</h3><table class="wide-table"><tbody><tr><th>Energy</th><td class="n">296 kcal</td></tr><tr><th>Protein</th><td class="n">19.4 g</td></tr><tr><th>Carbs</th><td class="n">3.6 g</td></tr><tr><th>Fat</th><td class="n">22.8 g</td></tr><tr><th>of which saturated</th><td class="n">14.6 g</td></tr></tbody></table></section>`;
+const micro = (k, v) => `<div><dt>${k}</dt><dd class="${v === "unknown" ? "unknown" : ""}">${v}</dd></div>`;
+const S_MICROS = `<section class="rsec"><h3>Micronutrients</h3><dl class="micros">${micro("Calcium", "480 mg")}${micro("Sodium", "22 mg")}${micro("Iron", "unknown")}${micro("Magnesium", "unknown")}${micro("Fibre", "0 g")}${micro("Potassium", "unknown")}${micro("Vitamin B12", "unknown")}${micro("Phosphorus", "unknown")}</dl></section>`;
+const S_MEASURES = `<section class="rsec"><h3>Measures and yields</h3><ul class="words"><li><span>1 cube, 2 cm</span><span class="dim">≈ 9 g · weighed 20 cubes</span></li><li><span>1 katori, crumbled</span><span class="dim">≈ 85 g</span></li><li><span>1 slab from 1 L milk</span><span class="dim">≈ 190 g</span></li><li><span>1 heaped tbsp, grated</span><span class="dim">≈ 14 g · estimated</span></li><li><span>Yield: 1 L full-cream milk → 190 g paneer</span><span class="dim">from 6 batches</span></li></ul><div class="acts"><button class="btn sm">Add a measure</button><button class="btn sm">Add a yield</button></div></section>`;
+const S_USED = `<section class="used-by"><h3>Used by</h3><p>6 recipes: Moong dal chilla with grated paneer, Paneer bhurji, Palak paneer (the restaurant-style one with cream), Paneer tikka, Matar paneer, Sprouts salad</p><p>14 cooks, 3 Aug to 4 Oct · 31 logged items, 12 Aug to 6 Oct</p><p class="dim">Changing this food changes those days: they are computed from the catalogue, not frozen.</p></section>`;
+const S_WORDS = `<section class="rsec"><h3>Words I've learned</h3><ul class="words"><li><b>paneer</b><span class="dim">Asha, 2 Aug</span><button class="btn sm">Forget…</button></li><li><b>ghar ka paneer</b><span class="dim">Kabir, 9 Aug</span><button class="btn sm">Forget…</button></li><li><b>cottage cheese homemade</b><span class="dim">Noor, 3 Sep</span><button class="btn sm">Forget…</button></li><li><b>malai paneer</b><span class="dim">Asha, 14 Sep</span><button class="btn sm">Forget…</button></li><li><b>paneer-from-1L-full-cream-milk-pressed</b><span class="dim">the agent, 20 Sep</span><button class="btn sm">Forget…</button></li></ul><div class="acts"><button class="btn sm">Teach a word</button></div></section>`;
+const S_PRICE = `<section class="rsec"><h3>Price and history</h3><p class="leftnote">₹84 per 100 g (milk at ₹68 a litre, 190 g per litre) · ₹10.80 per 25 g protein</p><ul class="hlist"><li><span class="dim">20 Sep</span><span>Kabir changed the fat from 24.1 g to 22.8 g: “re-weighed after pressing for 20 min instead of 10”.</span></li><li><span class="dim">14 Sep</span><span>Asha added the measure “1 heaped tbsp, grated”.</span></li><li><span class="dim">2 Aug</span><span>Asha created it.</span></li></ul></section>`;
+const SECTIONS = [S_MACROS, S_MICROS, S_MEASURES, S_USED, S_WORDS, S_PRICE];
+
+function catA() {
+  return `<div class="cat-a"><div>${LIST}</div><article class="record">${HEAD}<div class="l-grid" style="--min:340px;--max:3" data-cols="Record sections">${SECTIONS.join("")}</div></article></div>`;
+}
+function catB() {
+  return `<div class="cat-b"><div>${LIST}</div><article class="record measure">${HEAD}${S_MACROS}${S_MICROS}${S_MEASURES}${S_PRICE.replace(/<ul class="hlist">[\s\S]*<\/ul>/, "")}</article><aside class="l-stack">${S_USED}${S_WORDS}<section class="rsec"><h3>History</h3>${S_PRICE.match(/<ul class="hlist">[\s\S]*<\/ul>/)[0]}</section></aside></div>`;
+}
+function catPhone() {
+  return `<nav class="l-cluster"><span class="pill on">Foods &amp; recipes</span><span class="pill">Workouts</span><span class="pill">Exercises</span><span class="pill">Gyms</span><span class="pill">Words</span></nav><a class="back">‹ Foods &amp; recipes</a><article class="record">${HEAD}${SECTIONS.join("")}</article>`;
+}
+
+const SCREEN_CSS = `
+.cat-a{display:grid;gap:24px;align-items:start;grid-template-columns:minmax(260px,320px) minmax(0,1fr)}
+.cat-b{display:grid;gap:24px;align-items:start;grid-template-columns:minmax(260px,300px) minmax(0,1fr) minmax(320px,380px)}
+.cat-b .record.measure{max-inline-size:none}
+`;
+
+function render() {
+  renderPhone("phone", phoneApp("", "catalogue", catPhone()));
+  renderFrames("a-frames", () => wideApp("Foods & recipes", "catalogue", catA()));
+  renderFrames("b-frames", () => wideApp("Foods & recipes", "catalogue", catB()));
+}
+
+document.head.insertAdjacentHTML("beforeend", "<style>" + SCREEN_CSS + "</style>");
+render();
+setupPage();
+</script>
+</body>
+</html>

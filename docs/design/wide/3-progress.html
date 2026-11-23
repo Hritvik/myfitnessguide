@@ -1,0 +1,505 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wide Progress</title>
+<style>
+/* ===== Tokens: docs/design/DESIGN.md and app/web/src/styles.css. No new colours. ===== */
+:root{--bg:#eef1f3;--card:#fff;--steel:#dfe5ea;--steel-2:#c9d2da;--ink:#1f2a30;--dim:#56646e;--haldi:#e3a008;--haldi-ink:#5c3d00;--leaf:#2f6b3f;--chilli:#b4321f;--on-haldi:#2b1d00;--shadow-near:rgb(31 42 48/.08);--shadow-far:rgb(31 42 48/.06);--page:#f7f8f9;
+  --font:Mukta,"Noto Sans",system-ui,sans-serif;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15191c;--card:#1c2328;--steel:#232b31;--steel-2:#34404a;--ink:#e8edf0;--dim:#9aa8b2;--haldi:#f0b429;--haldi-ink:#f7d47c;--leaf:#7cc790;--chilli:#f07a63;--shadow-near:rgb(0 0 0/.32);--shadow-far:rgb(0 0 0/.24);--page:#0f1417}}
+:root[data-theme="dark"]{--bg:#15191c;--card:#1c2328;--steel:#232b31;--steel-2:#34404a;--ink:#e8edf0;--dim:#9aa8b2;--haldi:#f0b429;--haldi-ink:#f7d47c;--leaf:#7cc790;--chilli:#f07a63;--shadow-near:rgb(0 0 0/.32);--shadow-far:rgb(0 0 0/.24);--page:#0f1417}
+*,*::before,*::after{box-sizing:border-box}
+
+/* ===== The mockup page (outside the frames) ===== */
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;padding:24px 16px 80px}
+.pg{max-width:2600px;margin:0 auto}
+.pg h1{font-size:24px;margin:0 0 4px}
+.pg>h2,.pg>section>h2{font-size:19px;margin:36px 0 4px}
+.pg .sub{color:var(--dim);margin:0 0 12px;max-width:900px}
+.pg-nav{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
+.pg-nav a,.pg-nav button{font:inherit;font-size:14px;border:1px solid var(--steel-2);border-radius:999px;padding:3px 12px;color:var(--ink);text-decoration:none;background:transparent;cursor:pointer}
+.pg-nav a[aria-current="page"],.pg-nav button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.pg-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:12px;max-width:1400px}
+.pg-opt{background:var(--card);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;box-shadow:0 1px 2px var(--shadow-near)}
+.pg-opt .letter{font-weight:700;font-size:20px;width:34px;height:34px;border-radius:50%;background:var(--steel);display:grid;place-items:center}
+.pg-opt h3{margin:0;font-size:16px}
+.pg-opt p{margin:2px 0 0;color:var(--dim);font-size:14px}
+.pg-opt.rec .letter{background:var(--haldi);color:var(--on-haldi)}
+.pg-rec{border-left:3px solid var(--haldi);padding:4px 0 4px 10px;margin:12px 0;max-width:1000px}
+.pg-note{border-left:3px solid var(--steel-2);padding-left:10px;color:var(--dim);font-size:14px;max-width:1000px;margin:8px 0}
+.frames{display:grid;gap:20px;margin-top:10px}
+.frame{margin:0;display:grid;gap:6px}
+.frame figcaption{font-size:13px;color:var(--dim)}
+.frame figcaption b{color:var(--ink)}
+.stage{position:relative;overflow:hidden;border:1px solid var(--steel-2);border-radius:8px;background:var(--bg)}
+.pg.actual .stage{overflow:visible}
+.pg.actual .scroller{overflow-x:auto}
+.vp{position:absolute;top:0;left:0;transform-origin:0 0}
+.fold{position:absolute;left:0;right:0;border-top:2px dashed var(--haldi);pointer-events:none;z-index:5}
+.fold span{position:absolute;right:8px;top:-22px;background:var(--haldi);color:var(--on-haldi);font-size:12px;padding:0 6px;border-radius:4px}
+.phone-row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.phone-row .stage{flex:none}
+
+/* ===== The app, inside a frame (mirrors app/web/src/styles.css) ===== */
+.app{font-family:var(--font);font-size:16px;line-height:1.45;color:var(--ink);background:var(--bg);font-variant-numeric:tabular-nums;position:relative}
+.app :is(h1,h2,h3,h4,p,ul,ol,dl,dd,figure,table){margin:0}
+.app :is(ul,ol){padding:0;list-style:none}
+.app.wide{display:grid;grid-template-columns:220px minmax(0,1fr);container:app/inline-size}
+.app.phone{width:390px;padding-bottom:140px}
+.sidebar{background:var(--steel);padding:16px 12px;display:flex;flex-direction:column;gap:4px;min-height:100%}
+.sidebar-top{display:flex;justify-content:space-between;align-items:center;padding:0 4px 8px}
+.sidebar nav{display:grid;gap:2px}
+.sidebar nav a{padding:6px 10px;border-radius:8px;font-size:.9rem}
+.sidebar nav a.on{background:var(--ink);color:var(--bg)}
+.sidebar h2{margin:12px 10px 4px;font-size:.8rem;font-weight:500;color:var(--dim)}
+.sidebar .memberbar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 4px 0;margin-top:24px}
+.keyhint{font-size:.75rem;color:var(--dim);padding:8px 4px 0}
+kbd{font:inherit;font-size:.75rem;border:1px solid var(--steel-2);border-radius:4px;padding:0 4px;color:var(--dim)}
+.pill{min-height:36px;display:inline-flex;align-items:center;border:1px solid var(--steel-2);color:var(--dim);border-radius:999px;padding:2px 12px;font-size:.85rem;font-weight:500}
+.pill.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.app.phone .memberbar{display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px 0}
+.tabbar{position:absolute;inset:auto 0 0 0;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--steel-2);padding:6px 8px;background:var(--bg)}
+.tabbar a{display:grid;justify-items:center;padding-block:6px;border-radius:10px;color:var(--dim);font-size:.8rem}
+.tabbar a.on{background:var(--ink);color:var(--bg)}
+.fab{position:absolute;right:24px;bottom:24px;width:56px;height:56px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:28px;border:0}
+.app.phone .fab{bottom:84px;right:16px}
+
+/* The screen. Today: max-width 1180px, padding 20 24 104. Proposed: no cap below 2,400 px; the gutter steps with the band. */
+.screen{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start;container:screen/inline-size}
+.app.phone .screen{padding:12px 16px 16px}
+.app.wide .screen{padding:20px 24px 104px;max-width:2400px}
+@container app (min-width:1900px){.app.wide .screen{padding:24px 32px 104px;gap:20px;--gap:20px}}
+
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.top h1{font-size:1.15rem;font-weight:700;line-height:1.2}
+.leftnote{color:var(--dim);font-size:.9rem;text-wrap:pretty}
+.banner{background:var(--steel);border-radius:10px;padding:8px 12px;font-size:.85rem}
+.btn{min-height:40px;border-radius:8px;padding:4px 12px;border:1px solid var(--ink);background:transparent;color:var(--ink);font:inherit;font-size:.85rem;font-weight:500;display:inline-flex;align-items:center}
+.btn.primary{background:var(--ink);color:var(--bg)}
+.btn.sm{min-height:32px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.chip{justify-self:start;border:1px solid var(--steel-2);border-radius:999px;padding:2px 10px;font-size:.85rem;width:fit-content;max-width:100%}
+.chip.ready{color:var(--leaf);border-color:currentColor}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.dim{color:var(--dim)} .est{color:var(--haldi-ink)} .ok{color:var(--leaf)}
+.hist{font-size:.8rem;color:var(--dim);text-decoration:underline;text-underline-offset:2px}
+.h2{font-size:1rem;font-weight:700}
+
+/* ===== Layout primitives (proposed; docs/design/wide/layout-system.md). Children never set their own width. ===== */
+.l-stack{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s,16px);align-content:start}
+.l-stack>*,.l-grid>*,.l-split>*,.l-cluster>*{min-width:0}
+.l-cluster{display:flex;flex-wrap:wrap;gap:var(--s,8px);align-items:baseline}
+.l-split{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline}
+/* Auto-fit grid: as many columns of at least --min as fit, never more than --max (default: unlimited). */
+.l-grid{--min:320px;--max:99;--s:16px;display:grid;gap:var(--s);align-items:start;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,max(var(--min),(100% - (var(--max) - 1) * var(--s)) / var(--max))),1fr))}
+.l-grid.fill{grid-template-columns:repeat(auto-fill,minmax(min(100%,max(var(--min),(100% - (var(--max) - 1) * var(--s)) / var(--max))),1fr))}
+/* Switcher: side by side when the container is at least --at wide, stacked below it. */
+.l-switch{--at:900px;display:flex;flex-wrap:wrap;gap:var(--s,24px);align-items:flex-start}
+.l-switch>*{flex-grow:1;flex-basis:calc((var(--at) - 100%) * 999);min-width:0}
+
+/* Text: every text slot declares wrap, clamp or truncate. */
+.t-wrap{overflow-wrap:anywhere}
+.t-clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--lines,2);line-clamp:var(--lines,2);overflow:hidden;overflow-wrap:anywhere}
+.t-trunc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.measure{max-inline-size:72ch}
+
+/* ===== Train ===== */
+.rx{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;background:var(--steel);border-radius:12px;padding:12px;align-content:start}
+.rx header{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.rx h2{font-size:1rem;font-weight:700;overflow-wrap:anywhere;min-width:0}
+.rx header span{flex-shrink:0;font-size:.9rem}
+.rx .cue{font-size:.85rem;color:var(--dim)}
+.rx .cue::before{content:"";display:inline-block;margin-inline-end:.52em;border-inline-start:.55em solid currentColor;border-block:.35em solid transparent}
+.rx .cue.open{display:block;-webkit-line-clamp:none}
+.rx .cue.open::before{border-inline:.35em solid transparent;border-block-start:.55em solid currentColor;border-block-end:0}
+.loadval{font-size:.9rem}
+.plates figcaption{font-size:.85rem}
+.gaps{font-size:.9rem;display:grid;gap:4px}
+.gaps li::before{content:"· "}
+.ask-inv{display:grid;gap:8px;border-top:1px solid var(--steel-2);padding-top:12px;font-size:.9rem}
+.history{display:grid;gap:8px;align-content:start}
+.session-list{display:grid;gap:2px}
+.session-row{display:grid;grid-template-columns:minmax(0,1fr);gap:0;padding:7px 10px;border-radius:8px;font-size:.9rem}
+.session-row span{color:var(--dim);font-size:.85rem}
+.session-row.on{background:var(--card);box-shadow:0 1px 2px var(--shadow-near)}
+.session-row.draft b::after{content:" · draft";color:var(--haldi-ink);font-weight:400}
+.session-open{display:grid;gap:8px;background:var(--steel);border-radius:12px;padding:12px 14px;align-content:start}
+.session-open h3{font-size:1rem;font-weight:700}
+.session-open h3 span{color:var(--dim);font-weight:400}
+.sets{display:grid;gap:2px;font-size:.9rem}
+.sets li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline;padding-block:3px;border-bottom:1px solid var(--steel-2)}
+.sets li.ex{border:0;padding-top:8px;font-weight:700}
+.sets .draftbar{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.85rem}
+/* Density: an open session at least 560 px wide lists its sets in two columns (by exercise). */
+.session-open{container:sess/inline-size}
+@container sess (min-width:560px){.sets.split2{columns:2;column-gap:24px;display:block}.sets.split2 li{break-inside:avoid}}
+
+/* ===== Today ===== */
+.leftline{font-size:1.1rem;line-height:1.4;text-wrap:pretty}
+.macros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:8px;row-gap:4px}
+.macro{display:grid;gap:4px;font-size:.8rem;color:var(--dim);line-height:1.25;align-content:end}
+.macro .amount{color:var(--ink);font-size:1rem;font-weight:700}
+.track{display:block;height:6px;background:var(--steel-2);border-radius:3px;overflow:hidden}
+.track span{display:block;height:100%;background:var(--ink);border-radius:3px}
+.strip{display:grid;gap:4px}
+.needs{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px;background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem}
+.tiers{display:grid;gap:4px}
+.tier{background:var(--steel);border-radius:12px;padding:12px 14px;display:grid;gap:6px;align-content:start;container:tier/inline-size}
+.tiers>.tier:first-child{border-radius:16px 16px 12px 12px}
+.tier header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.tier h2{font-size:1rem;font-weight:700}
+.tier header span{font-size:.85rem;color:var(--dim)}
+.tier.nothing_yet{background:transparent;border:1.5px dashed var(--steel-2);padding-block:10px}
+.tier.skipped{background:transparent;border:1.5px solid var(--steel-2);padding-block:10px}
+.tier.skipped header span{color:var(--ink)}
+.items{display:grid;gap:4px;font-size:.9rem}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline}
+.item .amount{color:var(--dim)}
+.item .num{display:none}
+.item .prov{font-size:.8rem;color:var(--dim);text-align:right}
+.item .prov.est{color:var(--haldi-ink)}
+.item .draftbar{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.85rem}
+/* Density: a tier at least 520 px wide shows each item's kcal and protein in their own columns. */
+@container tier (min-width:520px){.item{grid-template-columns:minmax(0,1fr) 5.5em 4.5em 9em}.item .num{display:block;text-align:right;color:var(--dim)}}
+.tier-add{justify-self:start}
+.foot{display:grid;font-size:.9rem}
+.foot>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-block:8px;border-top:1px solid var(--steel-2)}
+.foot dd{color:var(--dim);text-align:right;flex-shrink:0;max-width:50%}
+.closeday{background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem;display:grid;gap:6px}
+.pots{display:grid;gap:14px}
+.pot{background:var(--card);border-radius:14px;padding:14px;display:grid;gap:12px;box-shadow:0 1px 2px var(--shadow-near),0 6px 18px var(--shadow-far)}
+.pot header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.pot h2{font-size:1rem;font-weight:700;overflow-wrap:anywhere}
+.pot h2 span{font-weight:400}
+.pot .meta{color:var(--dim);font-size:.85rem}
+.split{display:flex;height:38px;border-radius:8px;overflow:hidden;gap:2px}
+.seg{flex:0 1 0px;display:flex;align-items:center;padding-inline:8px;font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:6px}
+.seg>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.seg.you{background:var(--haldi);color:var(--on-haldi)}
+.seg.other{background:var(--steel-2)}
+.seg.unaccounted{background:repeating-linear-gradient(135deg,var(--steel-2) 0 2px,transparent 2px 8px);border:1px dashed var(--steel-2);border-radius:0 8px 8px 0;color:var(--dim)}
+.legend{display:flex;gap:4px 14px;flex-wrap:wrap;font-size:.85rem;color:var(--dim)}
+.ask{background:var(--steel);border-radius:10px;padding:12px;font-size:.9rem;display:grid;gap:8px}
+.glance{display:grid;gap:8px}
+.wide-table{width:100%;border-collapse:collapse;font-size:.9rem}
+.wide-table th,.wide-table td{text-align:left;padding:4px 8px;border-bottom:1px solid var(--steel-2);font-weight:400;vertical-align:baseline}
+.wide-table thead th{color:var(--dim);font-size:.8rem}
+.wide-table tbody th{font-weight:500}
+.wide-table td.n,.wide-table th.n{text-align:right}
+.nb{white-space:nowrap}
+.fridge{display:grid;font-size:.9rem}
+.fridge li{display:flex;flex-wrap:wrap;gap:4px 12px;padding-block:8px;border-top:1px solid var(--steel-2)}
+
+/* ===== Progress ===== */
+.chart{background:var(--card);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.chart h2{font-size:1rem;font-weight:700}
+.chart .sum{font-size:.85rem;color:var(--dim)}
+.chart svg{width:100%;height:auto;display:block}
+.chart .tbl{font-size:.8rem;color:var(--dim);text-decoration:underline;text-underline-offset:2px}
+.keyrow{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.8rem;color:var(--dim)}
+.keyrow i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.tablewrap{overflow-x:auto}
+.week-empty td{color:var(--dim)}
+.views{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ===== Catalogue ===== */
+.cat-list{display:grid;gap:8px;align-content:start}
+.search{border:1px solid var(--steel-2);background:var(--card);border-radius:8px;padding:8px 10px;color:var(--dim);font-size:.9rem}
+.cat-rows{display:grid;gap:2px}
+.cat-row{display:flex;justify-content:space-between;gap:12px;padding:6px 8px;border-radius:8px;font-size:.9rem}
+.cat-row>:first-child{min-width:0;overflow-wrap:anywhere}
+.cat-row>:last-child{flex-shrink:0;color:var(--dim);font-size:.85rem}
+.cat-row.on{background:var(--card);box-shadow:0 1px 2px var(--shadow-near)}
+.record{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;background:var(--card);border-radius:14px;padding:14px 16px;align-content:start}
+.record-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px 12px;flex-wrap:wrap}
+.record-head h2{font-size:1.1rem;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.rsec{display:grid;gap:6px;align-content:start}
+.rsec h3{font-size:.9rem;font-weight:700}
+.micros{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px 12px;font-size:.9rem}
+.micros div{display:flex;justify-content:space-between;gap:8px}
+.micros dd.unknown{color:var(--dim)}
+.used-by{background:var(--steel);border-left:3px solid var(--dim);border-radius:10px;padding:8px 12px;display:grid;gap:4px;font-size:.9rem}
+.used-by h3{font-size:.9rem;font-weight:700}
+.words li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:.9rem;padding-block:3px;border-bottom:1px solid var(--steel-2)}
+.hlist{display:grid;gap:4px;font-size:.85rem}
+.hlist li{display:grid;grid-template-columns:7.5em minmax(0,1fr);gap:8px}
+.back{color:var(--dim);font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="pg">
+<nav class="pg-nav" aria-label="Mockups"><a href="0-index.html">Index</a><a href="1-train.html">Train</a><a href="2-today.html">Today</a><a href="3-progress.html" aria-current="page">Progress</a><a href="4-catalogue.html">Catalogue</a></nav>
+<h1>Progress (Nutrition) at 1,440, 1,920 and 2,560 px</h1>
+<p class="sub">Ahead of the charts build (docs/superpowers/specs/2026-10-07-charts-design.md §4–5): the Nutrition view over 12 weeks, with an unlogged day, a partial day, a week with no complete days, an open today and a range of incomplete pricing. Seven charts and the weekly averages table.</p>
+<div class="pg-nav"><button data-size="fit" aria-pressed="true">Fit to page</button><button data-size="actual" aria-pressed="false">Actual size</button>
+<span class="dim" style="align-self:center;margin:0 4px">Theme</span><button data-theme-set="auto" aria-pressed="true">System</button><button data-theme-set="light" aria-pressed="false">Light</button><button data-theme-set="dark" aria-pressed="false">Dark</button></div>
+<div class="pg-opts"><div class="pg-opt rec"><div class="letter">A</div><div><h3>A chart grid, the weekly table full width</h3><p>All seven charts in one auto-fit grid (a 480 px minimum, at most 4 across); the weekly averages table spans the screen beneath.</p></div></div><div class="pg-opt"><div class="letter">B</div><div><h3>Charts left, table and cost right (the spec's split)</h3><p>As the charts spec draws it at 1,280: calories, protein, carbs and fat on the left (a grid inside); macro split, the weekly table and Food cost on the right.</p></div></div></div>
+<p class="pg-rec"><b>Recommendation: A.</b> The charts are peers, so an auto-fit grid gives them 2 → 3 → 4 columns, and the ten-column weekly table gets the full width it needs; B squeezes that table into a 445 px column at 1,440 and leaves the left column a single chart wide.</p>
+<section><h2>Phone, 390 px (unchanged, for reference)</h2><p class="pg-note">Unchanged from the charts spec: the title and range pills, the view switch, the five nutrition charts at 358 px, then Food cost. No weekly table on the phone.</p><div class="phone-row" id="phone"></div></section>
+<section id="opt-a"><h2>A · A chart grid, the weekly table full width</h2><p class="pg-note">NUTRITION_PARTS: the charts become one part (an auto-fit grid) and the table a full-width part. The order is the phone's.</p><p class="pg-note">Trajectory and Health use the same grid: the headline goal and its charts, then the readings table full width.</p><div class="frames" id="a-frames"></div></section><section id="opt-b"><h2>B · Charts left, table and cost right (the spec's split)</h2><p class="pg-note">Columns: minmax(0,1fr) minmax(420px,38%). The weekly table needs about 760 px for its ten columns, so at 1,440 it drops the two cost columns (a container query on the table's card) and the cost a day is only in the Food cost chart.</p><div class="frames" id="b-frames"></div></section>
+<p class="pg-note">All content is invented (the sample household Asha, Kabir and Noor). Frames are drawn at their real CSS width and scaled to the page; the dashed line is the window's fold. The caption under each frame is read back from the rendered grids, not written by hand.</p>
+</div>
+<script>
+/* Frames: each option is rendered at its real CSS width (1,440, 1,920, 2,560) and scaled to fit the page.
+   The layout inside a frame is the frame's own (container queries on .app and .screen), so the
+   scaling never changes what wraps. "Actual size" shows the frames 1:1 in a sideways scroller. */
+const SIZES = [
+  { w: 1440, h: 900 },
+  { w: 1920, h: 1080 },
+  { w: 2560, h: 1440 },
+];
+const MEMBERS = ["Asha", "Kabir", "Noor"];
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const fmt = (n) => n.toLocaleString("en-IN");
+
+function sidebar(active) {
+  const main = ["Today", "Train", "Progress", "Household"];
+  const cat = ["Foods & recipes", "Workouts", "Exercises", "Gyms & equipment", "Words I've learned"];
+  return `<aside class="sidebar">
+    <div class="sidebar-top"><b>Household</b><span class="dim">⋯</span></div>
+    <nav>${main.map((m) => `<a class="${m === active ? "on" : ""}">${m}</a>`).join("")}</nav>
+    <h2>Catalogue</h2>
+    <nav>${cat.map((m) => `<a class="${m === active ? "on" : ""}">${esc(m)}</a>`).join("")}</nav>
+    <div class="memberbar">${MEMBERS.map((m, i) => `<span class="pill ${i === 0 ? "on" : ""}">${m}</span>`).join("")}</div>
+    <p class="keyhint"><kbd>N</kbd> log · <kbd>/</kbd> search · <kbd>?</kbd> keys</p>
+  </aside>`;
+}
+
+function wideApp(active, screenClass, body) {
+  return `<div class="app wide">${sidebar(active)}<main class="screen ${screenClass}">${body}</main><button class="fab" aria-label="Add">+</button></div>`;
+}
+
+function phoneApp(tab, screenClass, body) {
+  const tabs = ["Today", "Train", "Progress", "Household"];
+  return `<div class="app phone"><nav class="memberbar">${MEMBERS.map((m, i) => `<span class="pill ${i === 0 ? "on" : ""}">${m}</span>`).join("")}<span class="pill" style="margin-left:auto">⋯</span></nav>
+    <main class="screen ${screenClass}">${body}</main>
+    <button class="fab" aria-label="Add">+</button>
+    <nav class="tabbar">${tabs.map((t) => `<a class="${t === tab ? "on" : ""}">${t}</a>`).join("")}</nav></div>`;
+}
+
+/** One frame: a figure with a caption, a stage the scaled viewport sits in, and the fold line. */
+function frame(html, w, h, label) {
+  return `<figure class="frame" data-w="${w}" data-h="${h}">
+    <figcaption><b>${label ?? `${fmt(w)} × ${fmt(h)}`}</b> <span class="measure-out"></span></figcaption>
+    <div class="scroller"><div class="stage"><div class="vp" style="width:${w}px">${html}</div>
+    <div class="fold"><span>fold · ${fmt(h)} px</span></div></div></div></figure>`;
+}
+
+function renderFrames(id, make) {
+  const el = document.getElementById(id);
+  el.innerHTML = SIZES.map((s) => frame(make(), s.w, s.h)).join("");
+}
+
+function renderPhone(id, html) {
+  document.getElementById(id).innerHTML = frame(html, 390, 844, "Phone, 390 × 844 (unchanged)");
+}
+
+/** Caption: what the layout decided at this width, read back from the computed grids (data-cols="name"). */
+function measure(fig) {
+  const out = [];
+  fig.querySelectorAll(".vp [data-cols]").forEach((g) => {
+    const cs = getComputedStyle(g);
+    let n;
+    if (cs.display === "flex") {
+      const tops = new Set([...g.children].map((c) => Math.round(c.getBoundingClientRect().top)));
+      n = g.children.length && tops.size === 1 ? g.children.length : 1;
+      if (tops.size > 1 && tops.size < g.children.length) n = g.children.length - tops.size + 1;
+    } else n = cs.gridTemplateColumns.split(" ").filter((t) => t && parseFloat(t) > 0).length;
+    out.push(`${g.dataset.cols}: ${n} ${n === 1 ? "column" : "columns"}`);
+  });
+  const screen = fig.querySelector(".vp .screen");
+  if (screen && fig.dataset.w !== "390") out.unshift(`screen ${fmt(Math.round(screen.getBoundingClientRect().width / scaleOf(fig)))} px`);
+  fig.querySelector(".measure-out").textContent = out.length ? "· " + out.join(" · ") : "";
+}
+const scaleOf = (fig) => Number(fig.dataset.scale || 1);
+
+function fit() {
+  const actual = document.querySelector(".pg").classList.contains("actual");
+  document.querySelectorAll(".frame").forEach((fig) => {
+    const w = Number(fig.dataset.w);
+    const h = Number(fig.dataset.h);
+    const stage = fig.querySelector(".stage");
+    const vp = fig.querySelector(".vp");
+    const avail = fig.parentElement.getBoundingClientRect().width - 2;
+    const s = actual ? 1 : Math.min(1, avail / w);
+    fig.dataset.scale = s;
+    vp.style.transform = s === 1 ? "" : `scale(${s})`;
+    const vh = Math.max(vp.scrollHeight, h);
+    stage.style.width = `${w * s + 2}px`;
+    stage.style.height = `${vh * s}px`;
+    fig.querySelector(".fold").style.top = `${h * s}px`;
+    measure(fig);
+  });
+}
+
+function setupPage() {
+  const pg = document.querySelector(".pg");
+  document.querySelectorAll("[data-size]").forEach((b) =>
+    b.addEventListener("click", () => {
+      pg.classList.toggle("actual", b.dataset.size === "actual");
+      document.querySelectorAll("[data-size]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      fit();
+    }),
+  );
+  document.querySelectorAll("[data-theme-set]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const t = b.dataset.themeSet;
+      if (t === "auto") document.documentElement.removeAttribute("data-theme");
+      else document.documentElement.setAttribute("data-theme", t);
+      document.querySelectorAll("[data-theme-set]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    }),
+  );
+  fit();
+  addEventListener("resize", fit);
+  if (document.fonts) document.fonts.ready.then(fit);
+  // Interactions inside a frame that change its height (open a cue) refit.
+  document.addEventListener("click", (e) => {
+    const c = e.target.closest(".cue");
+    if (c) {
+      c.classList.toggle("open");
+      fit();
+    }
+  });
+}
+
+/* Seeded pseudo-random numbers, so every render draws the same invented data. */
+function rng(seed) {
+  let s = seed >>> 0;
+  return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+}
+
+/* Progress → Nutrition, ahead of the charts build. Invented, seeded data; 12 weeks from Sun 19 Jul to Sat 10 Oct, today Thu 8 Oct. */
+const DAYS = 84, TODAY = 81; // index of Thu 8 Oct
+const R = rng(66);
+const WEEK_LABELS = ["19 Jul", "26 Jul", "2 Aug", "9 Aug", "16 Aug", "23 Aug", "30 Aug", "6 Sep", "13 Sep", "20 Sep", "27 Sep", "4 Oct"];
+const NOCOMPLETE_WEEK = 5; // 23–29 Aug: travel, nothing closed complete
+const status = Array.from({ length: DAYS }, (_, i) => {
+  if (i > TODAY) return "future";
+  if (i === TODAY) return "today";
+  if (Math.floor(i / 7) === NOCOMPLETE_WEEK) return i % 7 < 3 ? "unlogged" : "partial";
+  if ([11, 30, 52].includes(i)) return "unlogged";
+  if ([17, 44, 66].includes(i)) return "partial";
+  return "counted";
+});
+const series = (base, spread) => status.map((s) => (s === "unlogged" || s === "future" ? null : Math.round(base + (R() - 0.5) * spread - (s === "partial" || s === "today" ? base * 0.35 : 0))));
+const KCAL = series(1780, 520), PROT = series(108, 50), CARB = series(205, 90), FAT = series(58, 26);
+const COST = status.map((s, i) => (s === "unlogged" || s === "future" ? null : { min: 150 + Math.round(R() * 90), spread: 18 + Math.round(R() * 40), open: [23, 24, 57].includes(i) }));
+const weekAvg = (arr) => Array.from({ length: 12 }, (_, w) => {
+  if (w === NOCOMPLETE_WEEK) return null;
+  const v = arr.slice(w * 7, w * 7 + 7).filter((x, j) => x !== null && status[w * 7 + j] === "counted");
+  return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : null;
+});
+
+function chartSvg({ data, max, target, avg, kind = "bars", fmtY = (v) => v }) {
+  const W = 640, H = 210, L = 40, B = 24, T = 8, pw = W - L - 8, ph = H - B - T;
+  const x = (i) => L + (i * pw) / DAYS, bw = pw / DAYS - 1.5;
+  const y = (v) => T + ph - (v / max) * ph;
+  let g = "";
+  for (let k = 0; k <= 3; k++) {
+    const v = (max / 3) * k;
+    g += `<line x1="${L}" x2="${W - 8}" y1="${y(v)}" y2="${y(v)}" stroke="var(--steel-2)" stroke-width="0.6"/><text x="${L - 6}" y="${y(v) + 3.5}" font-size="10" text-anchor="end" fill="var(--dim)">${fmtY(Math.round(v))}</text>`;
+  }
+  WEEK_LABELS.forEach((l, w) => {
+    if (w % 2 === 0) g += `<text x="${x(w * 7)}" y="${H - 8}" font-size="10" fill="var(--dim)">${l}</text>`;
+  });
+  status.forEach((s, i) => {
+    if (s === "unlogged") g += `<rect x="${x(i)}" y="${y(0) - 4}" width="${bw}" height="4" fill="none" stroke="var(--dim)" stroke-dasharray="1 1"/>`;
+    if (s === "future") return;
+    if (kind === "bars" && data[i] !== null) {
+      const partial = s === "partial" || s === "today";
+      g += `<rect x="${x(i)}" y="${y(data[i])}" width="${bw}" height="${y(0) - y(data[i])}" fill="${partial ? "none" : "var(--steel-2)"}" stroke="${partial ? "var(--dim)" : "none"}" stroke-width="0.8"/>`;
+    }
+    if (kind === "cost" && data[i]) {
+      const d = data[i];
+      g += `<rect x="${x(i)}" y="${y(d.min + d.spread)}" width="${bw}" height="${y(d.min) - y(d.min + d.spread)}" fill="${d.open ? "none" : "var(--steel-2)"}" stroke="${d.open ? "var(--haldi-ink)" : "none"}" stroke-dasharray="${d.open ? "2 1" : ""}"/>`;
+    }
+  });
+  if (target) g += `<path d="${Array.from({ length: 12 }, (_, w) => `M${x(w * 7)} ${y(target[w])}H${x(w * 7 + 7)}`).join("")}" stroke="var(--dim)" stroke-width="1.2" stroke-dasharray="4 3" fill="none"/>`;
+  if (avg) g += `<path d="${avg.map((v, w) => (v === null ? "" : `M${x(w * 7)} ${y(v)}H${x(w * 7 + 7) - 1.5}`)).join("")}" stroke="var(--ink)" stroke-width="2.2" fill="none"/>`;
+  g += `<line x1="${x(TODAY + 1)}" x2="${x(TODAY + 1)}" y1="${T}" y2="${y(0)}" stroke="var(--haldi)" stroke-width="1"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+}
+
+function splitSvg() {
+  const W = 640, H = 210, L = 8, B = 24, T = 8, pw = W - 16, ph = H - B - T, bw = pw / 12 - 8;
+  let g = "";
+  for (let w = 0; w < 12; w++) {
+    const x = L + (w * pw) / 12;
+    if (w === NOCOMPLETE_WEEK) {
+      g += `<rect x="${x}" y="${T}" width="${bw}" height="${ph}" fill="none" stroke="var(--steel-2)" stroke-dasharray="3 3"/><text x="${x + bw / 2}" y="${T + ph / 2}" font-size="9" text-anchor="middle" fill="var(--dim)">none</text>`;
+    } else {
+      const p = 0.24 + R() * 0.06, f = 0.26 + R() * 0.05, c = 1 - p - f;
+      const parts = [["var(--ink)", p, "var(--bg)"], ["var(--dim)", c, "var(--bg)"], ["var(--steel-2)", f, "var(--ink)"]];
+      let yy = T;
+      parts.forEach(([fill, share, ink]) => {
+        const h = share * ph;
+        g += `<rect x="${x}" y="${yy}" width="${bw}" height="${h - 1}" fill="${fill}"/><text x="${x + bw / 2}" y="${yy + h / 2 + 3.5}" font-size="10" text-anchor="middle" fill="${ink}">${Math.round(share * 100)}</text>`;
+        yy += h;
+      });
+    }
+    if (w % 2 === 0) g += `<text x="${x}" y="${H - 8}" font-size="10" fill="var(--dim)">${WEEK_LABELS[w]}</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" role="img">${g}</svg>`;
+}
+
+const KEY = `<p class="keyrow"><span><i style="background:var(--steel-2)"></i>a counted day</span><span><i style="border:1px solid var(--dim)"></i>partial or open, not counted</span><span><i style="border:1px dashed var(--dim)"></i>not logged</span><span><i style="background:var(--ink);height:3px"></i>weekly average</span><span><i style="border-top:2px dashed var(--dim);height:0"></i>target</span></p>`;
+const card = (title, sum, svg, key = KEY) => `<section class="chart"><h2>${title}</h2><p class="sum">${sum}</p>${svg}${key}<a class="tbl">Show the data table</a></section>`;
+const tgt = (v) => Array(12).fill(v);
+const CHARTS = {
+  kcal: card("Calories vs target", "Averaged 1,742 kcal a day over the last 4 weeks against a 1,850 target; 23–29 Aug has no complete day, so no average.", chartSvg({ data: KCAL, max: 2400, target: [1950, 1950, 1950, 1900, 1900, 1900, 1850, 1850, 1850, 1850, 1850, 1850], avg: weekAvg(KCAL), fmtY: fmt })),
+  prot: card("Protein vs target", "Averaged 104 g a day over the last 4 weeks against 128 g; 9 of the 74 logged days reached the target.", chartSvg({ data: PROT, max: 180, target: tgt(128), avg: weekAvg(PROT) })),
+  carb: card("Carbs", "Averaged 198 g a day over the last 4 weeks. The goal is the remainder each day, so it is in the table, not drawn.", chartSvg({ data: CARB, max: 300, avg: weekAvg(CARB) })),
+  fat: card("Fat", "Averaged 57 g a day over the last 4 weeks.", chartSvg({ data: FAT, max: 90, avg: weekAvg(FAT) })),
+  split: card("Macro split", "Of the kcal from protein, carbs and fat, by week. 23–29 Aug: not enough complete days.", splitSvg(), `<p class="keyrow"><span><i style="background:var(--ink)"></i>protein %</span><span><i style="background:var(--dim)"></i>carbs %</span><span><i style="background:var(--steel-2)"></i>fat %</span></p>`),
+  cost: card("Food cost, daily", "₹170–₹225 a day over the last 4 weeks; priced 412 of 446 items. Three days have unpriced items and read as “at least”.", chartSvg({ data: COST, max: 330, kind: "cost", fmtY: (v) => "₹" + v }), `<p class="keyrow"><span><i style="background:var(--steel-2)"></i>min to max</span><span><i style="border:1px dashed var(--haldi-ink)"></i>at least (unpriced items)</span><span><i style="border:1px dashed var(--dim)"></i>not logged</span></p>`),
+  c25: card("Cost per 25 g protein", "₹17–₹24 over the items with a price; whey and eggs are the cheapest protein, paneer the dearest.", chartSvg({ data: COST.map((c) => (c ? { min: 14 + (c.min % 7), spread: 5, open: false } : null)), max: 33, kind: "cost", fmtY: (v) => "₹" + v }), `<p class="keyrow"><span><i style="background:var(--steel-2)"></i>a day's min to max</span></p>`),
+};
+
+function weekTable() {
+  const avgK = weekAvg(KCAL), avgP = weekAvg(PROT), avgC = weekAvg(CARB), avgF = weekAvg(FAT);
+  const rows = [];
+  for (let w = 11; w >= 0; w--) {
+    const counted = status.slice(w * 7, w * 7 + 7).filter((s) => s === "counted").length;
+    const inRange = status.slice(w * 7, w * 7 + 7).filter((s) => s !== "future").length;
+    const none = avgK[w] === null;
+    rows.push(`<tr class="${none ? "week-empty" : ""}"><th>${WEEK_LABELS[w]}${w === 11 ? " <span class='dim'>(today open)</span>" : ""}</th><td>${counted} of ${inRange}</td>${
+      none
+        ? `<td colspan="7">No complete days: 3 not logged, 4 partial. No averages for this week.</td>`
+        : `<td class="n"><span class="nb">${fmt(avgK[w])} /</span> <span class="nb dim">1,850</span></td><td class="n"><span class="nb">${avgP[w]} g /</span> <span class="nb dim">128 g</span></td><td class="n nb">${avgC[w]} g</td><td class="n nb">${avgF[w]} g</td><td><span class="nb">${24 + (w % 4)} ·</span> <span class="nb">${48 - (w % 3)} ·</span> <span class="nb">${28 - (w % 4) + (w % 3)}</span></td><td class="n nb c-cost">₹${172 + w * 3}–${214 + w * 2}</td><td class="n nb c-cost">₹${17 + (w % 4)}–${21 + (w % 5)}</td>`
+    }</tr>`);
+  }
+  return `<section class="chart weekly"><h2>Weekly averages</h2><p class="sum">Newest first. A day counts when it is logged, not partial, and not today while today is open.</p><div class="tablewrap"><table class="wide-table"><thead><tr><th>Week</th><th>Days counted</th><th class="n">kcal / target</th><th class="n">Protein / target</th><th class="n">Carbs</th><th class="n">Fat</th><th>Split P · C · F %</th><th class="n c-cost">Cost a day</th><th class="n c-cost">₹ per 25 g protein</th></tr></thead><tbody>${rows.join("")}</tbody></table></div></section>`;
+}
+
+const P_TOP = `<div class="top"><h1>Progress</h1></div><div class="l-cluster" style="justify-content:space-between"><nav class="views"><span class="pill">Trajectory</span><span class="pill on">Nutrition</span><span class="pill">Health</span></nav><nav class="views"><span class="pill">4 weeks</span><span class="pill on">12 weeks</span><span class="pill">All</span></nav></div>`;
+const ORDER = ["kcal", "prot", "carb", "fat", "split", "cost", "c25"];
+
+function progressA() {
+  return `${P_TOP}<div class="l-grid" style="--min:480px;--max:4" data-cols="Charts">${ORDER.map((k) => CHARTS[k]).join("")}</div>${weekTable()}`;
+}
+function progressB() {
+  return `${P_TOP}<div class="progress-b"><div class="l-grid" style="--min:460px" data-cols="Left charts">${["kcal", "prot", "carb", "fat"].map((k) => CHARTS[k]).join("")}</div>
+  <div class="l-stack">${CHARTS.split}${weekTable()}${CHARTS.cost}${CHARTS.c25}</div></div>`;
+}
+function progressPhone() {
+  return `<div class="top"><h1>Progress</h1><nav class="views"><span class="pill">4 weeks</span><span class="pill on">12 weeks</span><span class="pill">All</span></nav></div><nav class="views"><span class="pill">Trajectory</span><span class="pill on">Nutrition</span><span class="pill">Health</span></nav>${ORDER.map((k) => CHARTS[k]).join("")}`;
+}
+
+const SCREEN_CSS = `.weekly{container:wk/inline-size}@container wk (max-width:760px){.weekly .c-cost{display:none}}
+.progress-b{display:grid;gap:24px;align-items:start;grid-template-columns:minmax(0,1fr) minmax(420px,38%)}`;
+
+function render() {
+  renderPhone("phone", phoneApp("Progress", "progress", progressPhone()));
+  renderFrames("a-frames", () => wideApp("Progress", "progress", progressA()));
+  renderFrames("b-frames", () => wideApp("Progress", "progress", progressB()));
+}
+
+document.head.insertAdjacentHTML("beforeend", "<style>" + SCREEN_CSS + "</style>");
+render();
+setupPage();
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "name": "@myfitnessguide/importer",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "One-time Sheets to D1 import: snapshot, transform and load through the Worker, rulings, parity report and the final-load SQL",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "gym-import": "tsx src/cli.ts"
+  },
+  "dependencies": {
+    "@myfitnessguide/domain": "0.0.0",
+    "@myfitnessguide/worker": "0.0.0",
+    "yaml": "2.9.1",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.4",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3"
+  }
+}

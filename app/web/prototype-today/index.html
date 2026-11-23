@@ -1,0 +1,314 @@
+<title>Today Screen Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Mukta:wght@400;500;700&family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600;700&display=swap">
+<style>
+/* PROTOTYPE, throw away. Three structurally different Today screens at phone width, switched by #A / #B / #C. Sample data only. */
+:root {
+  /* shared chrome */
+  --chrome-bg: #1d2433; --chrome-fg: #f3f5f9; --chrome-dim: #a9b2c5;
+  /* A: lab report — blue-tinted paper, ink blue, range bands */
+  --a-bg: #f3f6fa; --a-paper: #ffffff; --a-ink: #16243b; --a-dim: #5b6a82; --a-rule: #d9e1ec;
+  --a-accent: #1f5fbf; --a-band: #dce8f8; --a-est: #8a6d1f; --a-est-bg: #f6eed6; --a-ok: #23744b;
+  /* B: tiffin — steel, haldi, chilli */
+  --b-bg: #eef1f3; --b-steel: #dfe5ea; --b-steel-2: #c9d2da; --b-ink: #1f2a30; --b-dim: #56646e;
+  --b-haldi: #e3a008; --b-haldi-ink: #5c3d00; --b-chilli: #b4321f; --b-leaf: #2f6b3f; --b-card: #ffffff;
+  /* C: timetable — railway blue and signal yellow */
+  --c-bg: #f7f7f2; --c-board: #12306b; --c-board-fg: #ffffff; --c-yellow: #ffd23f; --c-ink: #121a2b;
+  --c-dim: #59627a; --c-rule: #d8dbe3; --c-now: #d6451f; --c-row: #ffffff;
+  --f-a: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --f-b: "Mukta", "Noto Sans", system-ui, sans-serif;
+  --f-c: "Barlow", "Helvetica Neue", system-ui, sans-serif;
+  --f-c-cond: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --chrome-bg: #e6eaf2; --chrome-fg: #141a26; --chrome-dim: #4b556a;
+  --a-bg: #0f1520; --a-paper: #172131; --a-ink: #e4ebf5; --a-dim: #94a3bb; --a-rule: #2a374b;
+  --a-accent: #78a9f0; --a-band: #22344f; --a-est: #e2c06a; --a-est-bg: #3a3220; --a-ok: #6fcf98;
+  --b-bg: #15191c; --b-steel: #232b31; --b-steel-2: #34404a; --b-ink: #e8edf0; --b-dim: #9aa8b2;
+  --b-haldi: #f0b429; --b-haldi-ink: #f7d47c; --b-chilli: #f07a63; --b-leaf: #7cc790; --b-card: #1c2328;
+  --c-bg: #10131a; --c-board: #0b1d44; --c-board-fg: #ffffff; --c-yellow: #ffd23f; --c-ink: #eef0f5;
+  --c-dim: #9aa2b6; --c-rule: #2a3040; --c-now: #ff7a52; --c-row: #171c27; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --chrome-bg: #e6eaf2; --chrome-fg: #141a26; --chrome-dim: #4b556a;
+  --a-bg: #0f1520; --a-paper: #172131; --a-ink: #e4ebf5; --a-dim: #94a3bb; --a-rule: #2a374b;
+  --a-accent: #78a9f0; --a-band: #22344f; --a-est: #e2c06a; --a-est-bg: #3a3220; --a-ok: #6fcf98;
+  --b-bg: #15191c; --b-steel: #232b31; --b-steel-2: #34404a; --b-ink: #e8edf0; --b-dim: #9aa8b2;
+  --b-haldi: #f0b429; --b-haldi-ink: #f7d47c; --b-chilli: #f07a63; --b-leaf: #7cc790; --b-card: #1c2328;
+  --c-bg: #10131a; --c-board: #0b1d44; --c-board-fg: #ffffff; --c-yellow: #ffd23f; --c-ink: #eef0f5;
+  --c-dim: #9aa2b6; --c-rule: #2a3040; --c-now: #ff7a52; --c-row: #171c27; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--a-bg); margin: 0; font-variant-numeric: tabular-nums; }
+body.v-B { background: var(--b-bg); } body.v-C { background: var(--c-bg); }
+.screen { max-width: 430px; margin: 0 auto; padding-inline: 16px; padding-block: 12px 96px; }
+.sample { font: 12px/1.3 var(--f-a); color: var(--a-dim); padding-block: 4px 10px; }
+.v-B .sample { color: var(--b-dim); font-family: var(--f-b); } .v-C .sample { color: var(--c-dim); font-family: var(--f-c); }
+button { font: inherit; cursor: pointer; }
+:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+/* ---------- A: report ---------- */
+.A { font-family: var(--f-a); color: var(--a-ink); display: grid; gap: 14px; }
+.A ::selection { background: var(--a-band); }
+.A .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.A .head h1 { font-size: 1.35rem; margin: 0; letter-spacing: -0.01em; }
+.A .status { font-size: .85rem; color: var(--a-dim); }
+.A .status b { color: var(--a-ink); font-weight: 700; }
+.A .lead { font-size: 1.05rem; line-height: 1.45; margin: 0; text-wrap: balance; }
+.A .lead strong { font-size: 1.6rem; display: block; letter-spacing: -0.02em; }
+.A .sheet { background: var(--a-paper); border: 1px solid var(--a-rule); border-radius: 6px; }
+.A .rows { display: grid; }
+.A .row { display: grid; grid-template-columns: 4.6rem 1fr 4.4rem; gap: 10px; align-items: center; padding: 11px 14px; border-top: 1px solid var(--a-rule); }
+.A .row:first-child { border-top: 0; }
+.A .row .name { font-weight: 700; font-size: .95rem; }
+.A .row .name small { display: block; font-weight: 400; color: var(--a-dim); font-size: .75rem; }
+.A .row .left { text-align: right; font-size: .95rem; }
+.A .row .left small { display: block; color: var(--a-dim); font-size: .72rem; }
+.A .band { position: relative; height: 26px; }
+.A .band .track { position: absolute; inset: 9px 0; background: var(--a-band); border-radius: 2px; }
+.A .band .fill { position: absolute; top: 9px; height: 8px; background: var(--a-accent); border-radius: 2px; }
+.A .band .whisker { position: absolute; top: 12px; height: 2px; background: var(--a-accent); opacity: .55; }
+.A .band .whisker::before, .A .band .whisker::after { content: ""; position: absolute; top: -4px; width: 2px; height: 10px; background: var(--a-accent); opacity: .8; }
+.A .band .whisker::before { left: 0; } .A .band .whisker::after { right: 0; }
+.A .band .target { position: absolute; top: 2px; bottom: 2px; width: 2px; background: var(--a-ink); }
+.A .band .floor { position: absolute; top: 4px; bottom: 4px; width: 0; border-left: 2px dotted var(--a-dim); }
+.A .measured { padding: 12px 14px; display: grid; gap: 8px; font-size: .85rem; color: var(--a-dim); }
+.A .measured .bar { display: flex; height: 8px; border-radius: 2px; overflow: hidden; }
+.A .measured .bar span:first-child { background: var(--a-ok); } .A .measured .bar span:last-child { background: var(--a-est); }
+.A .measured b { color: var(--a-ink); }
+.A h2 { font-size: .95rem; margin: 6px 0 0; }
+.A .meal { padding: 4px 14px 8px; }
+.A .meal h3 { font-size: .8rem; color: var(--a-dim); margin: 10px 0 2px; font-weight: 400; display: flex; justify-content: space-between; }
+.A .item { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 7px 0; border-top: 1px dashed var(--a-rule); font-size: .92rem; }
+.A .item:first-of-type { border-top: 0; }
+.A .item .kcal { text-align: right; }
+.A .item .meta { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; font-size: .75rem; color: var(--a-dim); align-items: center; }
+.A .tag { padding: 1px 6px; border-radius: 3px; border: 1px solid var(--a-rule); color: var(--a-dim); }
+.A .tag.est { border-color: transparent; background: var(--a-est-bg); color: var(--a-est); }
+.A .item.draft { background: var(--a-band); margin-inline: -14px; padding-inline: 14px; border-top-color: transparent; }
+.A .draftbar { grid-column: 1 / -1; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: .8rem; padding-top: 4px; }
+.A .draftbar > span { flex-basis: 100%; }
+.A .draftbar button { border: 1px solid var(--a-accent); background: var(--a-accent); color: var(--a-paper); padding: 5px 12px; border-radius: 4px; font-size: .8rem; }
+.A .draftbar button.ghost { background: transparent; color: var(--a-accent); }
+.A .notes { display: grid; gap: 0; }
+.A .note { padding: 10px 14px; border-top: 1px solid var(--a-rule); font-size: .88rem; display: flex; justify-content: space-between; gap: 10px; }
+.A .note:first-child { border-top: 0; }
+.A .note span { color: var(--a-dim); }
+
+/* ---------- B: tiffin ---------- */
+.B { font-family: var(--f-b); color: var(--b-ink); display: grid; gap: 14px; }
+.B .top { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.B .top h1 { font-size: 1.15rem; margin: 0; font-weight: 700; }
+.B .top .who { display: flex; gap: 6px; }
+.B .who button { border: 1px solid var(--b-steel-2); background: transparent; color: var(--b-dim); border-radius: 999px; padding: 2px 10px; font-size: .85rem; }
+.B .who button[aria-pressed="true"] { background: var(--b-ink); color: var(--b-bg); border-color: var(--b-ink); }
+.B .leftline { font-size: 1.1rem; line-height: 1.4; margin: 0; }
+.B .leftline b { font-weight: 700; }
+.B .leftline span { color: var(--b-dim); font-size: .9rem; }
+.B .pot { background: var(--b-card); border-radius: 14px; padding: 14px; display: grid; gap: 10px; box-shadow: 0 1px 2px rgba(31,42,48,.08), 0 6px 18px rgba(31,42,48,.06); }
+.B .pot h2 { margin: 0; font-size: 1rem; display: flex; justify-content: space-between; gap: 8px; }
+.B .pot h2 span { color: var(--b-dim); font-weight: 400; font-size: .85rem; }
+.B .split { display: flex; height: 38px; border-radius: 8px; overflow: hidden; gap: 2px; }
+.B .split div { display: flex; align-items: center; padding-inline: 8px; font-size: .85rem; font-weight: 500; white-space: nowrap; overflow: hidden; }
+.B .split .me { background: var(--b-haldi); color: #2b1d00; }
+.B .split .s { background: var(--b-steel-2); color: var(--b-ink); }
+.B .split .rem { background: repeating-linear-gradient(135deg, var(--b-steel) 0 6px, transparent 6px 12px); color: var(--b-dim); border: 1px dashed var(--b-steel-2); }
+.B .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: .82rem; color: var(--b-dim); }
+.B .ask { background: var(--b-steel); border-radius: 10px; padding: 10px 12px; font-size: .88rem; display: grid; gap: 8px; }
+.B .ask .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+.B .ask button { border-radius: 8px; padding: 6px 12px; border: 1px solid var(--b-ink); background: var(--b-ink); color: var(--b-bg); font-size: .85rem; }
+.B .ask button.ghost { background: transparent; color: var(--b-ink); }
+.B .tiers { display: grid; gap: 4px; }
+.B .tier { background: var(--b-steel); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; }
+.B .tier:first-child { border-radius: 16px 16px 12px 12px; }
+.B .tier.empty { background: transparent; border: 1.5px dashed var(--b-steel-2); color: var(--b-dim); }
+.B .tier header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.B .tier header b { font-size: 1rem; }
+.B .tier header span { font-size: .85rem; color: var(--b-dim); }
+.B .tier ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: .9rem; }
+.B .tier li { display: flex; justify-content: space-between; gap: 10px; }
+.B .tier li i { font-style: normal; color: var(--b-dim); font-size: .8rem; }
+.B .tier li i.est { color: var(--b-chilli); }
+.B .macros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.B .m { display: grid; gap: 4px; font-size: .8rem; color: var(--b-dim); }
+.B .m b { color: var(--b-ink); font-size: 1rem; }
+.B .m .t { height: 6px; background: var(--b-steel-2); border-radius: 3px; overflow: hidden; }
+.B .m .t span { display: block; height: 100%; background: var(--b-ink); }
+.B .foot { display: grid; gap: 6px; font-size: .88rem; }
+.B .foot div { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid var(--b-steel-2); }
+.B .foot div span { color: var(--b-dim); }
+
+/* ---------- C: timetable ---------- */
+.C { font-family: var(--f-c); color: var(--c-ink); display: grid; gap: 12px; }
+.C .board { background: var(--c-board); color: var(--c-board-fg); border-radius: 4px; padding: 12px 14px; display: grid; gap: 10px; }
+.C .board .r1 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-family: var(--f-c-cond); }
+.C .board h1 { margin: 0; font-size: 1.25rem; font-weight: 700; letter-spacing: .01em; }
+.C .board .r1 span { font-size: .9rem; opacity: .85; }
+.C .dest { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: rgba(255,255,255,.18); border-radius: 3px; overflow: hidden; }
+.C .dest div { background: var(--c-board); padding: 6px 8px; display: grid; gap: 1px; font-family: var(--f-c-cond); }
+.C .dest small { font-size: .72rem; opacity: .8; }
+.C .dest b { font-size: 1.35rem; color: var(--c-yellow); font-weight: 600; line-height: 1.1; }
+.C .dest i { font-style: normal; font-size: .72rem; opacity: .8; }
+.C .tt { background: var(--c-row); border: 1px solid var(--c-rule); border-radius: 4px; overflow: hidden; }
+.C .tt .hd, .C .tt .tr { display: grid; grid-template-columns: 3.1rem 1fr 3.4rem 3.4rem; gap: 8px; padding: 8px 10px; align-items: baseline; }
+.C .tt .hd { font-family: var(--f-c-cond); font-size: .75rem; color: var(--c-dim); border-bottom: 1px solid var(--c-rule); font-weight: 600; }
+.C .tt .hd span:nth-child(n+3), .C .tt .tr span:nth-child(n+3) { text-align: right; }
+.C .tt .tr { border-top: 1px solid var(--c-rule); font-size: .9rem; }
+.C .tt .tr:first-of-type { border-top: 0; }
+.C .tt .time { font-family: var(--f-c-cond); font-weight: 600; color: var(--c-dim); }
+.C .tt .what small { display: block; font-size: .74rem; color: var(--c-dim); }
+.C .tt .what small.est { color: var(--c-now); }
+.C .tt .cum { font-family: var(--f-c-cond); font-weight: 600; }
+.C .tt .tr.draft { background: color-mix(in srgb, var(--c-yellow) 22%, transparent); }
+.C .tt .tr.draft .what small { color: var(--c-ink); }
+.C .tt .dacts { grid-column: 2 / -1; display: flex; gap: 8px; }
+.C .tt .dacts button { border: 1px solid var(--c-ink); background: var(--c-ink); color: var(--c-row); border-radius: 3px; padding: 4px 10px; font-size: .8rem; font-family: var(--f-c-cond); font-weight: 600; }
+.C .tt .dacts button.ghost { background: transparent; color: var(--c-ink); }
+.C .tt .nowline { display: grid; grid-template-columns: 3.1rem 1fr; gap: 8px; padding: 4px 10px; align-items: center; color: var(--c-now); font-family: var(--f-c-cond); font-weight: 700; font-size: .8rem; border-top: 2px solid var(--c-now); }
+.C .tt .tr.ahead { color: var(--c-dim); }
+.C .tt .tr.ahead .cum { color: var(--c-dim); font-weight: 500; }
+.C .side { display: grid; gap: 0; background: var(--c-row); border: 1px solid var(--c-rule); border-radius: 4px; }
+.C .side div { display: flex; justify-content: space-between; gap: 10px; padding: 9px 12px; border-top: 1px solid var(--c-rule); font-size: .88rem; }
+.C .side div:first-child { border-top: 0; }
+.C .side span { color: var(--c-dim); }
+
+/* ---------- switcher (prototype chrome, not part of any design) ---------- */
+.switcher { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 4px; background: var(--chrome-bg); color: var(--chrome-fg); border-radius: 999px; padding: 4px; box-shadow: 0 6px 24px rgba(0,0,0,.28); font: 600 13px/1 system-ui, sans-serif; z-index: 10; max-width: calc(100vw - 24px); }
+.switcher button { background: transparent; border: 0; color: inherit; width: 36px; height: 36px; border-radius: 999px; font-size: 18px; }
+.switcher button:hover { background: rgba(127,127,127,.25); }
+.switcher .label { padding-inline: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.switcher .label small { color: var(--chrome-dim); font-weight: 500; }
+@media (prefers-reduced-motion: no-preference) { .A .fill, .B .split div, .B .m .t span { transition: width .4s cubic-bezier(.2,.8,.2,1); } }
+</style>
+
+<main class="screen" id="app"></main>
+<nav class="switcher" aria-label="Prototype variant">
+  <button id="prev" aria-label="Previous variant">‹</button>
+  <span class="label" id="label"></span>
+  <button id="next" aria-label="Next variant">›</button>
+</nav>
+
+<script>
+// Sample data (invented). Member: Hritvik. Day: Tue 6 Oct, viewed at 17:40.
+const D = {
+  date: "Tue 6 Oct", now: "17:40", status: "Open",
+  target: { kcal: 1600, p: 140, c: 120, f: 55, fFloor: 45 },
+  unc: 180, dominant: "Paneer bhurji bowl size, ±120 kcal",
+  meals: [
+    { slot: "Breakfast", time: "07:40", items: [
+      { n: "Oats, dry", q: "50 g", prov: "weighed", kcal: 190, p: 7, c: 34, f: 3 },
+      { n: "Whey isolate", q: "1 scoop, 33 g", prov: "label", kcal: 130, p: 24, c: 3, f: 2 },
+      { n: "Toned milk", q: "200 ml", prov: "weighed", kcal: 118, p: 6, c: 10, f: 6 } ] },
+    { slot: "Lunch", time: "13:10", items: [
+      { n: "Roti, 60/40 atta", q: "2", prov: "counted", kcal: 216, p: 16, c: 36, f: 2 },
+      { n: "Masoor dal (pot)", q: "38% of pot", prov: "estimated", kcal: 180, p: 10, c: 20, f: 5, draft: "Asha", unc: "±60" },
+      { n: "Paneer bhurji", q: "1 bowl, not weighed", prov: "estimated", kcal: 260, p: 16, c: 6, f: 19, unc: "±120" } ] },
+    { slot: "Snack", time: "17:00", items: [
+      { n: "Greek yogurt", q: "1 cup, 100 g", prov: "label", kcal: 100, p: 10, c: 6, f: 3 } ] },
+  ],
+  pot: { name: "Masoor dal", cooked: "13:00", by: "Asha", me: 38, s: 34, hz: null, rem: 28 },
+  flags: [ ["Fasted weight", "not logged today"], ["Waist", "due, last measured 9 days ago"] ],
+  next: { when: "Thu 8 Oct, 07:00", name: "Lower A", first: "Hack squat 4×8 at 47.5 kg" },
+};
+const all = D.meals.flatMap(m => m.items);
+const sum = k => all.reduce((a, i) => a + i[k], 0);
+const T = { kcal: sum("kcal"), p: sum("p"), c: sum("c"), f: sum("f") };
+const measured = all.filter(i => i.prov !== "estimated").reduce((a, i) => a + i.kcal, 0);
+const mPct = Math.round(measured / T.kcal * 100);
+const left = k => D.target[k] - T[k];
+
+// ---------- A: report ----------
+function A() {
+  const max = { kcal: 2000, p: 175, c: 150, f: 70 };
+  const row = (k, label, unit) => {
+    const w = v => Math.max(0, Math.min(100, v / max[k] * 100));
+    const unc = k === "kcal" ? D.unc : null;
+    return `<div class="row">
+      <div class="name">${label}<small>${T[k]} / ${D.target[k]} ${unit}</small></div>
+      <div class="band" aria-hidden="true"><div class="track"></div>
+        <div class="fill" style="width:${w(T[k])}%"></div>
+        ${unc ? `<div class="whisker" style="left:${w(T[k]-unc)}%;width:${w(T[k]+unc)-w(T[k]-unc)}%"></div>` : ""}
+        ${k === "f" ? `<div class="floor" style="left:${w(D.target.fFloor)}%"></div>` : ""}
+        <div class="target" style="left:${w(D.target[k])}%"></div></div>
+      <div class="left">${left(k)} ${unit}<small>left</small></div></div>`;
+  };
+  const item = i => `<div class="item${i.draft ? " draft" : ""}">
+      <span>${i.n} <span style="color:var(--a-dim)">${i.q}</span></span><span class="kcal">${i.kcal} kcal</span>
+      <span class="meta"><span class="tag${i.prov === "estimated" ? " est" : ""}">${i.prov}${i.unc ? " " + i.unc : ""}</span><span>P ${i.p} g</span></span>
+      ${i.draft ? `<span class="draftbar"><span>Logged by ${i.draft}. Draft until you confirm.</span><button>Confirm</button><button class="ghost">Change</button></span>` : ""}
+    </div>`;
+  return `<section class="A">
+    <div class="head"><h1>${D.date}</h1><span class="status">Day <b>${D.status}</b>, as of ${D.now}</span></div>
+    <p class="lead"><strong>${left("kcal")} kcal left, ±${D.unc}</strong>${left("p")} g protein to go. The biggest uncertainty is the ${D.dominant.toLowerCase()}.</p>
+    <div class="sheet rows">${row("kcal","Energy","kcal")}${row("p","Protein","g")}${row("c","Carbs","g")}${row("f","Fat","g")}</div>
+    <div class="sheet measured"><span><b>${mPct}%</b> of today's energy is weighed, counted or from a label. ${100-mPct}% is estimated.</span>
+      <div class="bar"><span style="width:${mPct}%"></span><span style="width:${100-mPct}%"></span></div></div>
+    <h2>Eaten</h2>
+    <div class="sheet">${D.meals.map(m => `<div class="meal"><h3><span>${m.slot}, ${m.time}</span><span>${m.items.reduce((a,i)=>a+i.kcal,0)} kcal</span></h3>${m.items.map(item).join("")}</div>`).join("")}</div>
+    <h2>Also today</h2>
+    <div class="sheet notes">${D.flags.map(f => `<div class="note">${f[0]}<span>${f[1]}</span></div>`).join("")}
+      <div class="note">Next session<span>${D.next.name}, ${D.next.when}</span></div></div>
+  </section>`;
+}
+
+// ---------- B: tiffin ----------
+function B() {
+  const tiers = [...D.meals, { slot: "Dinner", time: "", items: [] }];
+  const m = (k, label, unit) => `<div class="m">${label}<b>${left(k)} ${unit}</b><div class="t"><span style="width:${Math.min(100, T[k]/D.target[k]*100)}%"></span></div>${T[k]} of ${D.target[k]}</div>`;
+  return `<section class="B">
+    <div class="top"><h1>${D.date}</h1><div class="who" role="group" aria-label="Member">
+      <button aria-pressed="true">Hritvik</button><button aria-pressed="false">Asha</button><button aria-pressed="false">Kabir</button></div></div>
+    <p class="leftline">Left today: <b>${left("kcal")} kcal</b> and <b>${left("p")} g protein</b>. <span>Estimate ±${D.unc} kcal.</span></p>
+    <div class="macros">${m("kcal","Energy","")}${m("p","Protein","g")}${m("c","Carbs","g")}${m("f","Fat","g")}</div>
+    <div class="pot"><h2>${D.pot.name}, one pot <span>cooked ${D.pot.cooked} by ${D.pot.by}</span></h2>
+      <div class="split" role="img" aria-label="Hritvik 38 percent, Asha 34 percent, 28 percent unaccounted, Kabir not present">
+        <div class="me" style="width:${D.pot.me}%">You ${D.pot.me}%</div><div class="s" style="width:${D.pot.s}%">Asha ${D.pot.s}%</div><div class="rem" style="width:${D.pot.rem}%">${D.pot.rem}%</div></div>
+      <div class="legend"><span>Kabir wasn't there, so no portion</span><span>${D.pot.rem}% not yet accounted for</span></div>
+      <div class="ask"><span>Asha logged your 38% (about 180 kcal, estimated ±60). Is that right?</span>
+        <div class="acts"><button>Yes, confirm</button><button class="ghost">Change my share</button><button class="ghost">Mark the rest leftover</button></div></div></div>
+    <div class="tiers">${tiers.map(t => t.items.length ? `<div class="tier"><header><b>${t.slot}</b><span>${t.time}, ${t.items.reduce((a,i)=>a+i.kcal,0)} kcal, P ${t.items.reduce((a,i)=>a+i.p,0)} g</span></header>
+      <ul>${t.items.map(i => `<li><span>${i.n}</span><i class="${i.prov === "estimated" ? "est" : ""}">${i.prov === "estimated" ? "estimated " + (i.unc||"") : i.prov}</i></li>`).join("")}</ul></div>`
+      : `<div class="tier empty"><header><b>${t.slot}</b><span>nothing yet</span></header></div>`).join("")}</div>
+    <div class="foot">${D.flags.map(f => `<div>${f[0]}<span>${f[1]}</span></div>`).join("")}<div>Next session<span>${D.next.name}, ${D.next.when}</span></div></div>
+  </section>`;
+}
+
+// ---------- C: timetable ----------
+function C() {
+  let ck = 0, cp = 0;
+  const rows = D.meals.flatMap(m => m.items.map((i, idx) => { ck += i.kcal; cp += i.p; return { ...i, time: idx === 0 ? m.time : "", slot: m.slot, ck, cp }; }));
+  const tr = r => `<div class="tr${r.draft ? " draft" : ""}"><span class="time">${r.time}</span>
+      <span class="what">${r.n}<small class="${r.prov === "estimated" ? "est" : ""}">${r.q}, ${r.prov}${r.unc ? " " + r.unc : ""}${r.draft ? ". Logged by " + r.draft + ", draft" : ""}</small></span>
+      <span class="cum">${r.ck}</span><span class="cum">${r.cp}</span>
+      ${r.draft ? `<span class="dacts"><button>Confirm</button><button class="ghost">Change</button></span>` : ""}</div>`;
+  const dest = (k, label, unit) => `<div><small>${label} left</small><b>${left(k)}</b><i>${unit}, target ${D.target[k]}</i></div>`;
+  return `<section class="C">
+    <div class="board"><div class="r1"><h1>${D.date}</h1><span>Day open, ${D.now}</span></div>
+      <div class="dest">${dest("kcal","Energy","kcal")}${dest("p","Protein","g")}${dest("c","Carbs","g")}${dest("f","Fat","g")}</div></div>
+    <div class="tt" role="table" aria-label="Today's intake in order, with running totals">
+      <div class="hd" role="row"><span>Time</span><span>Item</span><span>kcal so far</span><span>P so far</span></div>
+      ${rows.map(tr).join("")}
+      <div class="nowline"><span>${D.now}</span><span>Now. ${T.kcal} kcal ±${D.unc}, ${T.p} g protein</span></div>
+      <div class="tr ahead"><span class="time">Dinner</span><span class="what">Nothing logged yet<small>Ends the day at ${D.target.kcal} kcal and ${D.target.p} g protein if ${left("kcal")} kcal and ${left("p")} g land here</small></span><span class="cum">${D.target.kcal}</span><span class="cum">${D.target.p}</span></div>
+    </div>
+    <div class="side"><div>Measured<span>${mPct}% of energy weighed, counted or labelled</span></div>
+      ${D.flags.map(f => `<div>${f[0]}<span>${f[1]}</span></div>`).join("")}<div>Next session<span>${D.next.name}, ${D.next.when}</span></div></div>
+  </section>`;
+}
+
+const V = { A: ["A", "Report", A], B: ["B", "Household pot", B], C: ["C", "Timetable", C] };
+const keys = Object.keys(V);
+function current() { const h = (location.hash || "").replace("#", ""); return keys.includes(h) ? h : "A"; }
+function render() {
+  const k = current();
+  document.body.className = "v-" + k;
+  document.getElementById("app").innerHTML = `<div class="sample">Prototype with sample numbers, not your data.</div>` + V[k][2]();
+  document.getElementById("label").innerHTML = `${k} <small>${V[k][1]}</small>`;
+}
+function go(d) { const i = (keys.indexOf(current()) + d + keys.length) % keys.length; location.hash = keys[i]; }
+document.getElementById("prev").onclick = () => go(-1);
+document.getElementById("next").onclick = () => go(1);
+addEventListener("hashchange", render);
+addEventListener("keydown", e => { const t = e.target; if (t.closest && t.closest("input,textarea,[contenteditable]")) return; if (e.key === "ArrowLeft") go(-1); if (e.key === "ArrowRight") go(1); });
+render();
+</script>

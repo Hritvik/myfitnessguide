@@ -1,0 +1,124 @@
+<style>
+  .hp{--bg:#eef1f3;--card:#fff;--steel:#dfe5ea;--steel2:#c9d2da;--ink:#1f2a30;--dim:#56646e;--haldi:#e3a008;--haldiink:#5c3d00;--leaf:#2f6b3f;
+      font-family:Mukta,"Noto Sans",system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--bg);
+      border-radius:10px;overflow:hidden;display:flex;height:430px;font-size:12px;border:1px solid var(--steel2)}
+  .hp .side{width:150px;background:var(--steel);padding:12px 10px;display:flex;flex-direction:column;gap:4px}
+  .hp .side .brand{font-weight:700;margin-bottom:8px}
+  .hp .side a{display:block;padding:5px 8px;border-radius:7px;color:var(--ink);text-decoration:none}
+  .hp .side a.on{background:var(--ink);color:var(--bg)}
+  .hp .side .grp{color:var(--dim);font-size:11px;margin-top:10px}
+  .hp .side .who{margin-top:auto;display:flex;gap:4px;flex-wrap:wrap}
+  .hp .pill{border:1px solid var(--steel2);border-radius:99px;padding:1px 8px;font-size:11px;background:var(--card)}
+  .hp .pill.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .hp .main{flex:1;padding:14px 18px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+  .hp h4{margin:0;font-size:14px}
+  .hp .left{font-size:12.5px}
+  .hp .macros{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .hp .m{background:var(--card);border-radius:8px;padding:6px 8px}
+  .hp .m b{display:block}
+  .hp .track{height:5px;background:var(--steel2);border-radius:3px;margin-top:4px;overflow:hidden}
+  .hp .track i{display:block;height:100%;background:var(--ink)}
+  .hp .pot{background:var(--card);border-radius:12px;padding:8px 10px;box-shadow:0 1px 2px rgb(31 42 48/.08),0 6px 18px rgb(31 42 48/.06)}
+  .hp .split{display:flex;height:22px;border-radius:6px;overflow:hidden;margin-top:6px}
+  .hp .split .you{background:var(--haldi)} .hp .split .oth{background:var(--steel2)}
+  .hp .split .rest{background:repeating-linear-gradient(45deg,var(--steel),var(--steel) 4px,var(--steel2) 4px,var(--steel2) 8px)}
+  .hp .tier{background:var(--steel);border-radius:10px;padding:6px 10px}
+  .hp .tier .h{display:flex;justify-content:space-between;font-weight:700}
+  .hp .tier .row{display:flex;justify-content:space-between;color:var(--ink)}
+  .hp .est{color:var(--haldiink)}
+  .hp .dim{color:var(--dim)}
+  .hp .cols{display:grid;gap:14px;flex:1;overflow:hidden}
+  .hp .panel{display:flex;flex-direction:column;gap:8px;overflow:hidden}
+  .hp table{border-collapse:collapse;width:100%}
+  .hp td,.hp th{text-align:left;padding:3px 6px;border-bottom:1px solid var(--steel2);font-weight:400}
+  .hp th{color:var(--dim)}
+  .hp .list a{display:flex;justify-content:space-between;padding:6px 8px;border-radius:7px;color:var(--ink);text-decoration:none}
+  .hp .list a.on{background:var(--card);box-shadow:0 1px 2px rgb(31 42 48/.08)}
+  .hp .kbd{border:1px solid var(--steel2);border-radius:4px;padding:0 4px;font-size:10px;color:var(--dim)}
+</style>
+
+<h2>Desktop layout: how should the wide screen be used?</h2>
+<p class="subtitle">Same app, same data, a second layout above ~1024 px. Shown on Today for Asha, with the invented sample household. All three put navigation in a sidebar (your earlier choice). Pick the one that feels right, or tell me what to mix.</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>One wide column</h3>
+      <p>The phone screen, wider: the macro strip and pot get room, tables show inline. Simplest; least new design. Wastes width on Today.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>The counter: your day beside the household</h3>
+      <p>Two columns on every tab: your view on the left, the household (or the thing you'd check next) on the right. Today + Household; Train next session + history; Progress chart + its table.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>List and detail</h3>
+      <p>A list of days, sessions or catalogue items on the left; the open one on the right. Best for catching up and editing; less "at a glance" for today.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+<h3>A · One wide column</h3>
+<div class="hp">
+  <div class="side"><div class="brand">Household</div><a class="on">Today</a><a>Train</a><a>Progress</a><a>Household</a><div class="grp">Plan</div><a>Week</a><div class="grp">Catalogue</div><a>Foods &amp; recipes</a><div class="who"><span class="pill on">Asha</span><span class="pill">Kabir</span><span class="pill">Noor</span></div></div>
+  <div class="main" style="max-width:760px">
+    <h4>Wed 7 Oct</h4>
+    <div class="left">Left today: <b>406 kcal</b> and <b>51 g protein</b>. <span class="dim">Estimate ±180 kcal.</span></div>
+    <div class="macros"><div class="m">Energy<b>406</b><div class="track"><i style="width:78%"></i></div><span class="dim">1,444 of 1,850</span></div><div class="m">Protein<b>51 g</b><div class="track"><i style="width:60%"></i></div><span class="dim">77 of 128</span></div><div class="m">Carbs<b>88 g</b><div class="track"><i style="width:55%"></i></div></div><div class="m">Fat<b>21 g</b><div class="track"><i style="width:62%"></i></div></div></div>
+    <div class="pot"><b>Rajma</b> <span class="dim">· one pot · Kabir cooked it, 13:00</span><div class="split"><div class="you" style="flex:3"></div><div class="oth" style="flex:4"></div><div class="rest" style="flex:2"></div></div><span class="dim">You 30% · Kabir 40% · 20% unaccounted · Noor wasn't there</span></div>
+    <div class="tier"><div class="h"><span>Lunch</span><span class="dim">13:00 · 610 kcal · 28 g</span></div><div class="row"><span>Rajma, your share</span><span class="dim">weighed</span></div><div class="row"><span>Phulka ×3</span><span class="est">estimated ±60</span></div></div>
+  </div>
+</div>
+</div>
+
+<div class="section">
+<h3>B · The counter</h3>
+<div class="hp">
+  <div class="side"><div class="brand">Household</div><a class="on">Today</a><a>Train</a><a>Progress</a><a>Household</a><div class="grp">Plan</div><a>Week</a><div class="grp">Catalogue</div><a>Foods &amp; recipes</a><div class="who"><span class="pill on">Asha</span><span class="pill">Kabir</span><span class="pill">Noor</span></div></div>
+  <div class="main">
+    <h4>Wed 7 Oct</h4>
+    <div class="cols" style="grid-template-columns:1.25fr 1fr">
+      <div class="panel">
+        <div class="left">Left today: <b>406 kcal</b> and <b>51 g protein</b>. <span class="dim">±180 kcal.</span></div>
+        <div class="macros"><div class="m">Energy<b>406</b><div class="track"><i style="width:78%"></i></div></div><div class="m">Protein<b>51 g</b><div class="track"><i style="width:60%"></i></div></div><div class="m">Carbs<b>88 g</b><div class="track"><i style="width:55%"></i></div></div><div class="m">Fat<b>21 g</b><div class="track"><i style="width:62%"></i></div></div></div>
+        <div class="tier"><div class="h"><span>Lunch</span><span class="dim">610 kcal · 28 g</span></div><div class="row"><span>Rajma, your share</span><span class="dim">weighed</span></div><div class="row"><span>Phulka ×3</span><span class="est">estimated ±60</span></div></div>
+        <div class="tier"><div class="h"><span>Dinner</span><span class="dim">nothing yet</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="dim">The household today</div>
+        <div class="pot"><b>Rajma</b> <span class="dim">· Kabir, 13:00</span><div class="split"><div class="you" style="flex:3"></div><div class="oth" style="flex:4"></div><div class="rest" style="flex:2"></div></div><span class="dim">20% unaccounted · Noor wasn't there</span></div>
+        <table><tr><th>Member</th><th>Left</th><th>Waiting</th></tr><tr><td>Asha</td><td>406 kcal</td><td class="dim">—</td></tr><tr><td>Kabir</td><td>812 kcal</td><td>1 draft</td></tr><tr><td>Noor</td><td class="dim">No target set</td><td class="dim">—</td></tr></table>
+        <div class="dim">Fridge: dal, ½ pot since Mon</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="section">
+<h3>C · List and detail</h3>
+<div class="hp">
+  <div class="side"><div class="brand">Household</div><a class="on">Today</a><a>Train</a><a>Progress</a><a>Household</a><div class="grp">Plan</div><a>Week</a><div class="grp">Catalogue</div><a>Foods &amp; recipes</a><div class="who"><span class="pill on">Asha</span><span class="pill">Kabir</span><span class="pill">Noor</span></div></div>
+  <div class="main">
+    <div class="cols" style="grid-template-columns:220px 1fr">
+      <div class="panel list"><div class="dim">Days <span class="kbd">J</span> <span class="kbd">K</span></div><a class="on"><span>Wed 7 Oct</span><span class="dim">open</span></a><a><span>Tue 6 Oct</span><span class="dim">open · 3 items</span></a><a><span>Mon 5 Oct</span><span class="dim">complete</span></a><a><span>Sun 4 Oct</span><span class="dim">partial</span></a><a><span>Sat 3 Oct</span><span class="dim">complete</span></a></div>
+      <div class="panel">
+        <h4>Wed 7 Oct</h4>
+        <div class="left">Left today: <b>406 kcal</b> and <b>51 g protein</b>.</div>
+        <div class="macros"><div class="m">Energy<b>406</b><div class="track"><i style="width:78%"></i></div></div><div class="m">Protein<b>51 g</b><div class="track"><i style="width:60%"></i></div></div><div class="m">Carbs<b>88 g</b><div class="track"><i style="width:55%"></i></div></div><div class="m">Fat<b>21 g</b><div class="track"><i style="width:62%"></i></div></div></div>
+        <div class="pot"><b>Rajma</b> <span class="dim">· Kabir, 13:00</span><div class="split"><div class="you" style="flex:3"></div><div class="oth" style="flex:4"></div><div class="rest" style="flex:2"></div></div></div>
+        <div class="tier"><div class="h"><span>Lunch</span><span class="dim">610 kcal · 28 g</span></div><div class="row"><span>Rajma, your share</span><span class="dim">weighed</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<p class="subtitle">Gaps these already surface: there is no "week" read for the Plan grid (meal planning, ticket 34), no catalogue editor screen, and "Yesterday is still open" has a home in C's day list — but only once day status can be set in the app (input Task 26).</p>

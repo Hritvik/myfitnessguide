@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desktop After Input</title>
+<style>
+  :root{--bg:#eef1f3;--card:#fff;--steel:#dfe5ea;--steel2:#c9d2da;--ink:#1f2a30;--dim:#56646e;--haldi:#e3a008;--haldiink:#5c3d00;--leaf:#2f6b3f;--warn:#9a3b1f;--page:#f7f8f9}
+  @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#161c20;--card:#1f272c;--steel:#253038;--steel2:#34424c;--ink:#e6ecef;--dim:#9aa8b2;--haldi:#e3a008;--haldiink:#f2c55c;--leaf:#7cc28e;--warn:#e8906f;--page:#0f1417}}
+  :root[data-theme="dark"]{--bg:#161c20;--card:#1f272c;--steel:#253038;--steel2:#34424c;--ink:#e6ecef;--dim:#9aa8b2;--haldi:#e3a008;--haldiink:#f2c55c;--leaf:#7cc28e;--warn:#e8906f;--page:#0f1417}
+  body{margin:0;background:var(--page);color:var(--ink);font-family:Mukta,"Noto Sans",system-ui,sans-serif;padding:24px 16px 64px}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px} h2{font-size:17px;margin:32px 0 6px}
+  .subtitle{color:var(--dim);margin:0 0 12px;font-size:14px;max-width:820px}
+  .hp{font-variant-numeric:tabular-nums;background:var(--bg);border-radius:10px;overflow:hidden;display:flex;min-height:470px;font-size:12px;border:1px solid var(--steel2);position:relative}
+  .side{width:150px;flex:none;background:var(--steel);padding:12px 10px;display:flex;flex-direction:column;gap:4px}
+  .side .brand{font-weight:700;margin-bottom:8px}
+  .side a{display:block;padding:5px 8px;border-radius:7px}
+  .side a.on{background:var(--ink);color:var(--bg)}
+  .side .grp{color:var(--dim);font-size:11px;margin-top:10px}
+  .side .who{margin-top:auto;display:flex;gap:4px;flex-wrap:wrap}
+  .pill{border:1px solid var(--steel2);border-radius:99px;padding:1px 8px;font-size:11px;background:var(--card)}
+  .pill.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .main{flex:1;min-width:0;padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+  .top{display:flex;justify-content:space-between;align-items:center}
+  h4{margin:0;font-size:14px} h5{margin:0;font-size:12.5px}
+  .cols{display:grid;gap:14px}
+  .panel{display:flex;flex-direction:column;gap:8px;min-width:0}
+  .card{background:var(--card);border-radius:12px;padding:10px 12px;box-shadow:0 1px 2px rgb(31 42 48/.08),0 6px 18px rgb(31 42 48/.06)}
+  .inset{background:var(--steel);border-radius:10px;padding:8px 10px}
+  .dim{color:var(--dim)} .est{color:var(--haldiink)} .ok{color:var(--leaf)} .warn{color:var(--warn)}
+  table{border-collapse:collapse;width:100%}
+  td,th{text-align:left;padding:3px 6px;border-bottom:1px solid var(--steel2);font-weight:400}
+  th{color:var(--dim)}
+  .strip{display:flex;gap:8px}
+  .strip .card{flex:1;padding:7px 10px;border-left:3px solid var(--haldi)}
+  .macros{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .m{background:var(--card);border-radius:8px;padding:6px 8px}
+  .m b{display:block}
+  .track{height:5px;background:var(--steel2);border-radius:3px;margin-top:4px;overflow:hidden}
+  .track i{display:block;height:100%;background:var(--ink)}
+  .tier{background:var(--steel);border-radius:10px;padding:6px 10px}
+  .tier .h{display:flex;justify-content:space-between;font-weight:700}
+  .tier .row{display:flex;justify-content:space-between}
+  .split{display:flex;height:18px;border-radius:6px;overflow:hidden;margin-top:6px}
+  .split .you{background:var(--haldi)} .split .oth{background:var(--steel2)}
+  .split .rest{background:repeating-linear-gradient(45deg,var(--steel),var(--steel) 4px,var(--steel2) 4px,var(--steel2) 8px)}
+  .btn{display:inline-block;background:var(--ink);color:var(--bg);border-radius:7px;padding:3px 10px}
+  .btn2{display:inline-block;border:1px solid var(--ink);border-radius:7px;padding:2px 10px}
+  .btn.off{opacity:.45}
+  .kbd{border:1px solid var(--steel2);border-radius:4px;padding:0 4px;font-size:10px;color:var(--dim)}
+  .chip{display:inline-block;border:1px solid var(--steel2);border-radius:99px;padding:0 7px;margin:1px;font-size:11px}
+  .chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .search{background:var(--card);border:1px solid var(--steel2);border-radius:8px;padding:5px 8px;color:var(--dim)}
+  .list div{display:flex;justify-content:space-between;padding:5px 8px;border-radius:7px}
+  .list div.on{background:var(--card);box-shadow:0 1px 2px rgb(31 42 48/.08)}
+  .field{background:var(--card);border:1px solid var(--ink);border-radius:6px;padding:1px 5px;display:inline-block;min-width:34px}
+  .tick{display:inline-block;width:11px;height:11px;border:1.5px solid var(--ink);border-radius:3px;vertical-align:-1px;margin-right:6px}
+  .tick.on{background:var(--ink)}
+  .drawer{position:absolute;top:0;right:0;bottom:0;width:360px;background:var(--card);box-shadow:-10px 0 30px rgb(31 42 48/.18);padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+  .tabs{display:flex;gap:4px;flex-wrap:wrap} .tabs span{border:1px solid var(--steel2);border-radius:99px;padding:1px 8px}
+  .tabs span.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .note{border-left:3px solid var(--haldi);padding-left:8px;margin:8px 0 0;color:var(--dim);font-size:13px;max-width:900px}
+  .used{border-left:3px solid var(--warn)}
+  @media (max-width:900px){.hp{overflow-x:auto} .drawer{position:static;width:auto;box-shadow:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Desktop, after the input build</h1>
+<p class="subtitle">The screens that changed since the design round, with the invented sample household (Asha, Kabir, Noor). Plan is gone from the sidebar until meal planning; Catalogue gains Workouts, Gyms and editing. Light or dark follows your system.</p>
+
+<h2>1 · Today, with the "+" sheet as a side panel</h2>
+<p class="subtitle">The needs-you strip runs full width above both columns. Press N (or +) and the sheet slides in from the right over the household column, so your day stays in view while you log. Esc closes it.</p>
+<div class="hp">
+  <div class="side"><div class="brand">Household</div><a class="on">Today</a><a>Train</a><a>Progress</a><a>Household</a><div class="grp">Catalogue</div><a>Foods &amp; recipes</a><a>Workouts</a><a>Exercises</a><a>Gyms &amp; equipment</a><a>Words I've learned</a><div class="who"><span class="pill on">Asha</span><span class="pill">Kabir</span><span class="pill">Noor</span></div></div>
+  <div class="main">
+    <div class="top"><h4>Wed 7 Oct</h4><span class="dim"><span class="kbd">N</span> log · <span class="kbd">/</span> search · <span class="kbd">?</span> keys</span></div>
+    <div class="strip"><div class="card"><b>2 drafts about you</b> <span class="dim">· Kabir logged your lunch share</span></div><div class="card"><b>Rajma: 20% unaccounted</b> <span class="dim">· leftover, or eaten?</span></div><div class="card"><b>Waist is due</b> <span class="dim">· weekly, last Sun 27 Sep</span></div></div>
+    <div class="cols" style="grid-template-columns:1.25fr 1fr">
+      <div class="panel">
+        <div>Left today: <b>406 kcal</b> and <b>51 g protein</b>. <span class="dim">±180 kcal.</span></div>
+        <div class="macros"><div class="m">Energy<b>406</b><div class="track"><i style="width:78%"></i></div></div><div class="m">Protein<b>51 g</b><div class="track"><i style="width:60%"></i></div></div><div class="m">Carbs<b>88 g</b><div class="track"><i style="width:55%"></i></div></div><div class="m">Fat<b>21 g</b><div class="track"><i style="width:62%"></i></div></div></div>
+        <div class="tier"><div class="h"><span>Breakfast</span><span class="dim">420 kcal · 31 g</span></div><div class="row"><span>Oats + whey</span><span class="dim">my usual</span></div></div>
+        <div class="tier"><div class="h"><span>Lunch</span><span class="dim">610 kcal · 28 g</span></div><div class="row"><span>Rajma, your share</span><span class="dim">weighed</span></div><div class="row"><span>Phulka ×3</span><span class="est">estimated ±60</span></div></div>
+        <div class="tier"><div class="h"><span>Dinner</span><span class="dim">nothing yet</span></div></div>
+        <div class="inset"><b>Close the day</b> <span class="dim">· complete, or partial with the meals you skipped</span></div>
+      </div>
+      <div class="panel"><div class="dim">The household today (under the panel)</div></div>
+    </div>
+  </div>
+  <div class="drawer">
+    <div class="top"><b>Add for Asha · lunch</b><span class="dim">Esc</span></div>
+    <div class="tabs"><span>Food</span><span>Workout</span><span>Set</span><span>Reading</span><span class="on">Free text</span></div>
+    <div class="search" style="color:var(--ink)">2 egg, half the rajma, curd 150 g</div>
+    <div class="card"><div class="top"><span>2 × Whole egg</span><span class="dim">144 kcal · 12 g</span></div></div>
+    <div class="card"><div class="top"><span>Rajma, half the pot's rest</span><span class="dim">your second share asks</span></div><div class="dim">You already have a share of this rajma. Add to it, or is this someone else's?</div></div>
+    <div class="card"><div class="top"><span>150 g Curd, homemade</span><span class="dim">93 kcal · 5 g</span></div></div>
+    <div class="top"><span class="btn">Save 2</span><span class="btn2">Send 1 to Claude</span></div>
+    <div class="dim">Enter reads it again · Tab moves between rows</div>
+  </div>
+</div>
+
+<h2>2 · Household, with "Waiting on you"</h2>
+<p class="subtitle">Catching up on the right: every draft someone logged about you, and your Inbox, in one list. Tick and confirm many at once (each a write of its own); rejecting stays one at a time and asks why.</p>
+<div class="hp">
+  <div class="side"><div class="brand">Household</div><a>Today</a><a>Train</a><a>Progress</a><a class="on">Household</a><div class="grp">Catalogue</div><a>Foods &amp; recipes</a><a>Workouts</a><a>Exercises</a><a>Gyms &amp; equipment</a><a>Words I've learned</a><div class="who"><span class="pill on">Asha</span><span class="pill">Kabir</span><span class="pill">Noor</span></div></div>
+  <div class="main">
+    <div class="top"><h4>Wed 7 Oct</h4><span class="dim">◀ Tue · Thu ▶</span></div>
+    <div class="cols" style="grid-template-columns:1fr 1.1fr">
+      <div class="panel">
+        <h5>Shared meals</h5>
+        <div class="card"><b>Rajma</b> <span class="dim">· lunch · Kabir cooked it, 13:00</span><div class="split"><div class="you" style="flex:3"></div><div class="oth" style="flex:4"></div><div class="rest" style="flex:2"></div></div><span class="dim">You 30% · Kabir 40% · 20% unaccounted · Noor wasn't there</span></div>
+        <div class="card"><b>Dal</b> <span class="dim">· dinner Mon · Asha</span><div class="split"><div class="oth" style="flex:6"></div><div class="rest" style="flex:4"></div></div><span class="dim">½ pot left, in the fridge since Mon</span></div>
+      </div>
+      <div class="panel">
+        <div class="card">
+          <div class="top"><h5>Waiting on you · 4</h5><span><span class="tick on"></span>all</span></div>
+          <table>
+            <tr><td><span class="tick on"></span>Lunch: rajma, your 30%</td><td class="dim">Kabir · confirms Fri 13:00</td></tr>
+            <tr><td><span class="tick on"></span>Lunch: phulka ×3</td><td class="dim">Kabir · confirms Fri 13:00</td></tr>
+            <tr><td><span class="tick"></span>Waist 81.0 cm</td><td class="dim">Claude · confirms Thu 08:10</td></tr>
+            <tr><td><span class="tick"></span>Inbox: "green chutney from the dhaba"</td><td class="dim">waiting for Claude</td></tr>
+          </table>
+          <div style="margin-top:8px"><span class="btn">Confirm 2</span> <span class="btn2">Not mine…</span> <span class="dim">· a reason each</span></div>
+        </div>
+        <div class="card"><h5>Waiting on others</h5><div class="dim">Kabir · 1 set from Mon, needs RIR · Noor · nothing</div></div>
+        <div class="card"><h5>Leftovers</h5><div class="dim">Dal ½ pot · since Mon · Rajma 20% · today</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>3 · Catalogue · a food, before an edit</h2>
+<p class="subtitle">"Used by" sits above the edit buttons: logged days aren't frozen, so a change to a food changes every day that used it. Micronutrients nobody measured read "unknown", never 0.</p>
+<div class="hp">
+  <div class="side"><div class="brand">Household</div><a>Today</a><a>Train</a><a>Progress</a><a>Household</a><div class="grp">Catalogue</div><a class="on">Foods &amp; recipes</a><a>Workouts</a><a>Exercises</a><a>Gyms &amp; equipment</a><a>Words I've learned</a><div class="who"><span class="pill on">Asha</span><span class="pill">Kabir</span><span class="pill">Noor</span></div></div>
+  <div class="main">
+    <div class="cols" style="grid-template-columns:250px 1fr">
+      <div class="panel">
+        <div class="search">Search foods and recipes… <span class="kbd">/</span></div>
+        <div><span class="chip on">All</span><span class="chip">Foods</span><span class="chip">Recipes</span></div>
+        <div class="list"><div class="on"><span>Rajma (cooked)</span><span class="dim">food</span></div><div><span>Rajma (dry)</span><span class="dim">food</span></div><div><span>Rajma curry</span><span class="dim">recipe · 6 lines</span></div><div><span>Paneer bhurji</span><span class="dim">recipe</span></div><div><span>Phulka</span><span class="dim">food · per piece</span></div><div><span>Curd, homemade</span><span class="dim">food · katori</span></div></div>
+        <div class="dim"><span class="kbd">J</span> <span class="kbd">K</span> move</div>
+        <div><span class="btn2">New food</span> <span class="btn2">New recipe</span></div>
+      </div>
+      <div class="panel">
+        <div class="card">
+          <div class="top"><h4>Rajma (cooked)</h4><span class="dim">FS041 · History</span></div>
+          <div class="dim">Cooked · from Rajma (dry) × 2.4 · label values · checked 12 Aug</div>
+          <table style="margin-top:6px"><tr><th>Per 100 g</th><th>kcal</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fibre</th><th>Iron</th><th>B12</th><th>Calcium</th></tr><tr><td></td><td>127</td><td>8.7 g</td><td>22.8 g</td><td>0.5 g</td><td>6.4 g</td><td>2.9 mg</td><td class="dim">unknown</td><td>35 mg</td></tr></table>
+          <div style="margin-top:6px"><span class="dim">Measures:</span> <span class="chip">1 katori = 150 g</span><span class="chip">1 spoon = 15 g</span> <span class="dim">Words:</span> <span class="chip">rajma</span><span class="chip">kidney beans</span></div>
+          <div style="margin-top:4px" class="dim">₹14 per 25 g protein</div>
+        </div>
+        <div class="inset used"><h5>Used by — changing it changes these</h5><div class="dim">Recipe Rajma curry · 31 logged items since 12 Aug · 4 cooks</div></div>
+        <div><span class="btn">Edit</span> <span class="btn2">Add a measure</span> <span class="btn2">Add a yield</span> <span class="btn2">Teach a word</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>4 · Catalogue · the same food, editing in place</h2>
+<p class="subtitle">Fields become inputs where they sit. Save asks for a reason (never filled in for you), sends one write, and the record re-reads from the server. Macros that don't add up to the kcal ask before saving.</p>
+<div class="hp">
+  <div class="side"><div class="brand">Household</div><a>Today</a><a>Train</a><a>Progress</a><a>Household</a><div class="grp">Catalogue</div><a class="on">Foods &amp; recipes</a><a>Workouts</a><a>Exercises</a><a>Gyms &amp; equipment</a><a>Words I've learned</a><div class="who"><span class="pill on">Asha</span><span class="pill">Kabir</span><span class="pill">Noor</span></div></div>
+  <div class="main">
+    <div class="cols" style="grid-template-columns:250px 1fr">
+      <div class="panel">
+        <div class="search">Search foods and recipes… <span class="kbd">/</span></div>
+        <div class="list"><div class="on"><span>Rajma (cooked)</span><span class="dim">food · editing</span></div><div><span>Rajma (dry)</span><span class="dim">food</span></div><div><span>Rajma curry</span><span class="dim">recipe</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="card">
+          <div class="top"><h4>Rajma (cooked)</h4><span class="dim">editing</span></div>
+          <table style="margin-top:6px"><tr><th>Per 100 g</th><th>kcal</th><th>Protein</th><th>Carbs</th><th>Fat</th><th>Fibre</th><th>Iron</th><th>B12</th></tr><tr><td></td><td><span class="field">127</span></td><td><span class="field">9.1</span> g</td><td><span class="field">22.8</span> g</td><td><span class="field">0.5</span> g</td><td><span class="field">6.4</span> g</td><td><span class="field">2.9</span> mg</td><td><span class="field dim">unknown</span></td></tr></table>
+          <div style="margin-top:8px">Why the change? <span class="field" style="min-width:280px;color:var(--ink)">new pack label: 9.1 g protein</span></div>
+          <div class="dim" style="margin-top:4px">Changes 31 logged items, 4 cooks and the Rajma curry recipe.</div>
+          <div style="margin-top:8px"><span class="btn">Save</span> <span class="btn2">Cancel</span> <span class="dim">· Esc cancels</span></div>
+        </div>
+        <div class="card"><span class="ok">Saved.</span> <span class="dim">Protein 8.7 → 9.1 g per 100 g. Re-read from the server.</span></div>
+        <div class="card"><span class="warn">Couldn't reach the server.</span> <span class="dim">Your change is kept.</span> <span class="btn2">Try again</span> <span class="dim">(same change, sent once)</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>5 · Catalogue · a recipe</h2>
+<p class="subtitle">Lines resolve like any amount (an ambiguous food asks). A line's amount edits in place; adding or removing a line asks for a reason. Totals per serving come from the server.</p>
+<div class="hp">
+  <div class="side"><div class="brand">Household</div><a>Today</a><a>Train</a><a>Progress</a><a>Household</a><div class="grp">Catalogue</div><a class="on">Foods &amp; recipes</a><a>Workouts</a><a>Exercises</a><a>Gyms &amp; equipment</a><a>Words I've learned</a><div class="who"><span class="pill on">Asha</span><span class="pill">Kabir</span><span class="pill">Noor</span></div></div>
+  <div class="main">
+    <div class="cols" style="grid-template-columns:250px 1fr">
+      <div class="panel">
+        <div class="search">rajma</div>
+        <div class="list"><div><span>Rajma (cooked)</span><span class="dim">food</span></div><div class="on"><span>Rajma curry</span><span class="dim">recipe · 6 lines</span></div></div>
+      </div>
+      <div class="panel">
+        <div class="card">
+          <div class="top"><h4>Rajma curry</h4><span class="dim">R014 · lunch · batch · 6 servings · History</span></div>
+          <table style="margin-top:6px"><tr><th>#</th><th>Line</th><th>Amount</th><th></th></tr>
+            <tr><td>1</td><td>Rajma (dry)</td><td><span class="field">300</span> g</td><td class="dim">Remove</td></tr>
+            <tr><td>2</td><td>Onion</td><td>200 g</td><td class="dim">Remove</td></tr>
+            <tr><td>3</td><td>Tomato</td><td>250 g</td><td class="dim">Remove</td></tr>
+            <tr><td>4</td><td>Ghee</td><td>2 spoon</td><td class="dim">Remove</td></tr>
+            <tr><td>5</td><td>Ginger-garlic paste</td><td>1 spoon</td><td class="dim">Remove</td></tr>
+            <tr><td>6</td><td>Salt and spices</td><td class="dim">not counted</td><td class="dim">Remove</td></tr>
+          </table>
+          <div style="margin-top:6px"><span class="btn2">Add a line</span> <span class="dim">· per serving: 312 kcal · 14 g protein · 46 g carbs · 8 g fat</span></div>
+        </div>
+        <div class="inset used"><h5>Used by — changing it changes these</h5><div class="dim">9 cooks since 20 Aug · 23 logged servings</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>6 · Catalogue · Gyms &amp; equipment, and Words</h2>
+<p class="subtitle">The inventory tools as screens: a load the gym doesn't have comes off its list with a reason; plates are recorded per unit. Words show what each one means and who taught it.</p>
+<div class="hp">
+  <div class="side"><div class="brand">Household</div><a>Today</a><a>Train</a><a>Progress</a><a>Household</a><div class="grp">Catalogue</div><a>Foods &amp; recipes</a><a>Workouts</a><a>Exercises</a><a class="on">Gyms &amp; equipment</a><a>Words I've learned</a><div class="who"><span class="pill on">Asha</span><span class="pill">Kabir</span><span class="pill">Noor</span></div></div>
+  <div class="main">
+    <div class="cols" style="grid-template-columns:1fr 1fr">
+      <div class="panel">
+        <div class="card">
+          <div class="top"><h4>Asha's gym</h4><span class="dim">History</span></div>
+          <table style="margin-top:6px"><tr><th>Equipment</th><th>Loads</th><th></th></tr>
+            <tr><td>Dumbbells</td><td>2.5–20 kg in 2.5 · <span class="warn">no 15</span></td><td class="dim">Edit</td></tr>
+            <tr><td>Lat pulldown (cable)</td><td>pin 5–90 kg in 5</td><td class="dim">Edit</td></tr>
+            <tr><td>Barbell</td><td>bar 20 kg · plates 1.25, 2.5, 5, 10, 20 kg</td><td class="dim">Edit</td></tr>
+            <tr><td>Cable row</td><td>pin 5–40 kg · <span class="est">45 unchecked</span></td><td class="dim">Edit</td></tr>
+          </table>
+          <div style="margin-top:8px"><span class="btn2">Remove a load</span> <span class="btn2">Add a load</span> <span class="btn2">Record plates</span></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="card">
+          <h4>Words I've learned</h4>
+          <table style="margin-top:6px"><tr><th>Word</th><th>Means</th><th>Taught</th><th></th></tr>
+            <tr><td>pb</td><td>Peanut butter</td><td class="dim">Asha · 2 Oct</td><td class="dim">Forget</td></tr>
+            <tr><td>dahi</td><td>Curd, homemade</td><td class="dim">Kabir · 4 Oct</td><td class="dim">Forget</td></tr>
+            <tr><td>lpd</td><td>Lat Pulldown</td><td class="dim">Asha · 5 Oct</td><td class="dim">Forget</td></tr>
+          </table>
+          <div class="dim" style="margin-top:6px">This week the app read 78% of what you typed without help.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="note">Not in this build: Plan (meal planning, its own spec next), creating exercises (ticket 38), nutrition history and lift charts (ticket 45).</p>
+</div>
+</body>
+</html>

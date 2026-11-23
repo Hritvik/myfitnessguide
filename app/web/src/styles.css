@@ -1,0 +1,2686 @@
+/* Household pot (docs/design/DESIGN.md). Every colour is a token; no literal colour in a component rule. */
+:root {
+  --bg: #eef1f3;
+  --card: #ffffff;
+  --steel: #dfe5ea;
+  --steel-2: #c9d2da;
+  --ink: #1f2a30;
+  --dim: #56646e;
+  --haldi: #e3a008;
+  --haldi-ink: #5c3d00;
+  --leaf: #2f6b3f;
+  --chilli: #b4321f;
+  /* Text on a haldi fill. Derived from --haldi-ink so it holds in both themes. */
+  --on-haldi: #2b1d00;
+  /* The pot card's shadow: ink at 6-8%. */
+  --shadow-near: rgb(31 42 48 / 0.08);
+  --shadow-far: rgb(31 42 48 / 0.06);
+
+  /* Space steps for the layout rules (wide-layout spec §2; components/layout/layout.css). Older rules keep their literals. */
+  --gap-4: 4px;
+  --gap-8: 8px;
+  --gap-12: 12px;
+  --gap-16: 16px;
+  --gap-20: 20px;
+  --gap-24: 24px;
+  --gap-32: 32px;
+
+  --font: "Mukta", "Noto Sans", system-ui, sans-serif;
+  color-scheme: light dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15191c;
+    --card: #1c2328;
+    --steel: #232b31;
+    --steel-2: #34404a;
+    --ink: #e8edf0;
+    --dim: #9aa8b2;
+    --haldi: #f0b429;
+    --haldi-ink: #f7d47c;
+    --leaf: #7cc790;
+    --chilli: #f07a63;
+    --on-haldi: #2b1d00;
+    --shadow-near: rgb(0 0 0 / 0.32);
+    --shadow-far: rgb(0 0 0 / 0.24);
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scrollbar-color: var(--steel-2) var(--bg);
+  accent-color: var(--ink);
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 1rem;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  -webkit-tap-highlight-color: transparent;
+  caret-color: var(--haldi);
+  /* A word longer than its line (a pasted code, a URL) breaks rather than running out of its box (web decision 82). */
+  overflow-wrap: break-word;
+}
+
+::selection {
+  background: var(--haldi);
+  color: var(--on-haldi);
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+h1,
+h2,
+p,
+ul,
+ol,
+dl,
+dd {
+  margin: 0;
+  padding: 0;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ layout */
+
+.screen {
+  max-width: 430px;
+  margin-inline: auto;
+  padding-inline: max(16px, env(safe-area-inset-left)) max(16px, env(safe-area-inset-right));
+  padding-block: max(12px, env(safe-area-inset-top)) 16px;
+  display: grid;
+  /* One track no wider than the screen, whatever a long word inside wants (web decision 82). */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.banner {
+  background: var(--steel);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+
+.banner b {
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------ title row */
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.top h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.who {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ------------------------------------------------------------ shell */
+
+/* Room below for the tab bar (64 px) and the floating "+" above it (56 px at 76 px, plus 8): it never covers the last row at the end of the page (web decision 82). */
+.app {
+  min-height: 100dvh;
+  padding-bottom: calc(140px + env(safe-area-inset-bottom));
+}
+
+.memberbar {
+  max-width: 430px;
+  margin-inline: auto;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: max(8px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+}
+
+.pill {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--steel-2);
+  color: var(--dim);
+  border-radius: 999px;
+  padding: 2px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.pill:hover {
+  border-color: var(--dim);
+  color: var(--ink);
+}
+
+.pill[aria-current="page"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+.tabbar {
+  position: fixed;
+  inset: auto 0 0 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--bg);
+  border-top: 1px solid var(--steel-2);
+  /* On a wide screen the tabs keep to the app's 430 px column; the bar's rule still spans the width. */
+  padding: 6px max(8px, env(safe-area-inset-right), calc(50% - 215px)) max(6px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left), calc(50% - 215px));
+}
+
+.tabbar a {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding-block: 4px;
+  border-radius: 10px;
+  color: var(--dim);
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+.tabbar a[aria-current="page"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.daynav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.daynav input {
+  min-height: 36px;
+  border: 1px solid var(--steel-2);
+  border-radius: 8px;
+  background: transparent;
+  padding-inline: 8px;
+}
+
+.daynav .btn {
+  min-width: 36px;
+}
+
+/* ------------------------------------------------------------ left line */
+
+.left {
+  display: grid;
+  gap: 4px;
+}
+
+.leftline {
+  font-size: 1.1rem;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.leftline b {
+  font-weight: 700;
+}
+
+.leftnote {
+  color: var(--dim);
+  font-size: 0.9rem;
+  text-wrap: pretty;
+}
+
+/* ------------------------------------------------------------ macro strip */
+
+.macros {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* label, amount, track, caption, note: shared rows keep the four tracks level. */
+  grid-template-rows: repeat(5, auto);
+  column-gap: 8px;
+}
+
+.macro {
+  display: grid;
+  grid-row: span 5;
+  grid-template-rows: subgrid;
+  row-gap: 4px;
+  align-items: end;
+  font-size: 0.8rem;
+  color: var(--dim);
+  line-height: 1.25;
+}
+
+.macro .amount {
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.macro .amount small {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--dim);
+}
+
+.macro .amount .overby {
+  display: block;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.track {
+  display: block; /* also a <span> inside text (Progress's week), where an inline box ignores the height */
+  height: 6px;
+  background: var(--steel-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.track span {
+  display: block;
+  height: 100%;
+  background: var(--ink);
+  border-radius: 3px;
+}
+
+/* ------------------------------------------------------------ pot card */
+
+.pots {
+  display: grid;
+  gap: 14px;
+}
+
+.pot {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  box-shadow:
+    0 1px 2px var(--shadow-near),
+    0 6px 18px var(--shadow-far);
+}
+
+.pot header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 12px;
+  flex-wrap: wrap;
+}
+
+.pot h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.pot h2 span {
+  font-weight: 400;
+}
+
+.pot .meta {
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+
+.bar {
+  display: grid;
+  gap: 4px;
+}
+
+.bar-name {
+  font-size: 0.85rem;
+  color: var(--dim);
+}
+
+.split {
+  display: flex;
+  height: 38px;
+  border-radius: 8px;
+  overflow: hidden;
+  gap: 2px;
+}
+
+.seg {
+  flex: 0 1 0px;
+  display: flex;
+  align-items: center;
+  padding-inline: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 6px;
+}
+
+.seg.you {
+  background: var(--haldi);
+  color: var(--on-haldi);
+}
+
+.seg.other,
+.seg.eaten {
+  background: var(--steel-2);
+  color: var(--ink);
+}
+
+.seg.unaccounted {
+  background: repeating-linear-gradient(135deg, var(--steel-2) 0 2px, transparent 2px 8px);
+  border: 1px dashed var(--steel-2);
+  border-radius: 0 8px 8px 0;
+  color: var(--dim);
+}
+
+.seg.leftover,
+.seg.discarded {
+  background: var(--steel);
+  color: var(--dim);
+}
+
+.seg.unaccounted span {
+  background: var(--card);
+  border-radius: 4px;
+  padding-inline: 4px;
+}
+
+.legend {
+  display: flex;
+  gap: 4px 14px;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--dim);
+}
+
+.ask {
+  background: var(--steel);
+  border-radius: 10px;
+  padding: 12px;
+  font-size: 0.9rem;
+  display: grid;
+  gap: 8px;
+}
+
+/* An estimated value in the ask ("estimated ±35, mostly ladle size"). */
+.ask .est {
+  color: var(--haldi-ink);
+}
+
+/* ------------------------------------------------------------ buttons and forms */
+
+.btn {
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 4px 12px;
+  border: 1px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.btn.primary {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--steel-2);
+}
+
+.btn.primary:hover:not(:disabled) {
+  background: var(--dim);
+  border-color: var(--dim);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.share {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.share label {
+  font-weight: 500;
+}
+
+.share .field {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.share input {
+  width: 5.5ch;
+  min-height: 40px;
+  padding: 4px 8px;
+  border: 1px solid var(--dim);
+  border-radius: 8px;
+  background: var(--card);
+  text-align: right;
+}
+
+.share .full {
+  flex-basis: 100%;
+}
+
+.share input[aria-invalid="true"] {
+  border-color: var(--chilli);
+}
+
+/* Write status, next to the thing written. */
+.status {
+  font-size: 0.85rem;
+  color: var(--dim);
+  min-height: 1lh;
+}
+
+.status.saved {
+  color: var(--leaf);
+}
+
+/* A form's own refusal (FormError.tsx): a live region with no box, so its line sits where it always did. */
+.form-error {
+  display: contents;
+}
+
+.status.failed,
+.error-text {
+  color: var(--chilli);
+}
+
+.status.question {
+  color: var(--ink);
+}
+
+.status:empty {
+  display: none;
+}
+
+/* ------------------------------------------------------------ meal tiers */
+
+.tiers {
+  display: grid;
+  gap: 4px;
+}
+
+.tier {
+  background: var(--steel);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.tier:first-child {
+  border-radius: 16px 16px 12px 12px;
+}
+
+.tier header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.tier h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.tier header span {
+  font-size: 0.85rem;
+  color: var(--dim);
+}
+
+/* Three different absences: nothing yet, skipped, not recorded. */
+.tier.nothing_yet {
+  background: transparent;
+  border: 1.5px dashed var(--steel-2);
+  padding-block: 10px;
+}
+
+.tier.skipped {
+  background: transparent;
+  border: 1.5px solid var(--steel-2);
+  padding-block: 10px;
+}
+
+.tier.skipped header span {
+  color: var(--ink);
+}
+
+.tier.not_recorded {
+  background: transparent;
+  border: 1.5px dotted var(--dim);
+  padding-block: 10px;
+}
+
+.tier.not_recorded header span {
+  font-style: italic;
+}
+
+.items {
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  align-items: baseline;
+}
+
+.item .amount {
+  color: var(--dim);
+}
+
+.item .prov {
+  font-size: 0.8rem;
+  color: var(--dim);
+  text-align: right;
+}
+
+.item .prov.est {
+  color: var(--haldi-ink);
+}
+
+.item.draft {
+  padding-block: 4px 6px;
+}
+
+.draftbar {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 6px;
+  font-size: 0.85rem;
+}
+
+.draftbar p {
+  font-weight: 500;
+}
+
+/* ------------------------------------------------------------ footer */
+
+.foot {
+  display: grid;
+  font-size: 0.9rem;
+}
+
+.foot > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding-block: 8px;
+  border-top: 1px solid var(--steel-2);
+}
+
+.foot dt {
+  min-width: 0;
+}
+
+.foot dd {
+  color: var(--dim);
+  text-align: right;
+  flex-shrink: 0;
+  max-width: 50%;
+}
+
+/* ------------------------------------------------------------ whole-screen states */
+
+.state {
+  display: grid;
+  gap: 12px;
+  padding-block: 24px;
+  justify-items: start;
+}
+
+.state h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.state p {
+  color: var(--dim);
+  max-width: 38ch;
+}
+
+/* Skeleton in the layout's shape. Static: nothing animates but the bars. */
+.sk {
+  background: var(--steel);
+  border-radius: 6px;
+}
+
+.sk-line {
+  height: 1.1rem;
+}
+
+.sk-title {
+  width: 6.5rem;
+  height: 1.4rem;
+}
+
+.sk-pill {
+  width: 4.5rem;
+  height: 28px;
+  border-radius: 999px;
+}
+
+.sk-macro {
+  height: 3.6rem;
+}
+
+.sk-pot {
+  height: 9.5rem;
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow:
+    0 1px 2px var(--shadow-near),
+    0 6px 18px var(--shadow-far);
+}
+
+.sk-tier {
+  height: 5rem;
+  border-radius: 12px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .seg,
+  .track span {
+    transition: flex-grow 0.4s cubic-bezier(0.16, 1, 0.3, 1), width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+/* ------------------------------------------------------------ needs you */
+
+.strip {
+  display: grid;
+  gap: 8px;
+}
+
+.strip ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.needs {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 4px 12px;
+  background: var(--steel);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+}
+
+.needs p {
+  margin: 0;
+}
+
+.needs .status {
+  grid-column: 1 / -1;
+}
+
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ------------------------------------------------------------ train */
+
+.rows {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rx {
+  --g: 6px;
+  background: var(--steel);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.rx:first-child {
+  border-radius: 16px 16px 12px 12px;
+}
+
+.rx header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.rx h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* The dose keeps its line beside a long exercise name, which wraps instead ("RIR 1–" over "2" read wrong). */
+.rx header span {
+  flex-shrink: 0;
+}
+
+.rx header span,
+.loadval,
+.gaps {
+  font-size: 0.9rem;
+}
+
+.chip {
+  justify-self: start;
+  border: 1px solid var(--steel-2);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.chip.ready {
+  color: var(--leaf);
+  border-color: currentColor;
+}
+
+.rx details summary {
+  font-size: 0.85rem;
+  color: var(--dim);
+  cursor: pointer;
+}
+
+/* Another member's Train: the fallback exercises' names, with no coach note above them (web decision 82). */
+.rx .fallback {
+  font-size: 0.85rem;
+  color: var(--dim);
+  overflow-wrap: anywhere;
+}
+
+.plates {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.plates figcaption {
+  font-size: 0.85rem;
+}
+
+.ask-inv {
+  display: grid;
+  gap: 8px;
+  border-top: 1px solid var(--steel-2);
+  padding-top: 12px;
+  font-size: 0.9rem;
+}
+
+.ask-inv .btn[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+/* ------------------------------------------------------------ progress */
+
+.ranges {
+  display: flex;
+  gap: 6px;
+}
+
+.nutrition-summary h2,
+.nutrition-weekly h2,
+.nutrition-state h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.nutrition-summary ul {
+  margin: 0;
+  padding-inline-start: 20px;
+}
+
+.nutrition-table-scroll {
+  max-inline-size: 100%;
+  overflow-x: auto;
+}
+
+.nutrition-table-scroll:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.nutrition-weeks {
+  min-inline-size: 920px;
+}
+
+.nutrition-weeks caption {
+  padding-block-end: 6px;
+  color: var(--dim);
+  text-align: left;
+}
+
+/* ------------------------------------------------------------ lifts */
+
+.lift-layout {
+  gap: var(--gap-16);
+  align-items: start;
+}
+
+.lift-index h2,
+.lift-focus h2,
+.lift-chart h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.lift-index ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lift-row {
+  min-height: 56px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.lift-row:hover,
+.lift-row[aria-current="page"] { background: var(--steel); }
+.lift-row:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.lift-row > span { min-width: 0; }
+.lift-row b, .lift-row .meta { display: block; }
+.lift-row > span:last-child { text-align: right; }
+.lift-row .meta { margin-top: 2px; color: var(--dim); font-size: .8rem; }
+
+.lift-focus {
+  min-width: 0;
+  background: var(--card);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 0 0 1px var(--shadow-near), 0 2px 8px var(--shadow-far);
+}
+
+.lift-hero {
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.lift-hero h2 { margin: 0; font-size: 1.6rem; letter-spacing: -.02em; }
+.lift-insight { font-variant-numeric: tabular-nums; text-align: right; }
+.eyebrow { margin: 0 0 2px; color: var(--dim); font-size: .75rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.lift-chart svg { min-height: 180px; }
+.lift-chart table { font-variant-numeric: tabular-nums; }
+
+@media (max-width: 500px) {
+  .lift-chart svg text { font-size: 22px; }
+}
+
+@container screen (min-width: 760px) {
+  .lift-index { position: sticky; top: 20px; max-height: calc(100dvh - 40px); overflow-y: auto; }
+}
+
+.goal {
+  display: grid;
+  gap: 4px;
+  background: var(--steel);
+  border-radius: 16px 16px 12px 12px;
+  padding: 14px;
+}
+
+.goal h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.trajectory-headline {
+  gap: 8px;
+  padding: 18px;
+}
+
+.trajectory-headline .trajectory-verdict {
+  margin: 0;
+  max-width: 22ch;
+  color: var(--ink);
+  font-size: clamp(1.7rem, 5vw, 2.5rem);
+  font-weight: 750;
+  letter-spacing: -.035em;
+  line-height: 1.02;
+}
+
+.trajectory-observation {
+  max-width: 52ch;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.trajectory-headline .trajectory-metric {
+  margin: 10px 0 0;
+  color: var(--dim);
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.trajectory-context {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 14px;
+  box-shadow: 0 0 0 1px var(--shadow-near);
+}
+
+.trajectory-context h2 { font-size: 1rem; }
+.trajectory-context p { color: var(--dim); font-size: .9rem; line-height: 1.45; }
+
+/* Progress overview: the unified summary (spec §Unified Progress read model).
+   Structure comes from the layout primitives in the JSX; these rules are visual only. */
+.summary-hero {
+  background: var(--steel);
+  border-radius: 16px;
+  padding: 20px 24px;
+}
+
+.summary-hero.direction-waiting { box-shadow: inset 4px 0 0 var(--steel-2); }
+.summary-hero.direction-holding { box-shadow: inset 4px 0 0 var(--dim); }
+.summary-hero.direction-moving { box-shadow: inset 4px 0 0 var(--haldi); }
+.summary-hero.direction-away { box-shadow: inset 4px 0 0 var(--chilli); }
+
+.summary-hero h2 {
+  margin: 0;
+  letter-spacing: -.03em;
+  font-size: clamp(1.6rem, 5vw, 2.4rem);
+  font-weight: 750;
+  line-height: 1.05;
+}
+
+.summary-observation {
+  max-width: 52ch;
+  color: var(--ink);
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.summary-signals h2 { font-size: 1rem; font-weight: 700; }
+
+.signal-card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 0 0 1px var(--shadow-near);
+}
+
+.signal-card.empty { background: 0 0; border: 1.5px dashed var(--steel-2); box-shadow: none; }
+
+.signal-link { color: inherit; text-decoration: none; }
+.signal-link:hover .signal-title { text-decoration: underline; }
+
+.signal-title { margin: 0; color: var(--dim); font-size: .8rem; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.signal-value { margin: 0; font-size: 1.25rem; font-weight: 700; line-height: 1.2; }
+.signal-detail { margin: 0; color: var(--dim); font-size: .9rem; }
+
+.summary-next {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 0 0 0 1px var(--shadow-near);
+  justify-items: start;
+}
+
+.summary-next h2 { font-size: 1rem; font-weight: 700; }
+
+.summary-comparison h2 { font-size: 1rem; font-weight: 700; }
+.summary-comparison p { color: var(--dim); font-size: .9rem; }
+
+.summary-links h2 { font-size: 1rem; font-weight: 700; }
+
+.summary-evidence summary { color: var(--dim); font-size: .9rem; cursor: pointer; }
+.summary-evidence caption { color: var(--dim); text-align: left; padding-block-end: 6px; }
+
+.goal-value b {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.goal-value span {
+  color: var(--dim);
+  font-size: 0.9rem;
+}
+
+.chart {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.chart h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.chart figcaption,
+.chart summary {
+  font-size: 0.85rem;
+  color: var(--dim);
+}
+
+.chart table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.chart th,
+.chart td {
+  text-align: left;
+  padding: 4px 0;
+  border-top: 1px solid var(--steel-2);
+}
+
+.week {
+  display: grid;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.week header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.week h2,
+.health h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.health-overview {
+  padding: 20px 24px;
+  border-radius: 16px;
+  background: var(--steel);
+}
+
+.health-overview.review {
+  box-shadow: inset 4px 0 0 var(--haldi);
+}
+
+.health-overview h2 {
+  margin-top: 4px;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.health-overview-summary {
+  margin-top: 8px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-wrap: pretty;
+}
+
+.health-overview .leftnote {
+  max-width: 72ch;
+  margin-top: 12px;
+  text-wrap: pretty;
+}
+
+.weekdays {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weekdays li {
+  display: grid;
+  grid-template-columns: 9rem 1fr;
+  gap: 2px 12px;
+  padding-block: 6px;
+  border-top: 1px solid var(--steel-2);
+}
+
+.chip.flagged {
+  border-color: var(--ink);
+  font-weight: 500;
+}
+
+.marker {
+  display: grid;
+  gap: 2px;
+}
+
+/* The draw and status read as a line under the marker's name, the band beside it under the value. */
+.marker .prov {
+  text-align: left;
+}
+
+.marker .band {
+  align-self: center;
+}
+
+.band {
+  display: block;
+}
+
+.flag {
+  display: grid;
+  gap: 6px;
+  padding-block: 8px;
+  border-top: 1px solid var(--steel-2);
+}
+
+/* ------------------------------------------------------------ household */
+
+.household h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.household h3 {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--dim);
+}
+
+.people {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.person {
+  display: grid;
+  gap: 2px;
+  background: var(--steel);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: inherit;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.people li:first-child .person {
+  border-radius: 16px 16px 12px 12px;
+}
+
+.tier.leftover {
+  display: grid;
+  gap: 6px;
+}
+
+.history {
+  display: grid;
+  gap: 8px;
+}
+
+.history h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.history summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  white-space: normal;
+}
+
+.link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--dim);
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+
+/* In an item's grid the link takes a cell, and the opened trail a whole row (not squeezed into the link's column). */
+.history-link {
+  display: contents;
+}
+
+.item .history-link > :not(.link) {
+  grid-column: 1 / -1;
+}
+
+.item .history-link > .link {
+  justify-self: start;
+}
+
+/* Edit and Remove on your own confirmed row (ticket 61): quiet links beside "history", on the right. */
+.item .fix-links {
+  grid-column: 2;
+  justify-self: end;
+  display: flex;
+  gap: 12px;
+}
+
+.fix-form {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  align-items: end;
+}
+
+.fix-form .field {
+  display: grid;
+  gap: 2px;
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.fix-form .field input,
+.fix-form .field select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 40px;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--steel-2);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.fix-form .fix-note {
+  font-weight: 400;
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.fix-form .acts,
+.fix-form .fix-note,
+.fix-form .error-text {
+  grid-column: 1 / -1;
+}
+
+.audit {
+  margin: 4px 0 0;
+  padding-left: 16px;
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.audit .when {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------ the + sheet */
+
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(76px + env(safe-area-inset-bottom));
+  width: 56px;
+  height: 56px;
+  border-radius: 28px;
+  border: 0;
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow: 0 1px 2px var(--shadow-near), 0 6px 18px var(--shadow-far);
+  display: grid;
+  place-items: center;
+  z-index: 20;
+}
+
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.32);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 30;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 430px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  background: var(--card);
+  border-radius: 16px 16px 0 0;
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+  display: grid;
+  /* One minmax(0, 1fr) track (decision 82's idiom): a long name can't widen the sheet and carry every input past it. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  box-shadow: 0 1px 2px var(--shadow-near), 0 6px 18px var(--shadow-far);
+}
+
+.sheet-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sheet-tabs {
+  display: flex;
+  background: var(--steel);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.sheet-tabs button {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 0.9rem;
+}
+
+.sheet-tabs button[aria-selected="true"] {
+  background: var(--card);
+  font-weight: 700;
+}
+
+.sheet-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+}
+
+.sheet .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sheet .chip {
+  border: 1px solid var(--steel-2);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.9rem;
+}
+
+.sheet .chip[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+.sheet .field {
+  display: grid;
+  gap: 2px;
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.sheet .field input,
+.sheet .field select {
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--steel);
+  border: 1px solid var(--steel-2);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.sheet-day {
+  font-size: 0.85rem;
+  color: var(--dim);
+}
+
+.sheet-notice {
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.sheet-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.tier-add {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  padding: 2px 8px;
+}
+
+/* haldi marks "you": the signed-in member's chip, selected or not. */
+.sheet .chip.you {
+  border-color: var(--haldi);
+  box-shadow: inset 0 -3px 0 var(--haldi);
+}
+
+.sheet .pick-group h3 {
+  font-size: 0.85rem;
+  color: var(--dim);
+  font-weight: 500;
+  margin: 0 0 4px;
+}
+
+.sheet .pick-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 4px;
+}
+
+.sheet .pick {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  border: 0;
+  border-radius: 10px;
+  background: var(--steel);
+  padding: 10px 12px;
+}
+
+/* The short detail ("usually 2 roti") keeps its line beside a long name (decision 82); past 60% it truncates (FoodTab). */
+.sheet .pick small {
+  color: var(--dim);
+  flex: none;
+  max-width: 60%;
+}
+
+.sheet .amount {
+  display: grid;
+  gap: 10px;
+}
+
+.sheet .preview {
+  min-height: 1.4em;
+  font-size: 0.9rem;
+}
+
+.sheet .field.wide {
+  width: 100%;
+}
+
+.sheet .lines,
+.sheet .eaters {
+  display: grid;
+  gap: 6px;
+}
+
+.sheet .lines li,
+.sheet .eaters li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sheet .lines input,
+.sheet .eaters input {
+  width: 5.5em;
+  font: inherit;
+  background: var(--steel);
+  border: 1px solid var(--steel-2);
+  border-radius: 8px;
+  padding: 4px 6px;
+  color: var(--ink);
+}
+
+.sheet .lines .unit {
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+
+.sheet .hint {
+  font-size: 0.85rem;
+  color: var(--dim);
+}
+
+.sheet .keep {
+  display: grid;
+  gap: 8px;
+  background: var(--steel);
+  border-radius: 12px;
+  padding: 12px;
+}
+.sheet .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: end;
+}
+
+.sheet .row input,
+.sheet .row select {
+  font: inherit;
+  width: 6em;
+  background: var(--steel);
+  border: 1px solid var(--steel-2);
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: var(--ink);
+}
+
+.sheet .plate-builder {
+  display: grid;
+  gap: 8px;
+}
+
+.sheet .plate-text {
+  font-weight: 500;
+}
+
+.sheet .block {
+  display: grid;
+  gap: 6px;
+  background: var(--steel);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.sheet .block header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sheet .block h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.sheet .set-n {
+  color: var(--dim);
+  width: 1.2em;
+}
+
+.sheet .block .row input,
+.sheet .block .row select {
+  background: var(--card);
+}
+
+.sheet .block .row input[inputmode] {
+  width: 5em;
+}
+
+.sheet .block .row .preview {
+  flex-basis: 100%;
+}
+
+/* A workout's sets (input critique, 7 Oct 2026): one aligned line per set
+   (number, load, reps, RIR, remove) under column heads, with the load's
+   kind chips on the line below, so a set reads across at 390 px. */
+.sheet .set-row {
+  display: grid;
+  /* rem, not em: the column heads are a smaller size and must line up with the inputs. */
+  grid-template-columns: 1.2rem minmax(0, 5.5rem) minmax(0, 5rem) minmax(0, 3.6rem) 40px;
+  gap: 4px 6px;
+  align-items: center;
+}
+
+.sheet .set-cols {
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.sheet .set-row .cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sheet .set-row input,
+.sheet .set-row select {
+  font: inherit;
+  width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  background: var(--card);
+  border: 1px solid var(--steel-2);
+  border-radius: 8px;
+  padding: 6px 8px;
+  color: var(--ink);
+}
+
+.sheet .set-row .unit {
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+
+.sheet .set-row .load-kind,
+.sheet .set-row .load-wide,
+.sheet .set-row .preview {
+  grid-column: 2 / -1;
+}
+
+.sheet .set-row .load-kind .chip {
+  font-size: 0.8rem;
+}
+
+/* Tell Claude: one box, sent whole to the inbox. */
+.sheet textarea {
+  font: inherit;
+  font-size: 0.95rem;
+  width: 100%;
+  background: var(--steel);
+  border: 1px solid var(--steel-2);
+  border-radius: 8px;
+  padding: 8px;
+  color: var(--ink);
+  resize: vertical;
+}
+
+.sheet .waiting {
+  font-size: 0.9rem;
+}
+
+/* ------------------------------------------------------------ top menu */
+
+.topbar {
+  position: relative;
+  max-width: 430px;
+  margin-inline: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar .memberbar {
+  flex: 1;
+  margin-inline: 0;
+}
+
+.topbar .more {
+  margin: max(8px, env(safe-area-inset-top)) 16px 0 0;
+}
+
+.topbar .menu {
+  position: absolute;
+  right: 16px;
+  top: 56px;
+  display: grid;
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px var(--shadow-near), 0 6px 18px var(--shadow-far);
+  z-index: 25;
+}
+
+.topbar .menu button,
+.topbar .menu a {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  padding: 10px 14px;
+}
+
+.topbar .menu a {
+  text-decoration: none;
+}
+
+.sheet .field textarea {
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--steel);
+  border: 1px solid var(--steel-2);
+  border-radius: 8px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+
+.sheet .hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+/* Five tabs and Close don't fit one row at 390 px: Close stays on the first row, the tabs take the next, full width. */
+.sheet-head {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.sheet-tabs {
+  order: 2;
+  width: 100%;
+}
+
+.sheet-tabs button {
+  flex: 1;
+  padding: 6px 4px;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------------------------ closing a day */
+
+.dayclose {
+  display: grid;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--steel-2);
+}
+
+.dayclose .skips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dayclose .skip {
+  border: 1px solid var(--steel-2);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.9rem;
+}
+
+.dayclose .skip[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+/* ------------------------------------------------------------ input critique fixes (7 Oct 2026) */
+
+/* The sheet's head stays in view while its body scrolls, so Close and the tabs never scroll away. */
+.sheet-head {
+  position: sticky;
+  top: -12px;
+  margin-top: -12px;
+  padding-block: 12px 4px;
+  background: var(--card);
+  z-index: 1;
+}
+
+/* A titled sheet (What I've learned, Send feedback): the title at the scale's title size, left. */
+.sheet-head h2 {
+  margin: 0 auto 0 0;
+  font-size: 1.15rem;
+}
+
+/* Tap targets: tabs and chips 36 px, as Today's pills. */
+.sheet-tabs button,
+.sheet .chip {
+  min-height: 36px;
+}
+
+/* One full-width button per screen: the primary Save. Back, Change and the like keep their own width. */
+.sheet .amount > .btn:not(.primary),
+.sheet-body > .btn:not(.primary) {
+  justify-self: start;
+}
+
+.sheet .eaters .unit {
+  color: var(--dim);
+  font-size: 0.85rem;
+}
+
+/* A routed row's words being changed take the row's width, so the whole phrase shows; the buttons wrap below. */
+.sheet .text-row .row input {
+  flex: 1 1 100%;
+  width: auto;
+}
+
+/* ------------------------------------------------------------ wide (desktop spec §2; DESIGN.md "Wide screens") */
+/* Every rule below applies only inside .app.wide (set by useWide at 1024 px and wider), so no phone selector changes. */
+
+.app.wide {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  padding-bottom: 0;
+}
+
+.app.wide > .screen {
+  /* Fills the window up to a 2,400 px safety cap (wide-layout spec §2): columns come from the content, not a fixed width. */
+  max-width: 2400px;
+  width: 100%;
+  margin-inline: 0;
+  /* The screen is as tall as the window (the sidebar's row); its parts sit at the top, never spread down it. */
+  align-content: start;
+  /* 104 px below: the floating "+" (56 px, 24 px from the bottom) never covers the last row at the end of the page (web decision 82). */
+  padding: 20px 24px 104px;
+  /* Every template and density is a container query on this box (components/layout/layout.css), never on the window. */
+  container: screen / inline-size;
+}
+
+/* Very wide (a window of 1,920 px and more): a 32 px gutter and 20 px between parts. Type and padding never scale. */
+@media (min-width: 1920px) {
+  .app.wide > .screen {
+    padding: 20px 32px 104px;
+    gap: var(--gap-20);
+  }
+
+  .app.wide .col:not(.l-grid) {
+    gap: var(--gap-20);
+  }
+}
+
+/* Prose keeps a readable measure however wide its column grows. */
+.app.wide :is(.screen, .col) > :is(p.leftnote, p.banner, p.method) {
+  max-inline-size: 72ch;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+  background: var(--steel);
+  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebar-top {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px 8px;
+}
+
+.sidebar nav {
+  display: grid;
+  gap: 2px;
+}
+
+.sidebar nav a {
+  padding: 6px 10px;
+  border-radius: 8px;
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.sidebar nav a:hover {
+  background: var(--steel-2);
+}
+
+.sidebar nav a[aria-current="page"] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+.sidebar h2 {
+  margin: 12px 10px 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--dim);
+}
+
+.sidebar .memberbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  margin-inline: 0;
+  align-self: stretch;
+  padding: 8px 4px 0;
+  max-width: none;
+}
+
+.sidebar .more {
+  margin: 0;
+}
+
+.sidebar .menu {
+  position: absolute;
+  left: 4px;
+  top: 44px;
+  display: grid;
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px var(--shadow-near), 0 6px 18px var(--shadow-far);
+  z-index: 25;
+}
+
+.sidebar .menu button,
+.sidebar .menu a {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  padding: 10px 14px;
+}
+
+.fab.wide {
+  right: 24px;
+  bottom: 24px;
+}
+
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+/* A column's one track never grows past the column: a long word or a nowrap line inside can't push it wider (web decision 82). */
+.col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+.wide-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.wide-table th,
+.wide-table td {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--steel-2);
+  font-weight: 400;
+}
+
+.wide-table thead th {
+  color: var(--dim);
+  font-size: 0.8rem;
+}
+
+.wide-table tbody th {
+  font-weight: 500;
+}
+
+.glance {
+  display: grid;
+  gap: 8px;
+}
+
+.glance h2,
+.glance h3 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.glance-fridge {
+  display: grid;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.glance-fridge li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  padding-block: 8px;
+  border-top: 1px solid var(--steel-2);
+}
+
+/* Task 10: Train, Progress, Health, Household */
+.app.wide .session-list {
+  display: grid;
+  gap: 4px;
+}
+
+.app.wide .session-row {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  text-align: left;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: transparent;
+  color: var(--ink);
+}
+
+.app.wide .session-row:hover {
+  background: var(--steel);
+}
+
+.app.wide .session-row[aria-pressed="true"] {
+  background: var(--card);
+  box-shadow: 0 1px 2px var(--shadow-near);
+}
+
+.app.wide .session-open h3 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.app.wide .session-open h3 span,
+.app.wide .session-row span {
+  color: var(--dim);
+  font-weight: 400;
+}
+
+.app.wide .readings,
+.app.wide .draws {
+  display: grid;
+  gap: 8px;
+}
+
+.app.wide .readings h2,
+.app.wide .draws h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+/* A screen's grid fills the window's height; its rows stay their own height, so no blank strip opens under the title. */
+.app.wide > .screen:is(.train, .progress, .health, .household) {
+  align-content: start;
+}
+
+/* Task 11: the "+" sheet as a side panel (desktop spec §3): over the right column, no scrim, the page usable beside it. */
+.sheet-scrim.panel {
+  inset: 0 0 0 auto;
+  width: 360px;
+  background: transparent;
+  align-items: stretch;
+  justify-content: stretch;
+}
+
+.sheet-scrim.panel .sheet {
+  max-width: none;
+  max-height: none;
+  height: 100dvh;
+  border-radius: 0;
+  padding: 16px;
+  align-content: start;
+  box-shadow: -10px 0 30px var(--shadow-near);
+}
+
+/* The panel covers the "+" on a wide screen, so it leaves the layout and the tab order while the panel is open. */
+.fab.wide[hidden] {
+  display: none;
+}
+
+/* ------------------------------------------------------------ Waiting on you (desktop spec §4) */
+
+.waiting-you {
+  display: grid;
+  gap: 8px;
+  /* An inset panel like "Drafts to check": the pot cards stay the screen's raised objects (visual pass, Task 26). */
+  background: var(--steel);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.waiting-you header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.waiting-you h2 {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.waiting-rows {
+  display: grid;
+  gap: 8px;
+}
+
+.waiting-row {
+  display: grid;
+  gap: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--steel-2);
+}
+
+.waiting-row label {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.waiting-row.settled p {
+  color: var(--leaf);
+  font-size: 0.85rem;
+}
+
+.waiting-row > .btn {
+  justify-self: start;
+}
+
+/* ------------------------------------------------------------ catalogue (desktop spec §5) */
+
+.catalogue-nav {
+  max-width: none;
+  padding: 0;
+}
+
+.cat-list {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.cat-rows {
+  display: grid;
+  gap: 2px;
+}
+
+.cat-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+/* A long name wraps, breaking an unbroken word if it must; the short hint keeps its line (web decision 82). */
+.cat-row > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cat-row > :last-child {
+  flex-shrink: 0;
+}
+
+.cat-row:hover {
+  background: var(--steel);
+}
+
+.cat-row[aria-current="page"] {
+  background: var(--card);
+  box-shadow: 0 1px 2px var(--shadow-near);
+}
+
+.back {
+  color: var(--dim);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.cat-list .field {
+  display: grid;
+  gap: 4px;
+}
+
+.cat-list .field input {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--steel-2);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.cat-list .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cat-list .chip {
+  border: 1px solid var(--steel-2);
+  background: transparent;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 0.9rem;
+}
+
+.cat-list .chip[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+.record {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  background: var(--card);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.record-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.record-head > h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.record-head h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.facts caption {
+  text-align: left;
+  color: var(--dim);
+  font-size: 0.8rem;
+}
+
+.micros {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.micros div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.micros dd {
+  margin: 0;
+}
+
+.micros dd.unknown {
+  color: var(--dim);
+}
+
+.words ul {
+  display: grid;
+  gap: 4px;
+}
+
+.words li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.used-by {
+  background: var(--steel);
+  border-left: 3px solid var(--dim);
+  border-radius: 10px;
+  padding: 8px 12px;
+  display: grid;
+  gap: 4px;
+  font-size: 0.9rem;
+}
+
+.used-by h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.record-acts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.small-form.open {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  background: var(--steel);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.small-form .field {
+  display: grid;
+  gap: 2px;
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.small-form .field.wide {
+  width: 100%;
+}
+
+.small-form .field input,
+.small-form .field select {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--steel-2);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.small-form .field input:disabled,
+.small-form .field select:disabled {
+  color: var(--dim);
+}
+
+.small-form .acts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Edit on a record: its fields as inputs where they sit, in the small forms' look. */
+.edit-form {
+  display: grid;
+  gap: 10px;
+  background: var(--steel);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.edit-form fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px 12px;
+}
+
+.edit-form legend {
+  padding: 0;
+  margin-bottom: 4px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.edit-form .field {
+  display: grid;
+  gap: 2px;
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+
+.edit-form .field input,
+.edit-form .field textarea {
+  width: 100%;
+  min-height: 36px;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--steel-2);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.edit-form .field input:disabled,
+.edit-form .field textarea:disabled {
+  color: var(--dim);
+}
+
+.edit-form .field input[aria-invalid="true"],
+.edit-form .field textarea[aria-invalid="true"] {
+  border-color: var(--chilli);
+}
+
+.edit-form .acts {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Phone: the add button floats over the page's bottom, so the record's actions clear it. */
+.app:not(.wide) .catalogue .record {
+  margin-bottom: 96px;
+}
+
+.edit-form .field select {
+  width: 100%;
+  min-height: 36px;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--ink);
+  background: var(--card);
+  border: 1px solid var(--steel-2);
+  border-radius: 8px;
+  padding: 6px 8px;
+}
+
+.edit-form .recipe-lines {
+  grid-template-columns: 1fr;
+}
+
+.edit-form .recipe-lines > .btn {
+  justify-self: start;
+}
+
+.edit-form .recipe-line {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+}
+
+.method {
+  white-space: pre-wrap;
+}
+
+.lines .line-acts {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.workout-lines {
+  display: grid;
+  gap: 6px;
+  padding-left: 1.8em;
+  list-style: decimal;
+}
+
+.workout-lines .workout-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* The keyboard (desktop spec §6): the sidebar's hint line (wide only) and the "?" list. Both are new elements, so no phone markup changes. */
+.app.wide .keyhint {
+  margin: 8px 4px 0;
+  font-size: 0.75rem;
+  color: var(--dim);
+}
+
+kbd {
+  border: 1px solid var(--steel-2);
+  border-radius: 4px;
+  padding: 0 4px;
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--dim);
+}
+
+.keyhelp {
+  max-width: 520px;
+}
+
+/* The visual pass (Task 26). The phone's gym record: the equipment table reads as stacked rows, its forms full width (the wide table is unchanged). */
+.app:not(.wide) .wide-table.equipment,
+.app:not(.wide) .wide-table.equipment tbody,
+.app:not(.wide) .wide-table.equipment tr,
+.app:not(.wide) .wide-table.equipment th,
+.app:not(.wide) .wide-table.equipment td {
+  display: block;
+}
+
+.app:not(.wide) .wide-table.equipment thead {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.app:not(.wide) .wide-table.equipment tr {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--steel-2);
+}
+
+.app:not(.wide) .wide-table.equipment th,
+.app:not(.wide) .wide-table.equipment td {
+  padding: 2px 0;
+  border-bottom: 0;
+}
+
+.app:not(.wide) .wide-table.equipment .line-acts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 6px;
+}
+
+.app:not(.wide) .wide-table.equipment .small-form.open {
+  flex-basis: 100%;
+}
+
+/* A new recipe's line: food, amount, unit and the state an ambiguous food asks for; on the phone the food takes its own row. */
+.edit-form .recipe-line {
+  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+}
+
+.app:not(.wide) .edit-form .recipe-line {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.app:not(.wide) .edit-form .recipe-line > :first-child {
+  grid-column: 1 / -1;
+}
+
+.catalogue .cat-list > h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* The "?" list: a key never breaks across lines. */
+.keyhelp tbody th {
+  white-space: nowrap;
+}
+
+/* A record's section heads sit under its title (1.1 rem), never above it: Words, Plates, Used by; and a new record's form title is a record title. */
+.catalogue h3 {
+  margin: 0;
+}
+
+.catalogue .words > h3,
+.catalogue [aria-label="Plates"] > h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.catalogue .edit-form > h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------ wide: Catalogue A's record (wide-layout spec §5) */
+/* A record's sections are cards on a wide screen: a meal tier's steel and radius, the heads at 0.9 rem. Used by keeps its own look. */
+
+.app.wide .record-sections > :is(.rsec, .words) {
+  background: var(--steel);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.app.wide .rsec > h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------ wide: Today B (wide-layout spec §5) */
+/* A meal tier is the container its items' numbers ask about (layout.css); the numbers read quietly, right-aligned. */
+
+.app.wide .tier {
+  container: tier / inline-size;
+}
+
+.app.wide .item > .num {
+  font-size: 0.85rem;
+  color: var(--dim);
+  text-align: right;
+}

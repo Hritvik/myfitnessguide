@@ -1,0 +1,53 @@
+// TEMPLATE - copy to wrangler.jsonc and fill in the placeholder values.
+// wrangler.jsonc itself is gitignored so deployment identifiers stay local.
+// See ../ACCESS.md ("Local configuration").
+// D1 database created 5 Oct 2026 (apac). Keep the single binding "DB": the code
+// uses it. `wrangler d1 create` also auto-added a second "gym_tracker" binding
+// to the same database; it was removed as unused.
+// Deploy only after Access protects the workers.dev route (see ACCESS.md).
+//
+// Access: ACCESS_AUD is the myfitnessguide application's audience tag;
+// SERVICE_TOKENS maps the gym-tracker-agent service token's client id (never its
+// secret) to a resolver. Members sign in by email (One-time PIN). For
+// `wrangler dev --local`, put LOCAL_DEV_IDENTITY="member:<email>" or
+// "service:<client id>" in .dev.vars (never committed); it is honoured only
+// for requests to localhost, and any other value refuses every request.
+// The browser suite and the sample seed instead run the dev-only entry
+// (`wrangler dev src/dev-entry.ts`), never `main` and never deployed.
+// The deploy gate (scripts/deploy-gate.ts) refuses this file if any vars,
+// binding or other field names LOCAL_DEV_IDENTITY, LOCAL_IDENTITY_TOKEN or
+// LOCAL_FIXED_NOW, or if it sets keep_vars.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "myfitnessguide",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  // The household's PWA, built by `npm run build:web` at the repo root, on the
+  // same origin as the API, so one Access sign-in covers both. Only /tools and
+  // /tools/* run the Worker (which checks the identity); every other path is
+  // an asset, and an unknown app route falls back to index.html.
+  "assets": {
+    "directory": "../web/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/mcp", "/tools", "/tools/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "gym-tracker",
+      "database_id": "<d1-database-id>",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "<team-name>.cloudflareaccess.com",
+    "ACCESS_AUD": "<access-application-aud-tag>",
+    "SERVICE_TOKENS": "{\"<service-token-client-id>.access\": \"local_agent\"}",
+    "TIMEZONE": "Asia/Kolkata"
+  },
+  // Auto-confirm drafts older than 48 h, hourly.
+  "triggers": {
+    "crons": ["0 * * * *"]
+  }
+}

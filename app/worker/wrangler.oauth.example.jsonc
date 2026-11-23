@@ -1,0 +1,21 @@
+// TEMPLATE - copy to wrangler.oauth.jsonc and fill in the placeholder values.
+// The real file is gitignored. See ../ACCESS.md ("Local configuration").
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "gym-tracker-mcp",
+  "main": "src/oauth-entry.ts",
+  "workers_dev": true,
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "gym-tracker",
+    "database_id": "<d1-database-id>",
+    "migrations_dir": "migrations"
+  }],
+  "kv_namespaces": [{
+    "binding": "OAUTH_KV",
+    "id": "<oauth-kv-namespace-id>"
+  }],
+  "vars": { "TIMEZONE": "Asia/Kolkata" }
+}

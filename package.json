@@ -1,0 +1,15 @@
+{
+  "name": "myfitnessguide-app",
+  "private": true,
+  "workspaces": [
+    "app/*"
+  ],
+  "scripts": {
+    "test": "npm test --workspaces --if-present && npm run test:e2e:fast -w @myfitnessguide/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build:web": "npm run build -w @myfitnessguide/web",
+    "deploy": "npm run deploy -w @myfitnessguide/worker",
+    "validate:release": "npm run validate:release -w @myfitnessguide/worker",
+    "validate:oauth": "npm run validate:oauth -w @myfitnessguide/worker"
+  }
+}

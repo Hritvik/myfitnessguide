@@ -1,0 +1,358 @@
+/*
+ * The layout system (wide-layout spec §3, §4; docs/design/DESIGN.md "Layout and spacing").
+ * New structure lives here: only this file may give a new rule display: grid|flex,
+ * grid-template-columns or flex-wrap (the structure lint, test/layout-system.test.ts).
+ * Every selector is an l-* class, a named .cols (only a wide branch draws one),
+ * or sits under .app.wide, and a primitive adds its l-* class only on a wide
+ * screen; the exceptions render on the phone on purpose: t-* (<Text> emits
+ * t-clamp, t-trunc and t-nowrap at every width), and l-stack and l-cluster,
+ * which the elements converted from ADOPTED carry at every width (web
+ * decision 122, amending 111). Gaps come from the space tokens on :root.
+ */
+
+/* ---- Grid: as many columns of at least --min as fit, never more than --max. */
+
+.l-grid {
+  --min: 320px;
+  --max: 99;
+  --g: var(--gap-16);
+  --fit: auto-fit;
+  display: grid;
+  gap: var(--g);
+  align-items: start;
+  grid-template-columns: repeat(var(--fit), minmax(min(100%, max(var(--min), (100% - (var(--max) - 1) * var(--g)) / var(--max))), 1fr));
+}
+
+/* auto-fill: empty tracks keep their width, so a lone card doesn't stretch across. */
+.l-grid.fill {
+  --fit: auto-fill;
+}
+
+.l-grid > * {
+  min-width: 0;
+}
+
+.l-grid.min-300 {
+  --min: 300px;
+}
+
+.l-grid.min-340 {
+  --min: 340px;
+}
+
+.l-grid.min-380 {
+  --min: 380px;
+}
+
+.l-grid.min-480 {
+  --min: 480px;
+}
+
+.l-grid.max-2 {
+  --max: 2;
+}
+
+.l-grid.max-3 {
+  --max: 3;
+}
+
+.l-grid.max-4 {
+  --max: 4;
+}
+
+:is(.l-grid, .l-stack).g-4 {
+  --g: var(--gap-4);
+}
+
+:is(.l-grid, .l-stack).g-8 {
+  --g: var(--gap-8);
+}
+
+:is(.l-grid, .l-stack).g-12 {
+  --g: var(--gap-12);
+}
+
+:is(.l-grid, .l-stack).g-16 {
+  --g: var(--gap-16);
+}
+
+:is(.l-grid, .l-stack).g-20 {
+  --g: var(--gap-20);
+}
+
+:is(.l-grid, .l-stack).g-24 {
+  --g: var(--gap-24);
+}
+
+:is(.l-grid, .l-stack).g-32 {
+  --g: var(--gap-32);
+}
+
+/* ---- Text modes (components/layout/Text.tsx). */
+
+/* Clamp: two lines (or three) with an ellipsis; opened, everything. Its own marker, since a clamped box can't be a list item.
+   The Train cue's summary carries .t-clamp at every width (web decisions 82, 122). */
+.t-clamp {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  list-style: none;
+}
+
+.t-clamp-3 {
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.t-clamp::-webkit-details-marker {
+  display: none;
+}
+
+.t-clamp::before {
+  content: "";
+  display: inline-block;
+  vertical-align: 0.05em;
+  margin-inline-end: 0.52em;
+  border-inline-start: 0.55em solid currentColor;
+  border-block: 0.35em solid transparent;
+}
+
+details[open] > .t-clamp {
+  display: block;
+  -webkit-line-clamp: none;
+  line-clamp: none;
+  overflow: visible;
+}
+
+details[open] > .t-clamp::before {
+  border-inline: 0.35em solid transparent;
+  border-block-start: 0.55em solid currentColor;
+  border-block-end: 0;
+  vertical-align: 0.1em;
+}
+
+/* Truncate: one line and an ellipsis; the full text is reachable another way (Text's `reach`). */
+.t-trunc {
+  display: inline-block;
+  max-width: 100%;
+  vertical-align: bottom;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Nowrap: a short label the app writes keeps its number with its unit. */
+.t-nowrap {
+  white-space: nowrap;
+}
+
+/* ---- Train A (wide-layout spec §5): the next session, the session list, the session open. */
+
+.cols.train {
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr);
+  grid-template-areas: "next list" "next open";
+  grid-template-rows: auto 1fr;
+}
+
+.cols.train > [data-region="next"] {
+  grid-area: next;
+}
+
+.cols.train > [data-region="list"] {
+  grid-area: list;
+}
+
+.cols.train > [data-region="open"] {
+  grid-area: open;
+}
+
+/* From a 1,150 px screen (about a 1,418 px window: 22 px under 1,440, so a scrollbar can't drop 1,440 to two), three regions. */
+@container screen (min-width: 1150px) {
+  .cols.train {
+    grid-template-columns: minmax(0, 1.3fr) minmax(260px, 300px) minmax(380px, 1fr);
+    grid-template-areas: "next list open";
+    grid-template-rows: auto;
+  }
+}
+
+/* A region with nothing in it (no sessions; a member with no next session): the template without it. */
+.cols.train:not(:has(> [data-region="open"])) {
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr);
+  grid-template-areas: "next list";
+  grid-template-rows: auto;
+}
+
+/* From 1,150 px the list keeps its designed 260–300 px track without an open session; next takes the rest. */
+@container screen (min-width: 1150px) {
+  .cols.train:not(:has(> [data-region="open"])) {
+    grid-template-columns: minmax(0, 1.3fr) minmax(260px, 300px);
+  }
+}
+
+.cols.train:not(:has(> [data-region="next"])) {
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
+  grid-template-areas: "list open";
+  grid-template-rows: auto;
+}
+
+.cols.train:not(:has(> [data-region="next"])):not(:has(> [data-region="open"])) {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "list";
+}
+
+/*
+ * Density: an open session at least 560 px wide lists its sets in two columns. The container query measures the
+ * content box, so the threshold is 560 less the panel's 12 px padding each side (.rx): 536 px, reached at a 1,920 px
+ * window, where the open track is 560 px.
+ */
+.app.wide .session-open {
+  container: open / inline-size;
+}
+
+@container open (min-width: 536px) {
+  .app.wide .session-open > ul.items {
+    display: block;
+    columns: 2;
+    column-gap: var(--gap-24);
+  }
+
+  .app.wide .session-open > ul.items > li {
+    break-inside: avoid;
+    margin-block-end: var(--gap-4);
+  }
+}
+
+/* ---- Catalogue A (wide-layout spec §5): the list, then the record. */
+
+.cols.catalogue {
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+}
+
+/* Words has no record to open: its table takes the wider first column, as the screen's two columns. */
+.cols.catalogue.words-cols {
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr);
+}
+
+/* ---- Stack: a column of parts (components/layout/Stack.tsx). */
+
+.l-stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--g, var(--gap-16));
+  align-content: start;
+}
+
+.l-stack > * {
+  min-width: 0;
+}
+
+/* ---- Lift dashboard: index and one focused trend story. */
+
+.l-lift-layout {
+  display: grid;
+}
+
+.l-lift-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+@container screen (min-width: 760px) {
+  .l-lift-layout {
+    grid-template-columns: minmax(260px, .72fr) minmax(0, 1.5fr);
+  }
+}
+
+/* ---- Cluster: a row of controls that wraps (e2e spec §8: the adopted .acts). It sets its own --g, as .l-grid
+   does, so a cluster inside an .rx (--g: 6px) or a wide .l-grid keeps its 8 px (web decision 122). */
+
+.l-cluster {
+  --g: var(--gap-8);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--g);
+}
+
+/* ---- Catalogue A's record (wide-layout spec §5): an open edit spans the section grid, and so does a recipe's Lines (decision 116). */
+
+.app.wide .record-sections > :is(.edit-form, .rsec-span) {
+  grid-column: 1 / -1;
+}
+
+/* ---- Today B's density (wide-layout spec §5): a meal tier at least 520 px wide shows each item's kcal and protein. */
+
+.app.wide .item > .num {
+  display: none;
+}
+
+@container tier (min-width: 520px) {
+  .app.wide .item {
+    grid-template-columns: minmax(0, 1fr) 6em 5.5em minmax(7em, auto);
+  }
+
+  .app.wide .item > .num {
+    display: block;
+  }
+
+  .app.wide .item .fix-links {
+    grid-column: 2 / -1;
+  }
+}
+
+/* ---- Today B (wide-layout spec §5): the rail, the meals, the tail and the house. */
+
+.cols.today {
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 1fr);
+  grid-template-areas: "rail house" "meals house" "tail house";
+  grid-template-rows: auto auto 1fr;
+}
+
+.cols.today > [data-region="rail"] {
+  grid-area: rail;
+}
+
+.cols.today > [data-region="meals"] {
+  grid-area: meals;
+}
+
+.cols.today > [data-region="tail"] {
+  grid-area: tail;
+}
+
+.cols.today > [data-region="house"] {
+  grid-area: house;
+}
+
+/* From a 1,500 px screen (about a 1,768 px window, so 1,440 stays two columns): the meals get their own column. */
+@container screen (min-width: 1500px) {
+  .cols.today {
+    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr) minmax(360px, 0.8fr);
+    grid-template-areas: "rail meals house" "tail meals house";
+    grid-template-rows: auto 1fr;
+  }
+
+  /* The rail's macros two across: the four macros on two rows of the five-row template each macro spans. */
+  .cols.today > [data-region="rail"] .macros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(10, auto);
+    row-gap: var(--gap-12);
+  }
+}
+
+/* A tail with nothing in it (another member's day, no next session): the template without it, so no empty row or stray gap. */
+.cols.today:not(:has(> [data-region="tail"])) {
+  grid-template-columns: minmax(0, 1.25fr) minmax(360px, 1fr);
+  grid-template-areas: "rail house" "meals house";
+  grid-template-rows: auto 1fr;
+}
+
+@container screen (min-width: 1500px) {
+  .cols.today:not(:has(> [data-region="tail"])) {
+    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr) minmax(360px, 0.8fr);
+    grid-template-areas: "rail meals house";
+    grid-template-rows: auto;
+  }
+}

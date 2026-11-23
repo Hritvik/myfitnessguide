@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Train Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f3;--card:#fff;--steel:#dfe5ea;--steel-2:#c9d2da;--ink:#1f2a30;--dim:#56646e;--haldi:#e3a008;--haldi-ink:#5c3d00;--leaf:#2f6b3f;--chilli:#b4321f;--on-haldi:#2b1d00;--shadow-near:rgb(31 42 48/.08);--shadow-far:rgb(31 42 48/.06);--page:#f7f8f9;
+  --font:Mukta,"Noto Sans",system-ui,sans-serif;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15191c;--card:#1c2328;--steel:#232b31;--steel-2:#34404a;--ink:#e8edf0;--dim:#9aa8b2;--haldi:#f0b429;--haldi-ink:#f7d47c;--leaf:#7cc790;--chilli:#f07a63;--shadow-near:rgb(0 0 0/.32);--shadow-far:rgb(0 0 0/.24);--page:#0f1417}}
+:root[data-theme="dark"]{--bg:#15191c;--card:#1c2328;--steel:#232b31;--steel-2:#34404a;--ink:#e8edf0;--dim:#9aa8b2;--haldi:#f0b429;--haldi-ink:#f7d47c;--leaf:#7cc790;--chilli:#f07a63;--shadow-near:rgb(0 0 0/.32);--shadow-far:rgb(0 0 0/.24);--page:#0f1417}
+*,*::before,*::after{box-sizing:border-box}
+
+/* ===== The mockup page (outside the frames) ===== */
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;padding:24px 16px 80px}
+.pg{max-width:1500px;margin:0 auto}
+.pg h1{font-size:24px;margin:0 0 4px;line-height:1.2}
+.pg>section>h2,.pg>h2{font-size:19px;margin:36px 0 6px}
+.pg h3.pgh{font-size:16px;margin:20px 0 6px}
+.pg .sub{color:var(--dim);margin:0 0 12px;max-width:900px}
+.pg p,.pg li{overflow-wrap:anywhere}
+.pg-nav{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
+.pg-nav a,.pg-nav button{font:inherit;font-size:14px;border:1px solid var(--steel-2);border-radius:999px;padding:3px 12px;color:var(--ink);text-decoration:none;background:transparent;cursor:pointer}
+.pg-nav a[aria-current="page"],.pg-nav button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.pg-note{border-left:3px solid var(--steel-2);padding-left:10px;color:var(--dim);font-size:14px;max-width:1000px;margin:8px 0}
+.pg-rec{border-left:3px solid var(--haldi);padding:4px 0 4px 10px;margin:12px 0;max-width:1000px}
+.changes{width:100%;max-width:1200px;border-collapse:collapse;font-size:14px;margin:8px 0 4px;table-layout:fixed}
+.changes th,.changes td{text-align:left;vertical-align:top;padding:8px 10px 8px 0;border-bottom:1px solid var(--steel-2);overflow-wrap:anywhere}
+.changes thead th{color:var(--dim);font-weight:500;font-size:13px}
+.changes td:first-child{color:var(--dim)}
+.tag{display:inline-block;font-size:12px;border-radius:999px;padding:0 8px;border:1px solid var(--steel-2);color:var(--dim);white-space:nowrap}
+.tag.y{background:var(--haldi);border-color:var(--haldi);color:var(--on-haldi)}
+.tablewrap{overflow-x:auto;max-width:100%}
+@media (max-width:700px){.changes,.changes thead,.changes tbody,.changes tr,.changes th,.changes td{display:block}.changes thead{display:none}.changes tr{border-bottom:1px solid var(--steel-2);padding:6px 0}.changes td{border:0;padding:2px 0}.changes td[data-h]::before{content:attr(data-h) ": ";color:var(--dim);font-weight:500}}
+
+.cmp{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,394px),1fr));gap:24px;align-items:start}
+.cmp.three{grid-template-columns:repeat(auto-fill,minmax(min(100%,394px),1fr))}
+.frames{display:grid;gap:28px}
+.frame{margin:0;display:grid;gap:6px;min-width:0}
+.frame figcaption{font-size:13px;color:var(--dim);max-width:600px}
+.frame figcaption b{color:var(--ink)}
+.frame figcaption .tag{margin-right:6px}
+.stage{position:relative;overflow:hidden;border:1px solid var(--steel-2);border-radius:8px;background:var(--bg)}
+.vp{position:absolute;top:0;left:0;transform-origin:0 0}
+.fold{position:absolute;left:0;right:0;border-top:2px dashed var(--haldi);pointer-events:none;z-index:5}
+.fold span{position:absolute;right:8px;top:-22px;background:var(--haldi);color:var(--on-haldi);font-size:12px;padding:0 6px;border-radius:4px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px;max-width:1400px}
+.card-link{display:grid;gap:4px;background:var(--card);border-radius:12px;padding:12px 14px;color:var(--ink);text-decoration:none;box-shadow:0 1px 2px var(--shadow-near)}
+.card-link b{font-size:16px}
+.card-link span{color:var(--dim);font-size:14px}
+.oq{display:grid;gap:12px;max-width:1100px}
+.oq li{background:var(--card);border-radius:12px;padding:12px 14px;list-style:none;display:grid;gap:4px}
+.oq{padding:0;margin:8px 0}
+.oq h3{margin:0;font-size:16px}
+.oq p{margin:0}
+
+/* ===== The app, inside a frame (mirrors app/web/src/styles.css) ===== */
+.app{font-family:var(--font);font-size:16px;line-height:1.45;color:var(--ink);background:var(--bg);font-variant-numeric:tabular-nums;position:relative}
+.app :is(h1,h2,h3,h4,p,ul,ol,dl,dd,figure,table){margin:0}
+.app :is(ul,ol){padding:0;list-style:none}
+.app :is(p,li,span,b,h1,h2,h3,dt,dd,td,th,a,label){overflow-wrap:anywhere}
+.app button{font:inherit}
+.app.wide{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:900px}
+.app.wide.panel{grid-template-columns:220px minmax(0,1fr) 360px}
+.app.phone{width:390px;min-height:844px;padding-bottom:140px}
+.sidebar{background:var(--steel);padding:16px 12px;display:flex;flex-direction:column;gap:4px}
+.sidebar-top{display:flex;justify-content:space-between;align-items:center;padding:0 4px 8px}
+.sidebar nav{display:grid;gap:2px}
+.sidebar nav a{padding:6px 10px;border-radius:8px;font-size:.9rem;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sidebar nav a.on{background:var(--ink);color:var(--bg)}
+.sidebar h2{margin:12px 10px 4px;font-size:.8rem;font-weight:500;color:var(--dim)}
+.sidebar .memberbar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 4px 0;margin-top:24px}
+.sidebar .waitlink{margin-top:10px;border:1px solid var(--steel-2);background:var(--bg)}
+.keyhint{font-size:.75rem;color:var(--dim);padding:8px 4px 0}
+kbd{font:inherit;font-size:.75rem;border:1px solid var(--steel-2);border-radius:4px;padding:0 4px;color:var(--dim)}
+.pill{min-height:36px;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--steel-2);color:var(--dim);border-radius:999px;padding:2px 12px;font-size:.85rem;font-weight:500;background:transparent}
+.pill.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.count{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:999px;background:var(--haldi);color:var(--on-haldi);font-size:.8rem;font-weight:700;padding:0 6px}
+.pill.wait{color:var(--ink);border-color:var(--haldi)}
+.app.phone .memberbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 16px 0}
+.app.phone .memberbar .end{margin-left:auto;display:flex;gap:6px}
+.tabbar{position:absolute;inset:auto 0 0 0;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--steel-2);padding:6px 8px;background:var(--bg)}
+.tabbar a{display:grid;justify-items:center;padding-block:6px;border-radius:10px;color:var(--dim);font-size:.8rem}
+.tabbar a.on{background:var(--ink);color:var(--bg)}
+.fab{position:absolute;right:24px;bottom:24px;width:56px;height:56px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:28px;border:0}
+.app.phone .fab{bottom:84px;right:16px}
+
+.screen{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start;container:screen/inline-size;min-width:0}
+.app.phone .screen{padding:12px 16px 16px}
+.app.wide .screen{padding:20px 24px 104px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.top h1{font-size:1.15rem;font-weight:700;line-height:1.2}
+.top .back{font-size:.9rem;color:var(--dim)}
+.leftnote{color:var(--dim);font-size:.9rem}
+.banner{background:var(--steel);border-radius:10px;padding:8px 12px;font-size:.85rem}
+.btn{min-height:40px;border-radius:8px;padding:4px 12px;border:1px solid var(--ink);background:transparent;color:var(--ink);font:inherit;font-size:.85rem;font-weight:500;display:inline-flex;align-items:center;gap:6px;text-align:left}
+.btn.primary{background:var(--ink);color:var(--bg)}
+.btn.sm{min-height:32px}
+.btn.quiet{border-color:var(--steel-2)}
+.btn[disabled]{opacity:.55}
+.acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{border:1px solid var(--steel-2);border-radius:999px;padding:2px 10px;font-size:.85rem;width:fit-content;max-width:100%;background:transparent;color:var(--ink)}
+.chip.ready{color:var(--leaf);border-color:currentColor}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip.you{border-color:var(--haldi)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.dim{color:var(--dim)} .est{color:var(--haldi-ink)} .ok{color:var(--leaf)}
+.h2{font-size:1rem;font-weight:700}
+.l-stack{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s,16px);align-content:start;min-width:0}
+.l-stack>*,.l-grid>*{min-width:0}
+.l-grid{--min:320px;--s:16px;display:grid;gap:var(--s);align-items:start;grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--min)),1fr))}
+.two{display:grid;gap:24px;align-items:start;grid-template-columns:minmax(0,1.25fr) minmax(320px,1fr)}
+.field{display:grid;gap:4px;font-size:.85rem;color:var(--dim)}
+.input{border:1px solid var(--steel-2);background:var(--card);border-radius:8px;padding:8px 10px;color:var(--ink);font-size:.95rem;min-height:40px}
+.input.ph{color:var(--dim)}
+.input.area{min-height:84px}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.sec-h h2,.sec-h h3{font-size:1rem;font-weight:700}
+
+/* Today */
+.leftline{font-size:1.1rem;line-height:1.4}
+.macros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:8px;row-gap:4px}
+.macro{display:grid;gap:4px;font-size:.8rem;color:var(--dim);line-height:1.25;align-content:end}
+.macro .amount{color:var(--ink);font-size:1rem;font-weight:700}
+.track{display:block;height:6px;background:var(--steel-2);border-radius:3px;overflow:hidden}
+.track span{display:block;height:100%;background:var(--ink);border-radius:3px}
+.strip{display:grid;gap:4px}
+.needs{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px;background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem}
+.tiers{display:grid;gap:4px}
+.tier{background:var(--steel);border-radius:12px;padding:12px 14px;display:grid;gap:6px;align-content:start}
+.tiers>.tier:first-child{border-radius:16px 16px 12px 12px}
+.tier header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 8px;flex-wrap:wrap}
+.tier h2,.tier h3{font-size:1rem;font-weight:700}
+.tier header span{font-size:.85rem;color:var(--dim)}
+.tier.nothing_yet{background:transparent;border:1.5px dashed var(--steel-2);padding-block:10px}
+.tier.skipped{background:transparent;border:1.5px solid var(--steel-2);padding-block:10px}
+.items{display:grid;gap:4px;font-size:.9rem}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline}
+.item .amount{color:var(--dim)}
+.item .prov{font-size:.8rem;color:var(--dim);text-align:right}
+.item .prov.est{color:var(--haldi-ink)}
+.item .draftbar{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.85rem}
+.item.draft>span:first-child{border-left:3px solid var(--haldi);padding-left:8px}
+.waittag{grid-column:1/-1;font-size:.8rem;color:var(--haldi-ink);padding-left:11px}
+.pending{grid-column:1/-1;border:1.5px dashed var(--steel-2);border-radius:10px;padding:8px 10px;font-size:.85rem;display:grid;gap:2px;background:var(--bg)}
+.pending q{font-style:italic}
+.usual{display:grid;gap:6px;font-size:.9rem}
+.tier-add{justify-self:start}
+.foot{display:grid;font-size:.9rem}
+.foot>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-block:8px;border-top:1px solid var(--steel-2)}
+.foot dd{color:var(--dim);text-align:right;flex-shrink:0;max-width:50%}
+.closeday{background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem;display:grid;gap:6px}
+.pots{display:grid;gap:14px}
+.pot{background:var(--card);border-radius:14px;padding:14px;display:grid;gap:12px;box-shadow:0 1px 2px var(--shadow-near),0 6px 18px var(--shadow-far)}
+.pot header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.pot h2,.pot h3{font-size:1rem;font-weight:700}
+.pot h2 span,.pot h3 span{font-weight:400}
+.pot .meta{color:var(--dim);font-size:.85rem}
+.split{display:flex;height:38px;border-radius:8px;overflow:hidden;gap:2px}
+.seg{flex:0 1 0px;display:flex;align-items:center;padding-inline:8px;font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;min-width:6px}
+.seg>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.seg.you{background:var(--haldi);color:var(--on-haldi)}
+.seg.other{background:var(--steel-2)}
+.seg.unaccounted{background:repeating-linear-gradient(135deg,var(--steel-2) 0 2px,transparent 2px 8px);border:1px dashed var(--steel-2);border-radius:0 8px 8px 0;color:var(--dim)}
+.legend{display:flex;gap:4px 14px;flex-wrap:wrap;font-size:.85rem;color:var(--dim)}
+.ask{background:var(--steel);border-radius:10px;padding:12px;font-size:.9rem;display:grid;gap:8px}
+.glance{display:grid;gap:8px}
+.wide-table{width:100%;border-collapse:collapse;font-size:.9rem}
+.wide-table th,.wide-table td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--steel-2);font-weight:400;vertical-align:baseline}
+.wide-table thead th{color:var(--dim);font-size:.8rem}
+.wide-table tbody th{font-weight:500}
+.wide-table td.n{text-align:right}
+.fridge{display:grid;font-size:.9rem}
+.fridge li{display:flex;flex-wrap:wrap;gap:4px 12px;padding-block:8px;border-top:1px solid var(--steel-2)}
+
+/* Your week (digest spec §6.2) */
+.week{background:var(--card);border-radius:14px;padding:12px 14px;display:grid;gap:8px;border:1px solid var(--steel-2)}
+.week header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.week h2{font-size:1rem;font-weight:700}
+.week ol{display:grid;gap:6px;font-size:.9rem;counter-reset:n}
+.week ol li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px}
+.week ol li::before{counter-increment:n;content:counter(n);display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--steel);font-size:.75rem;font-weight:700;margin-top:1px}
+.week ol.weekdays li::before{display:none}
+.week .lbl{font-size:.8rem;color:var(--dim)}
+.waitline{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;background:var(--steel);border-left:4px solid var(--haldi);border-radius:12px;padding:10px 12px;font-size:.9rem}
+
+/* Confirm cards, Claude's questions (Waiting) */
+.wgroup{display:grid;gap:8px}
+.wgroup>h2,.wgroup>h3{font-size:.95rem;font-weight:700;display:flex;gap:8px;align-items:baseline}
+.cc{background:var(--card);border-radius:12px;padding:12px 14px;display:grid;gap:8px;box-shadow:0 1px 2px var(--shadow-near)}
+.cc header{display:grid;gap:2px}
+.cc header b{font-size:.95rem}
+.cc header span{font-size:.8rem;color:var(--dim)}
+.cc .items{border-top:1px solid var(--steel-2);padding-top:6px}
+.cc .total{display:flex;justify-content:space-between;gap:12px;font-size:.85rem;color:var(--dim)}
+.cc .auto{font-size:.8rem;color:var(--dim)}
+.cc.q{border-left:4px solid var(--haldi)}
+.cc.q .said{background:var(--steel);border-radius:10px;padding:6px 10px;font-size:.85rem;color:var(--dim)}
+.cc.batch .days{display:grid;gap:2px;font-size:.9rem}
+.cc.batch .days li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding-block:5px;border-bottom:1px solid var(--steel-2)}
+.cc.batch .days li span{color:var(--dim);font-size:.85rem}
+.cc.open .items{gap:6px}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--steel-2);border-radius:8px;overflow:hidden;font-size:.9rem}
+.stepper b{padding:0 10px;min-width:56px;text-align:center}
+.stepper i{font-style:normal;width:32px;height:32px;display:grid;place-items:center;background:var(--steel);color:var(--ink)}
+.others{display:grid;font-size:.9rem}
+.others li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center;padding-block:8px;border-top:1px solid var(--steel-2)}
+.others li span{color:var(--dim);font-size:.85rem;grid-column:1}
+
+/* Train */
+.rx{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;background:var(--steel);border-radius:12px;padding:12px;align-content:start}
+.rx header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.rx h2,.rx h3{font-size:1rem;font-weight:700;min-width:0}
+.rx header span{font-size:.9rem}
+.rx .cue{font-size:.85rem;color:var(--dim)}
+.rx .last{font-size:.85rem;color:var(--dim)}
+.loadval{font-size:.9rem}
+.plates{display:flex;align-items:center;gap:2px;height:44px}
+.plates .bar{width:56px;height:6px;background:var(--dim);border-radius:2px}
+.plates .pl{width:10px;border-radius:2px;background:var(--ink)}
+.plates .lbl{font-size:.8rem;color:var(--dim);margin-left:8px}
+.gaps{font-size:.9rem;display:grid;gap:4px}
+.ask-inv{display:grid;gap:8px;border-top:1px solid var(--steel-2);padding-top:12px;font-size:.9rem}
+.history{display:grid;gap:8px;align-content:start}
+.session-list{display:grid;gap:2px}
+.session-row{display:grid;gap:0;padding:7px 10px;border-radius:8px;font-size:.9rem}
+.session-row span{color:var(--dim);font-size:.85rem}
+.session-row.on{background:var(--card);box-shadow:0 1px 2px var(--shadow-near)}
+.session-row .w{color:var(--haldi-ink)}
+.srow{background:var(--steel);border-radius:12px;padding:10px 12px;display:grid;gap:2px;font-size:.9rem}
+.srow span{color:var(--dim);font-size:.85rem}
+.session-open{display:grid;gap:8px;background:var(--steel);border-radius:12px;padding:12px 14px;align-content:start}
+.session-open h3{font-size:1rem;font-weight:700}
+.session-open h3 span{color:var(--dim);font-weight:400}
+.sets{display:grid;gap:2px;font-size:.9rem}
+.sets li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline;padding-block:3px;border-bottom:1px solid var(--steel-2)}
+.sets li.ex{border:0;padding-top:8px;font-weight:700}
+.sets li .fx{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.handoff{background:var(--card);border-radius:14px;padding:12px 14px;display:grid;gap:8px;border:1px solid var(--steel-2)}
+.handoff p{font-size:.9rem}
+.three{display:grid;gap:24px;align-items:start;grid-template-columns:minmax(0,1.3fr) minmax(240px,280px) minmax(340px,1fr)}
+
+/* Progress */
+.goal{display:grid;gap:4px}
+.goal h2{font-size:.9rem;font-weight:500;color:var(--dim)}
+.goal .goal-value{font-size:1.6rem;line-height:1.2}
+.goal .goal-value span{font-size:.95rem;color:var(--dim)}
+.answer{font-size:1.1rem;line-height:1.4}
+.chart{background:var(--card);border-radius:12px;padding:12px 14px;display:grid;gap:6px;min-width:0}
+.chart h2,.chart h3{font-size:1rem;font-weight:700}
+.chart .sum{font-size:.85rem;color:var(--dim)}
+.chart svg{width:100%;height:auto;display:block}
+.ranges{display:flex;gap:6px;flex-wrap:wrap}
+.rlist{display:grid;font-size:.9rem}
+.rlist li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding-block:6px;border-top:1px solid var(--steel-2);align-items:baseline}
+.rlist li .acts{grid-column:1/-1}
+.weekdays{display:grid;gap:6px;font-size:.85rem}
+.weekdays li{display:grid;grid-template-columns:3em minmax(0,1fr) 7em;gap:8px;align-items:center}
+
+/* Household */
+.people{display:grid;gap:6px}
+.person{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem;align-items:center}
+.person>span{color:var(--dim);font-size:.85rem;grid-column:1}
+.person .acts{grid-column:2;grid-row:1/span 4}
+.person.you{border-left:4px solid var(--haldi)}
+.leftover{gap:8px}
+.waiting-rows{display:grid;gap:8px;font-size:.9rem}
+.waiting-row{display:grid;gap:4px;padding-block:6px;border-top:1px solid var(--steel-2)}
+.waiting-row label{display:flex;gap:8px;align-items:baseline}
+.box{display:inline-block;width:16px;height:16px;border:1.5px solid var(--ink);border-radius:3px;flex-shrink:0;transform:translateY(2px)}
+.box.on{background:var(--ink)}
+
+/* The "+" sheet */
+.sheetwrap{position:relative}
+.dimmed{height:150px;overflow:hidden;opacity:.45;pointer-events:none}
+.sheet{background:var(--card);border-radius:16px 16px 0 0;padding:14px 16px 24px;display:grid;gap:12px;box-shadow:0 -6px 18px var(--shadow-far)}
+.panel .sheet{border-radius:0;box-shadow:-6px 0 18px var(--shadow-far);align-content:start;min-height:900px}
+.sheet-head{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.sheet-tabs{display:flex;gap:2px;flex-wrap:wrap;background:var(--steel);border-radius:10px;padding:3px}
+.sheet-tabs span{padding:4px 9px;border-radius:8px;font-size:.85rem}
+.sheet-tabs span.on{background:var(--card);font-weight:700}
+.sheet h3{font-size:.95rem;font-weight:700}
+.sheet .grp{display:grid;gap:6px}
+.pick-list{display:grid;gap:2px}
+.pick{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 12px;padding:7px 8px;border-radius:8px;font-size:.9rem;background:var(--bg);align-items:center}
+.pick small{color:var(--dim);font-size:.8rem;grid-column:1}
+.pick .btn{grid-column:2;grid-row:1/span 2}
+.sheet-notice{font-size:.85rem;background:var(--steel);border-radius:8px;padding:6px 10px}
+.saved{color:var(--leaf);font-size:.85rem}
+.hint{font-size:.8rem;color:var(--dim)}
+.setpad{display:grid;gap:8px;background:var(--steel);border-radius:12px;padding:10px 12px}
+.setpad .row{display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center;font-size:.9rem}
+.mark{outline:2px dashed var(--haldi);outline-offset:3px;border-radius:12px}
+.callout{font-size:.75rem;background:var(--haldi);color:var(--on-haldi);border-radius:4px;padding:0 6px;justify-self:start;font-weight:500}
+</style>
+</head>
+<body>
+<div class="pg">
+<nav class="pg-nav" aria-label="Mockups"><a href="0-index.html">Index</a><a href="1-today.html">Today</a><a href="2-train.html" aria-current="page">Train</a><a href="3-progress.html">Progress</a><a href="4-household.html">Household</a><a href="5-add-sheet.html">The “+” sheet</a><a href="6-waiting.html">Waiting on you</a></nav>
+<h1>Train: current vs proposed</h1>
+<p class="sub">Train becomes a read-only “what's next”, with a clear hand-off to Claude chat for coaching and logging during the session.</p>
+<div class="pg-nav"><span class="dim" style="align-self:center;margin-right:4px;font-size:14px">Theme</span><button data-theme-set="auto" aria-pressed="true">System</button><button data-theme-set="light" aria-pressed="false">Light</button><button data-theme-set="dark" aria-pressed="false">Dark</button></div>
+
+<section><h2>What changes</h2><div class="tablewrap"><table class="changes"><colgroup><col style="width:30%"><col style="width:40%"><col style="width:30%"></colgroup>
+  <thead><tr><th>Now (live app, main f0a366f)</th><th>Proposed (refined A, see and confirm)</th><th>Why</th></tr></thead><tbody>
+  <tr><td data-h="Now">Title is the next workout's name; each prescription card has “Log a set”, and some carry “Reps were as logged” or a gym check (“It's there · It isn't there”).</td><td data-h="Proposed"><b>Read-only “what's next”</b>: the session, day, gym and length on top; each card keeps the load, plates, progression chip and cue, and adds <b>last time</b>. No buttons on the cards.</td><td data-h="Why">Live coaching stays in Claude chat (decided); a card is something to read on the way to the gym.</td></tr><tr><td data-h="Now">No path from Train to the chat.</td><td data-h="Proposed">A <b>hand-off card</b>: “Train with Claude” opens your chat with the session ready; “Tell Claude afterwards” opens Tell Claude. Sets told to Claude appear in the session as they land.</td><td data-h="Why">Says where live logging happens instead of pretending the app does it.</td></tr><tr><td data-h="Now">An open session lists every set with “Fix…”, a draft set with “Yes, confirm”, and “Save this session as a workout”.</td><td data-h="Proposed">The open session is read-only: who logged it and when, the sets, and “Something off? Tell Claude about this session”. A doubtful set shows “question in Waiting”.</td><td data-h="Why">Fixes and confirms move to Waiting; saving a workout is curation, done in chat or the Catalogue.</td></tr><tr><td data-h="Now">A record-only member sees the message that sessions aren't prescribed.</td><td data-h="Proposed">The same message, plus Tell Claude for a class or session, and her recent sessions.</td><td data-h="Why">Record-only members record, never get prescribed.</td></tr></tbody></table></div></section>
+<section><h2>Phone · 390 px</h2><p class="pg-note">Asha on Thursday evening, the day before Upper A. The third frame is Noor, record-only.</p><div class="cmp"><figure class="frame" data-w="390" data-h="844"><figcaption><span class="tag">Current · live app</span><b>Train now.</b> Seven cards, each with Log a set; a gym check and a reps confirm inline; sessions.</figcaption>
+  <div class="stage"><div class="vp" style="width:390px"><div class="app phone"><nav class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span><span class="end"><span class="pill">⋯</span></span></nav>
+  <main class="screen "><div class="top"><h1>Upper A at Iron Yard</h1></div><ol class="l-stack" style="--s:12px"><li class="rx"><header><h3>Barbell bench press</h3><span>3 × 6–8</span></header><div class="plates"><span class="bar"></span><span class="pl" style="height:40px"></span><span class="pl" style="height:26px"></span><span class="pl" style="height:18px"></span><span class="lbl">57.5&nbsp;kg · each side 15 + 2.5 + 1.25</span></div><p class="chip ready">+2.5&nbsp;kg: last time 3 × 8 at 2 in reserve</p><p class="cue">▸ Shoulder blades pinned, bar to the lower chest, a one-second pause on the first rep.</p><div class="acts"><button class="btn sm">Log a set</button></div></li><li class="rx"><header><h3>Lat pulldown, neutral close grip</h3><span>3 × 10–12</span></header><p class="loadval">52&nbsp;kg · stack 50 + the 2&nbsp;kg add-on</p><p class="chip ">hold: add reps first</p><p class="cue">▸ Lean back a little; pull the handle to the top of the sternum.</p><div class="ask-inv"><p>Is the 2&nbsp;kg add-on plate on the stack at Iron Yard?</p><div class="acts"><button class="btn sm primary">It's there</button><button class="btn sm">It isn't there</button></div></div><div class="acts"><button class="btn sm">Log a set</button></div></li><li class="rx"><header><h3>Seated cable row</h3><span>3 × 10</span></header><p class="loadval">45&nbsp;kg</p><p class="chip ">hold</p><div class="acts"><button class="btn sm primary">Reps were as logged</button></div><div class="acts"><button class="btn sm">Log a set</button></div></li><li class="rx"><header><h3>Incline dumbbell press, 30°</h3><span>3 × 8–10</span></header><p class="loadval">16&nbsp;kg each hand</p><p class="chip ">+1 rep a set</p><div class="acts"><button class="btn sm">Log a set</button></div></li><li class="rx"><header><h3>Cable lateral raise, single arm</h3><span>3 × 12–15</span></header><p class="loadval">5&nbsp;kg</p><p class="chip ">hold</p><div class="acts"><button class="btn sm">Log a set</button></div></li><li class="rx"><header><h3>Triceps rope pushdown</h3><span>2 × 12</span></header><p class="loadval">22.5&nbsp;kg</p><p class="chip ready">+2.5&nbsp;kg</p><div class="acts"><button class="btn sm">Log a set</button></div></li><li class="rx"><header><h3>Face pull, rope to forehead</h3><span>2 × 15</span></header><p class="loadval">18&nbsp;kg</p><p class="chip ">hold</p><div class="acts"><button class="btn sm">Log a set</button></div></li></ol><section class="history"><h2 class="h2">Sessions</h2><ol class="rows" style="display:grid;gap:4px">
+    <li class="srow"><b>Lower A</b><span>Tue 6 Oct · 22 sets · 58&nbsp;min · 1 draft set</span></li><li class="srow"><b>Upper B</b><span>Mon 5 Oct · 24 sets · 61&nbsp;min</span></li>
+    <li class="srow"><b>Treadmill intervals</b><span>Sat 3 Oct · 30&nbsp;min · 3.6&nbsp;km</span></li><li class="srow"><b>Lower B</b><span>Thu 1 Oct · 21 sets · 55&nbsp;min</span></li></ol><button class="btn sm" style="justify-self:start">Show earlier</button></section></main><button class="fab" aria-label="Add">+</button>
+  <nav class="tabbar"><a class="">Today</a><a class="on">Train</a><a class="">Progress</a><a class="">Household</a></nav></div></div><div class="fold"><span>fold · 844 px</span></div></div></figure><figure class="frame" data-w="390" data-h="844"><figcaption><span class="tag y">Proposed</span><b>Train proposed.</b> What's next, the hand-off to Claude, read-only cards with last time, recent sessions.</figcaption>
+  <div class="stage"><div class="vp" style="width:390px"><div class="app phone"><nav class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span><span class="end"><span class="pill wait">Waiting <span class="count">6</span></span><span class="pill">⋯</span></span></nav>
+  <main class="screen "><div class="top"><div><h1>Next: Upper A</h1><p class="leftnote">Fri 9 Oct at Iron Yard · 7 exercises · about 55 minutes</p></div></div><section class="handoff"><p><b>Training today?</b> Coaching and logging happen in your Claude chat. Say “starting Upper A” there; each set you tell Claude appears here as it's logged.</p><div class="acts"><button class="btn primary">Train with Claude</button><button class="btn">Tell Claude afterwards</button></div></section><ol class="l-stack" style="--s:12px"><li class="rx"><header><h3>Barbell bench press</h3><span>3 × 6–8</span></header><div class="plates"><span class="bar"></span><span class="pl" style="height:40px"></span><span class="pl" style="height:26px"></span><span class="pl" style="height:18px"></span><span class="lbl">57.5&nbsp;kg · each side 15 + 2.5 + 1.25</span></div><p class="chip ready">+2.5&nbsp;kg: last time 3 × 8 at 2 in reserve</p><p class="last">Last time, Mon 28 Sep: 55&nbsp;kg × 8, 8, 8</p><p class="cue">▸ Shoulder blades pinned, bar to the lower chest, a one-second pause on the first rep.</p></li><li class="rx"><header><h3>Lat pulldown, neutral close grip</h3><span>3 × 10–12</span></header><p class="loadval">52&nbsp;kg · stack 50 + the 2&nbsp;kg add-on</p><p class="chip ">hold: add reps first</p><p class="last">Last time: 52&nbsp;kg × 12, 11, 10</p><p class="cue">▸ Lean back a little; pull the handle to the top of the sternum.</p></li><li class="rx"><header><h3>Seated cable row</h3><span>3 × 10</span></header><p class="loadval">45&nbsp;kg</p><p class="chip ">hold</p><p class="last">Last time: 45&nbsp;kg × 10, 10, 9</p></li><li class="rx"><header><h3>Incline dumbbell press, 30°</h3><span>3 × 8–10</span></header><p class="loadval">16&nbsp;kg each hand</p><p class="chip ">+1 rep a set</p><p class="last">Last time: 16&nbsp;kg × 9, 8, 8</p></li><li class="rx"><header><h3>Cable lateral raise, single arm</h3><span>3 × 12–15</span></header><p class="loadval">5&nbsp;kg</p><p class="chip ">hold</p><p class="last">Last time: 5&nbsp;kg × 15, 14, 12</p></li><li class="rx"><header><h3>Triceps rope pushdown</h3><span>2 × 12</span></header><p class="loadval">22.5&nbsp;kg</p><p class="chip ready">+2.5&nbsp;kg</p><p class="last">Last time: 20&nbsp;kg × 12, 12</p></li><li class="rx"><header><h3>Face pull, rope to forehead</h3><span>2 × 15</span></header><p class="loadval">18&nbsp;kg</p><p class="chip ">hold</p><p class="last">Last time: 18&nbsp;kg × 15, 15</p></li></ol><section class="history"><h2 class="h2">Recent sessions</h2><ol class="rows" style="display:grid;gap:4px">
+    <li class="srow"><b>Lower A</b><span>Tue 6 Oct · 22 sets · 58&nbsp;min · logged by Claude from your chat</span><span class="est">1 question waiting for you</span></li><li class="srow"><b>Upper B</b><span>Mon 5 Oct · 24 sets · 61&nbsp;min</span></li>
+    <li class="srow"><b>Treadmill intervals</b><span>Sat 3 Oct · 30&nbsp;min · 3.6&nbsp;km</span></li><li class="srow"><b>Lower B</b><span>Thu 1 Oct · 21 sets · 55&nbsp;min</span></li></ol><button class="btn sm" style="justify-self:start">Show earlier</button></section></main><button class="fab" aria-label="Add">+</button>
+  <nav class="tabbar"><a class="">Today</a><a class="on">Train</a><a class="">Progress</a><a class="">Household</a></nav></div></div><div class="fold"><span>fold · 844 px</span></div></div></figure><figure class="frame" data-w="390" data-h="844"><figcaption><span class="tag y">Proposed</span><b>Train proposed, Noor (record-only).</b></figcaption>
+  <div class="stage"><div class="vp" style="width:390px"><div class="app phone"><nav class="memberbar"><span class="pill ">Asha</span><span class="pill ">Kabir</span><span class="pill on">Noor</span><span class="end"><span class="pill wait">Waiting <span class="count">5</span></span><span class="pill">⋯</span></span></nav>
+  <main class="screen "><div class="top"><h1>Train</h1></div><p class="leftnote">Noor's sessions are recorded, not prescribed: her trainer decides what's next.</p><section class="handoff"><p>Did a class or a session? Tell Claude what you did; it's logged for you to confirm in Waiting.</p><div class="acts"><button class="btn primary">Tell Claude</button></div></section>
+    <section class="history"><h2 class="h2">Recent sessions</h2><ol class="rows" style="display:grid;gap:4px"><li class="srow"><b>Dance fitness class</b><span>Sat 3 Oct · 45&nbsp;min · logged by Asha</span></li><li class="srow"><b>Brisk walk</b><span>Thu 1 Oct · 35&nbsp;min · 3.1&nbsp;km</span></li><li class="srow"><b>Strength, with the trainer</b><span>Tue 29 Sep · 14 sets · 50&nbsp;min</span></li></ol></section></main><button class="fab" aria-label="Add">+</button>
+  <nav class="tabbar"><a class="">Today</a><a class="on">Train</a><a class="">Progress</a><a class="">Household</a></nav></div></div><div class="fold"><span>fold · 844 px</span></div></div></figure></div></section>
+<section><h2>Wide · 1,440 px</h2><p class="pg-note">Ticket 66's Train A: three columns from a 1,150 px screen (the next session · the list · the open session).</p><div class="frames"><figure class="frame" data-w="1440" data-h="900"><figcaption><span class="tag">Current · live app</span><b>Train now, 1,440.</b> The open session lists sets with Fix… and a draft confirm.</figcaption>
+  <div class="stage"><div class="vp" style="width:1440px"><div class="app wide"><aside class="sidebar"><div class="sidebar-top"><b>Household</b><span class="dim">⋯</span></div>
+  <nav><a class="">Today</a><a class="on">Train</a><a class="">Progress</a><a class="">Household</a></nav>
+  <h2>Catalogue</h2><nav><a>Foods &amp; recipes</a><a>Workouts</a><a>Exercises</a><a>Gyms &amp; equipment</a><a>Words I've learned</a></nav>
+  <div class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span></div>
+  <p class="keyhint"><kbd>N</kbd> log · <kbd>/</kbd> search · <kbd>?</kbd> keys</p></aside><main class="screen "><div class="top"><h1>Upper A at Iron Yard</h1></div><div class="three"><ol class="l-stack" style="--s:12px"><li class="rx"><header><h3>Barbell bench press</h3><span>3 × 6–8</span></header><div class="plates"><span class="bar"></span><span class="pl" style="height:40px"></span><span class="pl" style="height:26px"></span><span class="pl" style="height:18px"></span><span class="lbl">57.5&nbsp;kg · each side 15 + 2.5 + 1.25</span></div><p class="chip ready">+2.5&nbsp;kg: last time 3 × 8 at 2 in reserve</p><p class="cue">▸ Shoulder blades pinned, bar to the lower chest, a one-second pause on the first rep.</p><div class="acts"><button class="btn sm">Log a set</button></div></li><li class="rx"><header><h3>Lat pulldown, neutral close grip</h3><span>3 × 10–12</span></header><p class="loadval">52&nbsp;kg · stack 50 + the 2&nbsp;kg add-on</p><p class="chip ">hold: add reps first</p><p class="cue">▸ Lean back a little; pull the handle to the top of the sternum.</p><div class="ask-inv"><p>Is the 2&nbsp;kg add-on plate on the stack at Iron Yard?</p><div class="acts"><button class="btn sm primary">It's there</button><button class="btn sm">It isn't there</button></div></div><div class="acts"><button class="btn sm">Log a set</button></div></li><li class="rx"><header><h3>Seated cable row</h3><span>3 × 10</span></header><p class="loadval">45&nbsp;kg</p><p class="chip ">hold</p><div class="acts"><button class="btn sm primary">Reps were as logged</button></div><div class="acts"><button class="btn sm">Log a set</button></div></li><li class="rx"><header><h3>Incline dumbbell press, 30°</h3><span>3 × 8–10</span></header><p class="loadval">16&nbsp;kg each hand</p><p class="chip ">+1 rep a set</p><div class="acts"><button class="btn sm">Log a set</button></div></li><li class="rx"><header><h3>Cable lateral raise, single arm</h3><span>3 × 12–15</span></header><p class="loadval">5&nbsp;kg</p><p class="chip ">hold</p><div class="acts"><button class="btn sm">Log a set</button></div></li><li class="rx"><header><h3>Triceps rope pushdown</h3><span>2 × 12</span></header><p class="loadval">22.5&nbsp;kg</p><p class="chip ready">+2.5&nbsp;kg</p><div class="acts"><button class="btn sm">Log a set</button></div></li><li class="rx"><header><h3>Face pull, rope to forehead</h3><span>2 × 15</span></header><p class="loadval">18&nbsp;kg</p><p class="chip ">hold</p><div class="acts"><button class="btn sm">Log a set</button></div></li></ol><section class="history"><h2 class="h2">Sessions</h2><ol class="session-list">
+    <li class="session-row on"><b>Lower A</b><span>Tue 6 Oct · 22 sets · 1 draft</span></li><li class="session-row"><b>Upper B</b><span>Mon 5 Oct · 24 sets</span></li><li class="session-row"><b>Treadmill intervals</b><span>Sat 3 Oct · 30&nbsp;min</span></li><li class="session-row"><b>Lower B</b><span>Thu 1 Oct · 21 sets</span></li><li class="session-row"><b>Upper A</b><span>Mon 28 Sep · 24 sets</span></li><li class="session-row"><b>Lower A</b><span>Sat 26 Sep · 22 sets</span></li></ol><button class="btn sm" style="justify-self:start">Show earlier</button></section><article class="session-open"><h3>Lower A <span>Tue 6 Oct · 22 sets · 58&nbsp;min</span></h3><ul class="sets">
+    <li class="ex">Barbell back squat</li><li><span>1 · 80&nbsp;kg × 6</span><span class="dim">2 in reserve</span><span class="fx"><button class="btn sm">Fix…</button></span></li><li><span>2 · 80&nbsp;kg × 6</span><span class="dim">2 in reserve</span><span class="fx"><button class="btn sm">Fix…</button></span></li><li><span>3 · 80&nbsp;kg × 5</span><span class="dim">1 in reserve</span><span class="fx"><button class="btn sm">Fix…</button></span></li>
+    <li class="ex">Romanian deadlift</li><li><span>1 · 70&nbsp;kg × 8</span><span class="dim">2 in reserve</span><span class="fx"><button class="btn sm">Fix…</button></span></li><li><span>2 · 70&nbsp;kg × 8</span><span class="dim">2 in reserve</span><span class="fx"><button class="btn sm">Fix…</button></span></li><li><span>3 · 70&nbsp;kg × 18 · draft</span><span class="dim">logged by Claude</span><span class="fx"><button class="btn sm primary">Yes, confirm</button><button class="btn sm">Fix…</button></span></li>
+    <li class="ex">Walking lunge, dumbbells</li><li><span>1 · 2 × 12&nbsp;kg × 10 each leg</span><span class="dim"></span><span class="fx"><button class="btn sm">Fix…</button></span></li><li><span>2 · 2 × 12&nbsp;kg × 10 each leg</span><span class="dim"></span><span class="fx"><button class="btn sm">Fix…</button></span></li>
+    <li class="ex">Seated leg curl</li><li><span>1 · 35&nbsp;kg × 12</span><span class="dim"></span><span class="fx"><button class="btn sm">Fix…</button></span></li><li><span>2 · 35&nbsp;kg × 11</span><span class="dim"></span><span class="fx"><button class="btn sm">Fix…</button></span></li></ul>
+    <div class="acts"><button class="btn sm">Save this session as a workout</button></div></article></div></main><button class="fab" aria-label="Add">+</button></div></div><div class="fold"><span>fold · 900 px</span></div></div></figure><figure class="frame" data-w="1440" data-h="900"><figcaption><span class="tag y">Proposed</span><b>Train proposed, 1,440.</b> The hand-off heads the next column; the open session is read-only.</figcaption>
+  <div class="stage"><div class="vp" style="width:1440px"><div class="app wide"><aside class="sidebar"><div class="sidebar-top"><b>Household</b><span class="dim">⋯</span></div>
+  <nav><a class="">Today</a><a class="on">Train</a><a class="">Progress</a><a class="">Household</a></nav><nav><a class="waitlink ">Waiting on you <span class="count">6</span></a></nav>
+  <h2>Catalogue</h2><nav><a>Foods &amp; recipes</a><a>Workouts</a><a>Exercises</a><a>Gyms &amp; equipment</a><a>Words I've learned</a></nav>
+  <div class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span></div>
+  <p class="keyhint"><kbd>N</kbd> add · <kbd>W</kbd> waiting · <kbd>?</kbd> keys</p></aside><main class="screen "><div class="top"><div><h1>Next: Upper A</h1><p class="leftnote">Fri 9 Oct at Iron Yard · 7 exercises · about 55 minutes</p></div></div><div class="three"><section class="l-stack" style="--s:12px"><section class="handoff"><p><b>Training today?</b> Coaching and logging happen in your Claude chat. Say “starting Upper A” there; each set you tell Claude appears here as it's logged.</p><div class="acts"><button class="btn primary">Train with Claude</button><button class="btn">Tell Claude afterwards</button></div></section><ol class="l-stack" style="--s:12px"><li class="rx"><header><h3>Barbell bench press</h3><span>3 × 6–8</span></header><div class="plates"><span class="bar"></span><span class="pl" style="height:40px"></span><span class="pl" style="height:26px"></span><span class="pl" style="height:18px"></span><span class="lbl">57.5&nbsp;kg · each side 15 + 2.5 + 1.25</span></div><p class="chip ready">+2.5&nbsp;kg: last time 3 × 8 at 2 in reserve</p><p class="last">Last time, Mon 28 Sep: 55&nbsp;kg × 8, 8, 8</p><p class="cue">▸ Shoulder blades pinned, bar to the lower chest, a one-second pause on the first rep.</p></li><li class="rx"><header><h3>Lat pulldown, neutral close grip</h3><span>3 × 10–12</span></header><p class="loadval">52&nbsp;kg · stack 50 + the 2&nbsp;kg add-on</p><p class="chip ">hold: add reps first</p><p class="last">Last time: 52&nbsp;kg × 12, 11, 10</p><p class="cue">▸ Lean back a little; pull the handle to the top of the sternum.</p></li><li class="rx"><header><h3>Seated cable row</h3><span>3 × 10</span></header><p class="loadval">45&nbsp;kg</p><p class="chip ">hold</p><p class="last">Last time: 45&nbsp;kg × 10, 10, 9</p></li><li class="rx"><header><h3>Incline dumbbell press, 30°</h3><span>3 × 8–10</span></header><p class="loadval">16&nbsp;kg each hand</p><p class="chip ">+1 rep a set</p><p class="last">Last time: 16&nbsp;kg × 9, 8, 8</p></li><li class="rx"><header><h3>Cable lateral raise, single arm</h3><span>3 × 12–15</span></header><p class="loadval">5&nbsp;kg</p><p class="chip ">hold</p><p class="last">Last time: 5&nbsp;kg × 15, 14, 12</p></li><li class="rx"><header><h3>Triceps rope pushdown</h3><span>2 × 12</span></header><p class="loadval">22.5&nbsp;kg</p><p class="chip ready">+2.5&nbsp;kg</p><p class="last">Last time: 20&nbsp;kg × 12, 12</p></li><li class="rx"><header><h3>Face pull, rope to forehead</h3><span>2 × 15</span></header><p class="loadval">18&nbsp;kg</p><p class="chip ">hold</p><p class="last">Last time: 18&nbsp;kg × 15, 15</p></li></ol></section><section class="history"><h2 class="h2">Recent sessions</h2><ol class="session-list">
+    <li class="session-row on"><b>Lower A</b><span>Tue 6 Oct · 22 sets</span><span class="w">1 question for you</span></li><li class="session-row"><b>Upper B</b><span>Mon 5 Oct · 24 sets</span></li><li class="session-row"><b>Treadmill intervals</b><span>Sat 3 Oct · 30&nbsp;min</span></li><li class="session-row"><b>Lower B</b><span>Thu 1 Oct · 21 sets</span></li><li class="session-row"><b>Upper A</b><span>Mon 28 Sep · 24 sets</span></li><li class="session-row"><b>Lower A</b><span>Sat 26 Sep · 22 sets</span></li></ol><button class="btn sm" style="justify-self:start">Show earlier</button></section><article class="session-open"><h3>Lower A <span>Tue 6 Oct · 22 sets · 58&nbsp;min</span></h3><p class="leftnote">Logged by Claude from your chat, 18:05–19:03.</p><ul class="sets">
+    <li class="ex">Barbell back squat</li><li><span>1 · 80&nbsp;kg × 6</span><span class="dim">2 in reserve</span></li><li><span>2 · 80&nbsp;kg × 6</span><span class="dim">2 in reserve</span></li><li><span>3 · 80&nbsp;kg × 5</span><span class="dim">1 in reserve</span></li>
+    <li class="ex">Romanian deadlift</li><li><span>1 · 70&nbsp;kg × 8</span><span class="dim">2 in reserve</span></li><li><span>2 · 70&nbsp;kg × 8</span><span class="dim">2 in reserve</span></li><li><span>3 · 70&nbsp;kg × 18?</span><span class="dim"><span class="est">question in Waiting</span></span></li>
+    <li class="ex">Walking lunge, dumbbells</li><li><span>1 · 2 × 12&nbsp;kg × 10 each leg</span><span class="dim"></span></li><li><span>2 · 2 × 12&nbsp;kg × 10 each leg</span><span class="dim"></span></li>
+    <li class="ex">Seated leg curl</li><li><span>1 · 35&nbsp;kg × 12</span><span class="dim"></span></li><li><span>2 · 35&nbsp;kg × 11</span><span class="dim"></span></li></ul>
+    <div class="acts"><button class="btn sm">Something off? Tell Claude about this session</button></div></article></div></main><button class="fab" aria-label="Add">+</button></div></div><div class="fold"><span>fold · 900 px</span></div></div></figure></div></section>
+
+<p class="pg-note">All content is invented: the sample household Asha (the owner, prescribed), Kabir (prescribed) and Noor (record-only). Frames are drawn at their real CSS width (390 or 1,440 px) and scaled down to fit the page; the dashed line is the window's fold. Phone frames show the whole scroll.</p>
+</div>
+<script>
+function fit(){
+  document.querySelectorAll(".frame").forEach(function(fig){
+    var w=+fig.dataset.w,h=+fig.dataset.h,stage=fig.querySelector(".stage"),vp=fig.querySelector(".vp");
+    var avail=fig.getBoundingClientRect().width-2;
+    var s=Math.min(1,avail/w);
+    vp.style.transform=s===1?"":"scale("+s+")";
+    var vh=Math.max(vp.scrollHeight,h);
+    stage.style.width=(w*s+2)+"px";stage.style.height=(vh*s+2)+"px";
+    fig.querySelector(".fold").style.top=(h*s)+"px";
+    fig.dataset.scale=s;
+  });
+}
+document.querySelectorAll("[data-theme-set]").forEach(function(b){b.addEventListener("click",function(){
+  var t=b.dataset.themeSet;if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);
+  document.querySelectorAll("[data-theme-set]").forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});});});
+fit();addEventListener("resize",fit);if(document.fonts)document.fonts.ready.then(fit);
+</script>
+</body>
+</html>

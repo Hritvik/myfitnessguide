@@ -1,0 +1,40 @@
+{
+  "name": "@myfitnessguide/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "MyFitnessGuide API Worker and its D1 migrations",
+  "exports": {
+    "./importing": "./src/importing.ts",
+    "./owner-only": "./src/owner-only.ts",
+    "./stamp": "./scripts/stamp.ts",
+    "./deploy-gate": "./scripts/deploy-gate.ts"
+  },
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "pretest": "node scripts/ensure-local-config.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "dev": "mkdir -p ../web/dist && wrangler dev --local",
+    "deploy": "node scripts/deploy-gate.ts",
+    "validate:release": "npm run typecheck && npm test && node scripts/validate-release.ts",
+    "validate:oauth": "npm run typecheck && npm test && node scripts/validate-release.ts oauth",
+    "migrations:local": "wrangler d1 migrations apply gym-tracker --local"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.4",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3",
+    "wrangler": "4.152.0"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "1.2.3",
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "@myfitnessguide/domain": "0.0.0",
+    "jose": "6.2.12",
+    "zod": "4.6.5"
+  }
+}

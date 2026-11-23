@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Waiting On You</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f3;--card:#fff;--steel:#dfe5ea;--steel-2:#c9d2da;--ink:#1f2a30;--dim:#56646e;--haldi:#e3a008;--haldi-ink:#5c3d00;--leaf:#2f6b3f;--chilli:#b4321f;--on-haldi:#2b1d00;--shadow-near:rgb(31 42 48/.08);--shadow-far:rgb(31 42 48/.06);--page:#f7f8f9;
+  --font:Mukta,"Noto Sans",system-ui,sans-serif;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15191c;--card:#1c2328;--steel:#232b31;--steel-2:#34404a;--ink:#e8edf0;--dim:#9aa8b2;--haldi:#f0b429;--haldi-ink:#f7d47c;--leaf:#7cc790;--chilli:#f07a63;--shadow-near:rgb(0 0 0/.32);--shadow-far:rgb(0 0 0/.24);--page:#0f1417}}
+:root[data-theme="dark"]{--bg:#15191c;--card:#1c2328;--steel:#232b31;--steel-2:#34404a;--ink:#e8edf0;--dim:#9aa8b2;--haldi:#f0b429;--haldi-ink:#f7d47c;--leaf:#7cc790;--chilli:#f07a63;--shadow-near:rgb(0 0 0/.32);--shadow-far:rgb(0 0 0/.24);--page:#0f1417}
+*,*::before,*::after{box-sizing:border-box}
+
+/* ===== The mockup page (outside the frames) ===== */
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;padding:24px 16px 80px}
+.pg{max-width:1500px;margin:0 auto}
+.pg h1{font-size:24px;margin:0 0 4px;line-height:1.2}
+.pg>section>h2,.pg>h2{font-size:19px;margin:36px 0 6px}
+.pg h3.pgh{font-size:16px;margin:20px 0 6px}
+.pg .sub{color:var(--dim);margin:0 0 12px;max-width:900px}
+.pg p,.pg li{overflow-wrap:anywhere}
+.pg-nav{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
+.pg-nav a,.pg-nav button{font:inherit;font-size:14px;border:1px solid var(--steel-2);border-radius:999px;padding:3px 12px;color:var(--ink);text-decoration:none;background:transparent;cursor:pointer}
+.pg-nav a[aria-current="page"],.pg-nav button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.pg-note{border-left:3px solid var(--steel-2);padding-left:10px;color:var(--dim);font-size:14px;max-width:1000px;margin:8px 0}
+.pg-rec{border-left:3px solid var(--haldi);padding:4px 0 4px 10px;margin:12px 0;max-width:1000px}
+.changes{width:100%;max-width:1200px;border-collapse:collapse;font-size:14px;margin:8px 0 4px;table-layout:fixed}
+.changes th,.changes td{text-align:left;vertical-align:top;padding:8px 10px 8px 0;border-bottom:1px solid var(--steel-2);overflow-wrap:anywhere}
+.changes thead th{color:var(--dim);font-weight:500;font-size:13px}
+.changes td:first-child{color:var(--dim)}
+.tag{display:inline-block;font-size:12px;border-radius:999px;padding:0 8px;border:1px solid var(--steel-2);color:var(--dim);white-space:nowrap}
+.tag.y{background:var(--haldi);border-color:var(--haldi);color:var(--on-haldi)}
+.tablewrap{overflow-x:auto;max-width:100%}
+@media (max-width:700px){.changes,.changes thead,.changes tbody,.changes tr,.changes th,.changes td{display:block}.changes thead{display:none}.changes tr{border-bottom:1px solid var(--steel-2);padding:6px 0}.changes td{border:0;padding:2px 0}.changes td[data-h]::before{content:attr(data-h) ": ";color:var(--dim);font-weight:500}}
+
+.cmp{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,394px),1fr));gap:24px;align-items:start}
+.cmp.three{grid-template-columns:repeat(auto-fill,minmax(min(100%,394px),1fr))}
+.frames{display:grid;gap:28px}
+.frame{margin:0;display:grid;gap:6px;min-width:0}
+.frame figcaption{font-size:13px;color:var(--dim);max-width:600px}
+.frame figcaption b{color:var(--ink)}
+.frame figcaption .tag{margin-right:6px}
+.stage{position:relative;overflow:hidden;border:1px solid var(--steel-2);border-radius:8px;background:var(--bg)}
+.vp{position:absolute;top:0;left:0;transform-origin:0 0}
+.fold{position:absolute;left:0;right:0;border-top:2px dashed var(--haldi);pointer-events:none;z-index:5}
+.fold span{position:absolute;right:8px;top:-22px;background:var(--haldi);color:var(--on-haldi);font-size:12px;padding:0 6px;border-radius:4px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px;max-width:1400px}
+.card-link{display:grid;gap:4px;background:var(--card);border-radius:12px;padding:12px 14px;color:var(--ink);text-decoration:none;box-shadow:0 1px 2px var(--shadow-near)}
+.card-link b{font-size:16px}
+.card-link span{color:var(--dim);font-size:14px}
+.oq{display:grid;gap:12px;max-width:1100px}
+.oq li{background:var(--card);border-radius:12px;padding:12px 14px;list-style:none;display:grid;gap:4px}
+.oq{padding:0;margin:8px 0}
+.oq h3{margin:0;font-size:16px}
+.oq p{margin:0}
+
+/* ===== The app, inside a frame (mirrors app/web/src/styles.css) ===== */
+.app{font-family:var(--font);font-size:16px;line-height:1.45;color:var(--ink);background:var(--bg);font-variant-numeric:tabular-nums;position:relative}
+.app :is(h1,h2,h3,h4,p,ul,ol,dl,dd,figure,table){margin:0}
+.app :is(ul,ol){padding:0;list-style:none}
+.app :is(p,li,span,b,h1,h2,h3,dt,dd,td,th,a,label){overflow-wrap:anywhere}
+.app button{font:inherit}
+.app.wide{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:900px}
+.app.wide.panel{grid-template-columns:220px minmax(0,1fr) 360px}
+.app.phone{width:390px;min-height:844px;padding-bottom:140px}
+.sidebar{background:var(--steel);padding:16px 12px;display:flex;flex-direction:column;gap:4px}
+.sidebar-top{display:flex;justify-content:space-between;align-items:center;padding:0 4px 8px}
+.sidebar nav{display:grid;gap:2px}
+.sidebar nav a{padding:6px 10px;border-radius:8px;font-size:.9rem;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sidebar nav a.on{background:var(--ink);color:var(--bg)}
+.sidebar h2{margin:12px 10px 4px;font-size:.8rem;font-weight:500;color:var(--dim)}
+.sidebar .memberbar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 4px 0;margin-top:24px}
+.sidebar .waitlink{margin-top:10px;border:1px solid var(--steel-2);background:var(--bg)}
+.keyhint{font-size:.75rem;color:var(--dim);padding:8px 4px 0}
+kbd{font:inherit;font-size:.75rem;border:1px solid var(--steel-2);border-radius:4px;padding:0 4px;color:var(--dim)}
+.pill{min-height:36px;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--steel-2);color:var(--dim);border-radius:999px;padding:2px 12px;font-size:.85rem;font-weight:500;background:transparent}
+.pill.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.count{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:999px;background:var(--haldi);color:var(--on-haldi);font-size:.8rem;font-weight:700;padding:0 6px}
+.pill.wait{color:var(--ink);border-color:var(--haldi)}
+.app.phone .memberbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 16px 0}
+.app.phone .memberbar .end{margin-left:auto;display:flex;gap:6px}
+.tabbar{position:absolute;inset:auto 0 0 0;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--steel-2);padding:6px 8px;background:var(--bg)}
+.tabbar a{display:grid;justify-items:center;padding-block:6px;border-radius:10px;color:var(--dim);font-size:.8rem}
+.tabbar a.on{background:var(--ink);color:var(--bg)}
+.fab{position:absolute;right:24px;bottom:24px;width:56px;height:56px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:28px;border:0}
+.app.phone .fab{bottom:84px;right:16px}
+
+.screen{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start;container:screen/inline-size;min-width:0}
+.app.phone .screen{padding:12px 16px 16px}
+.app.wide .screen{padding:20px 24px 104px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.top h1{font-size:1.15rem;font-weight:700;line-height:1.2}
+.top .back{font-size:.9rem;color:var(--dim)}
+.leftnote{color:var(--dim);font-size:.9rem}
+.banner{background:var(--steel);border-radius:10px;padding:8px 12px;font-size:.85rem}
+.btn{min-height:40px;border-radius:8px;padding:4px 12px;border:1px solid var(--ink);background:transparent;color:var(--ink);font:inherit;font-size:.85rem;font-weight:500;display:inline-flex;align-items:center;gap:6px;text-align:left}
+.btn.primary{background:var(--ink);color:var(--bg)}
+.btn.sm{min-height:32px}
+.btn.quiet{border-color:var(--steel-2)}
+.btn[disabled]{opacity:.55}
+.acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{border:1px solid var(--steel-2);border-radius:999px;padding:2px 10px;font-size:.85rem;width:fit-content;max-width:100%;background:transparent;color:var(--ink)}
+.chip.ready{color:var(--leaf);border-color:currentColor}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip.you{border-color:var(--haldi)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.dim{color:var(--dim)} .est{color:var(--haldi-ink)} .ok{color:var(--leaf)}
+.h2{font-size:1rem;font-weight:700}
+.l-stack{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s,16px);align-content:start;min-width:0}
+.l-stack>*,.l-grid>*{min-width:0}
+.l-grid{--min:320px;--s:16px;display:grid;gap:var(--s);align-items:start;grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--min)),1fr))}
+.two{display:grid;gap:24px;align-items:start;grid-template-columns:minmax(0,1.25fr) minmax(320px,1fr)}
+.field{display:grid;gap:4px;font-size:.85rem;color:var(--dim)}
+.input{border:1px solid var(--steel-2);background:var(--card);border-radius:8px;padding:8px 10px;color:var(--ink);font-size:.95rem;min-height:40px}
+.input.ph{color:var(--dim)}
+.input.area{min-height:84px}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.sec-h h2,.sec-h h3{font-size:1rem;font-weight:700}
+
+/* Today */
+.leftline{font-size:1.1rem;line-height:1.4}
+.macros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:8px;row-gap:4px}
+.macro{display:grid;gap:4px;font-size:.8rem;color:var(--dim);line-height:1.25;align-content:end}
+.macro .amount{color:var(--ink);font-size:1rem;font-weight:700}
+.track{display:block;height:6px;background:var(--steel-2);border-radius:3px;overflow:hidden}
+.track span{display:block;height:100%;background:var(--ink);border-radius:3px}
+.strip{display:grid;gap:4px}
+.needs{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px;background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem}
+.tiers{display:grid;gap:4px}
+.tier{background:var(--steel);border-radius:12px;padding:12px 14px;display:grid;gap:6px;align-content:start}
+.tiers>.tier:first-child{border-radius:16px 16px 12px 12px}
+.tier header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 8px;flex-wrap:wrap}
+.tier h2,.tier h3{font-size:1rem;font-weight:700}
+.tier header span{font-size:.85rem;color:var(--dim)}
+.tier.nothing_yet{background:transparent;border:1.5px dashed var(--steel-2);padding-block:10px}
+.tier.skipped{background:transparent;border:1.5px solid var(--steel-2);padding-block:10px}
+.items{display:grid;gap:4px;font-size:.9rem}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline}
+.item .amount{color:var(--dim)}
+.item .prov{font-size:.8rem;color:var(--dim);text-align:right}
+.item .prov.est{color:var(--haldi-ink)}
+.item .draftbar{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.85rem}
+.item.draft>span:first-child{border-left:3px solid var(--haldi);padding-left:8px}
+.waittag{grid-column:1/-1;font-size:.8rem;color:var(--haldi-ink);padding-left:11px}
+.pending{grid-column:1/-1;border:1.5px dashed var(--steel-2);border-radius:10px;padding:8px 10px;font-size:.85rem;display:grid;gap:2px;background:var(--bg)}
+.pending q{font-style:italic}
+.usual{display:grid;gap:6px;font-size:.9rem}
+.tier-add{justify-self:start}
+.foot{display:grid;font-size:.9rem}
+.foot>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-block:8px;border-top:1px solid var(--steel-2)}
+.foot dd{color:var(--dim);text-align:right;flex-shrink:0;max-width:50%}
+.closeday{background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem;display:grid;gap:6px}
+.pots{display:grid;gap:14px}
+.pot{background:var(--card);border-radius:14px;padding:14px;display:grid;gap:12px;box-shadow:0 1px 2px var(--shadow-near),0 6px 18px var(--shadow-far)}
+.pot header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.pot h2,.pot h3{font-size:1rem;font-weight:700}
+.pot h2 span,.pot h3 span{font-weight:400}
+.pot .meta{color:var(--dim);font-size:.85rem}
+.split{display:flex;height:38px;border-radius:8px;overflow:hidden;gap:2px}
+.seg{flex:0 1 0px;display:flex;align-items:center;padding-inline:8px;font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;min-width:6px}
+.seg>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.seg.you{background:var(--haldi);color:var(--on-haldi)}
+.seg.other{background:var(--steel-2)}
+.seg.unaccounted{background:repeating-linear-gradient(135deg,var(--steel-2) 0 2px,transparent 2px 8px);border:1px dashed var(--steel-2);border-radius:0 8px 8px 0;color:var(--dim)}
+.legend{display:flex;gap:4px 14px;flex-wrap:wrap;font-size:.85rem;color:var(--dim)}
+.ask{background:var(--steel);border-radius:10px;padding:12px;font-size:.9rem;display:grid;gap:8px}
+.glance{display:grid;gap:8px}
+.wide-table{width:100%;border-collapse:collapse;font-size:.9rem}
+.wide-table th,.wide-table td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--steel-2);font-weight:400;vertical-align:baseline}
+.wide-table thead th{color:var(--dim);font-size:.8rem}
+.wide-table tbody th{font-weight:500}
+.wide-table td.n{text-align:right}
+.fridge{display:grid;font-size:.9rem}
+.fridge li{display:flex;flex-wrap:wrap;gap:4px 12px;padding-block:8px;border-top:1px solid var(--steel-2)}
+
+/* Your week (digest spec §6.2) */
+.week{background:var(--card);border-radius:14px;padding:12px 14px;display:grid;gap:8px;border:1px solid var(--steel-2)}
+.week header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.week h2{font-size:1rem;font-weight:700}
+.week ol{display:grid;gap:6px;font-size:.9rem;counter-reset:n}
+.week ol li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px}
+.week ol li::before{counter-increment:n;content:counter(n);display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--steel);font-size:.75rem;font-weight:700;margin-top:1px}
+.week ol.weekdays li::before{display:none}
+.week .lbl{font-size:.8rem;color:var(--dim)}
+.waitline{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;background:var(--steel);border-left:4px solid var(--haldi);border-radius:12px;padding:10px 12px;font-size:.9rem}
+
+/* Confirm cards, Claude's questions (Waiting) */
+.wgroup{display:grid;gap:8px}
+.wgroup>h2,.wgroup>h3{font-size:.95rem;font-weight:700;display:flex;gap:8px;align-items:baseline}
+.cc{background:var(--card);border-radius:12px;padding:12px 14px;display:grid;gap:8px;box-shadow:0 1px 2px var(--shadow-near)}
+.cc header{display:grid;gap:2px}
+.cc header b{font-size:.95rem}
+.cc header span{font-size:.8rem;color:var(--dim)}
+.cc .items{border-top:1px solid var(--steel-2);padding-top:6px}
+.cc .total{display:flex;justify-content:space-between;gap:12px;font-size:.85rem;color:var(--dim)}
+.cc .auto{font-size:.8rem;color:var(--dim)}
+.cc.q{border-left:4px solid var(--haldi)}
+.cc.q .said{background:var(--steel);border-radius:10px;padding:6px 10px;font-size:.85rem;color:var(--dim)}
+.cc.batch .days{display:grid;gap:2px;font-size:.9rem}
+.cc.batch .days li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding-block:5px;border-bottom:1px solid var(--steel-2)}
+.cc.batch .days li span{color:var(--dim);font-size:.85rem}
+.cc.open .items{gap:6px}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--steel-2);border-radius:8px;overflow:hidden;font-size:.9rem}
+.stepper b{padding:0 10px;min-width:56px;text-align:center}
+.stepper i{font-style:normal;width:32px;height:32px;display:grid;place-items:center;background:var(--steel);color:var(--ink)}
+.others{display:grid;font-size:.9rem}
+.others li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center;padding-block:8px;border-top:1px solid var(--steel-2)}
+.others li span{color:var(--dim);font-size:.85rem;grid-column:1}
+
+/* Train */
+.rx{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;background:var(--steel);border-radius:12px;padding:12px;align-content:start}
+.rx header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.rx h2,.rx h3{font-size:1rem;font-weight:700;min-width:0}
+.rx header span{font-size:.9rem}
+.rx .cue{font-size:.85rem;color:var(--dim)}
+.rx .last{font-size:.85rem;color:var(--dim)}
+.loadval{font-size:.9rem}
+.plates{display:flex;align-items:center;gap:2px;height:44px}
+.plates .bar{width:56px;height:6px;background:var(--dim);border-radius:2px}
+.plates .pl{width:10px;border-radius:2px;background:var(--ink)}
+.plates .lbl{font-size:.8rem;color:var(--dim);margin-left:8px}
+.gaps{font-size:.9rem;display:grid;gap:4px}
+.ask-inv{display:grid;gap:8px;border-top:1px solid var(--steel-2);padding-top:12px;font-size:.9rem}
+.history{display:grid;gap:8px;align-content:start}
+.session-list{display:grid;gap:2px}
+.session-row{display:grid;gap:0;padding:7px 10px;border-radius:8px;font-size:.9rem}
+.session-row span{color:var(--dim);font-size:.85rem}
+.session-row.on{background:var(--card);box-shadow:0 1px 2px var(--shadow-near)}
+.session-row .w{color:var(--haldi-ink)}
+.srow{background:var(--steel);border-radius:12px;padding:10px 12px;display:grid;gap:2px;font-size:.9rem}
+.srow span{color:var(--dim);font-size:.85rem}
+.session-open{display:grid;gap:8px;background:var(--steel);border-radius:12px;padding:12px 14px;align-content:start}
+.session-open h3{font-size:1rem;font-weight:700}
+.session-open h3 span{color:var(--dim);font-weight:400}
+.sets{display:grid;gap:2px;font-size:.9rem}
+.sets li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline;padding-block:3px;border-bottom:1px solid var(--steel-2)}
+.sets li.ex{border:0;padding-top:8px;font-weight:700}
+.sets li .fx{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.handoff{background:var(--card);border-radius:14px;padding:12px 14px;display:grid;gap:8px;border:1px solid var(--steel-2)}
+.handoff p{font-size:.9rem}
+.three{display:grid;gap:24px;align-items:start;grid-template-columns:minmax(0,1.3fr) minmax(240px,280px) minmax(340px,1fr)}
+
+/* Progress */
+.goal{display:grid;gap:4px}
+.goal h2{font-size:.9rem;font-weight:500;color:var(--dim)}
+.goal .goal-value{font-size:1.6rem;line-height:1.2}
+.goal .goal-value span{font-size:.95rem;color:var(--dim)}
+.answer{font-size:1.1rem;line-height:1.4}
+.chart{background:var(--card);border-radius:12px;padding:12px 14px;display:grid;gap:6px;min-width:0}
+.chart h2,.chart h3{font-size:1rem;font-weight:700}
+.chart .sum{font-size:.85rem;color:var(--dim)}
+.chart svg{width:100%;height:auto;display:block}
+.ranges{display:flex;gap:6px;flex-wrap:wrap}
+.rlist{display:grid;font-size:.9rem}
+.rlist li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding-block:6px;border-top:1px solid var(--steel-2);align-items:baseline}
+.rlist li .acts{grid-column:1/-1}
+.weekdays{display:grid;gap:6px;font-size:.85rem}
+.weekdays li{display:grid;grid-template-columns:3em minmax(0,1fr) 7em;gap:8px;align-items:center}
+
+/* Household */
+.people{display:grid;gap:6px}
+.person{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem;align-items:center}
+.person>span{color:var(--dim);font-size:.85rem;grid-column:1}
+.person .acts{grid-column:2;grid-row:1/span 4}
+.person.you{border-left:4px solid var(--haldi)}
+.leftover{gap:8px}
+.waiting-rows{display:grid;gap:8px;font-size:.9rem}
+.waiting-row{display:grid;gap:4px;padding-block:6px;border-top:1px solid var(--steel-2)}
+.waiting-row label{display:flex;gap:8px;align-items:baseline}
+.box{display:inline-block;width:16px;height:16px;border:1.5px solid var(--ink);border-radius:3px;flex-shrink:0;transform:translateY(2px)}
+.box.on{background:var(--ink)}
+
+/* The "+" sheet */
+.sheetwrap{position:relative}
+.dimmed{height:150px;overflow:hidden;opacity:.45;pointer-events:none}
+.sheet{background:var(--card);border-radius:16px 16px 0 0;padding:14px 16px 24px;display:grid;gap:12px;box-shadow:0 -6px 18px var(--shadow-far)}
+.panel .sheet{border-radius:0;box-shadow:-6px 0 18px var(--shadow-far);align-content:start;min-height:900px}
+.sheet-head{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.sheet-tabs{display:flex;gap:2px;flex-wrap:wrap;background:var(--steel);border-radius:10px;padding:3px}
+.sheet-tabs span{padding:4px 9px;border-radius:8px;font-size:.85rem}
+.sheet-tabs span.on{background:var(--card);font-weight:700}
+.sheet h3{font-size:.95rem;font-weight:700}
+.sheet .grp{display:grid;gap:6px}
+.pick-list{display:grid;gap:2px}
+.pick{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 12px;padding:7px 8px;border-radius:8px;font-size:.9rem;background:var(--bg);align-items:center}
+.pick small{color:var(--dim);font-size:.8rem;grid-column:1}
+.pick .btn{grid-column:2;grid-row:1/span 2}
+.sheet-notice{font-size:.85rem;background:var(--steel);border-radius:8px;padding:6px 10px}
+.saved{color:var(--leaf);font-size:.85rem}
+.hint{font-size:.8rem;color:var(--dim)}
+.setpad{display:grid;gap:8px;background:var(--steel);border-radius:12px;padding:10px 12px}
+.setpad .row{display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center;font-size:.9rem}
+.mark{outline:2px dashed var(--haldi);outline-offset:3px;border-radius:12px}
+.callout{font-size:.75rem;background:var(--haldi);color:var(--on-haldi);border-radius:4px;padding:0 6px;justify-self:start;font-weight:500}
+</style>
+</head>
+<body>
+<div class="pg">
+<nav class="pg-nav" aria-label="Mockups"><a href="0-index.html">Index</a><a href="1-today.html">Today</a><a href="2-train.html">Train</a><a href="3-progress.html">Progress</a><a href="4-household.html">Household</a><a href="5-add-sheet.html">The “+” sheet</a><a href="6-waiting.html" aria-current="page">Waiting on you</a></nav>
+<h1>Waiting on you: current vs proposed</h1>
+<p class="sub">Every draft, every question from Claude and every pot to settle go into one list. You reach it from a badge and answer it with confirm cards.</p>
+<div class="pg-nav"><span class="dim" style="align-self:center;margin-right:4px;font-size:14px">Theme</span><button data-theme-set="auto" aria-pressed="true">System</button><button data-theme-set="light" aria-pressed="false">Light</button><button data-theme-set="dark" aria-pressed="false">Dark</button></div>
+
+<section><h2>What changes</h2><div class="tablewrap"><table class="changes"><colgroup><col style="width:30%"><col style="width:40%"><col style="width:30%"></colgroup>
+  <thead><tr><th>Now (live app, main f0a366f)</th><th>Proposed (refined A, see and confirm)</th><th>Why</th></tr></thead><tbody>
+  <tr><td data-h="Now">Drafts and questions in <b>four places</b>: Today's needs-you strip (3 cards), Household's Waiting on you (tick boxes), Progress's Drafts to check, Health's drafts; Tell Claude's state inside the + sheet; draft sets inside Train's sessions.</td><td data-h="Proposed"><b>One list</b>, “Waiting on you”, reached from the <b>badge</b> beside the member pills on the phone, the sidebar on wide (key W), Today's Waiting line and your Household row. Not a fifth tab.</td><td data-h="Why">Decided: drafts and Claude's questions gather into one Waiting reached from a badge.</td></tr><tr><td data-h="Now">Each draft is a row with a checkbox, or an inline bar.</td><td data-h="Proposed"><b>Confirm cards</b>, one per hand-off: who logged it, when, the items with their kcal, a total, then All right · Change… · Not mine…, and when it confirms by itself.</td><td data-h="Why">See and confirm: the card shows the whole meal you're agreeing to.</td></tr><tr><td data-h="Now">Claude's questions have no home (some go to the Inbox, some to chat).</td><td data-h="Proposed"><b>Claude asks</b> comes first: the words you sent, the question, and answer chips. A question can block its own draft (“the dal changes this by about 60 kcal”).</td><td data-h="Why">Claude writes; the app asks.</td></tr><tr><td data-h="Now">A back-fill of several days for a record-only member shows up as dozens of rows.</td><td data-h="Proposed"><b>One batch card</b>: a row per day with item count and kcal; “All 4 days are right” or look day by day.</td><td data-h="Why">The record-only member's whole job is to look and agree.</td></tr><tr><td data-h="Now">“Change” means opening the item's fixer form.</td><td data-h="Proposed">Change… opens the card in place with steppers and share chips; a change saves as confirmed and tells the logger.</td><td data-h="Why">Fixing stays cheap and in context.</td></tr></tbody></table></div></section>
+<section><h2>Phone · 390 px · today's four places</h2><p class="pg-note">Current app. The same items for Asha are spread over Today (strip, inline bars, the pot's ask), Household, Progress and the + sheet.</p><div class="cmp"><figure class="frame" data-w="390" data-h="844"><figcaption><span class="tag">Current · live app</span><b>Now: Today's strip and the pot's ask.</b></figcaption>
+  <div class="stage"><div class="vp" style="width:390px"><div class="app phone"><nav class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span><span class="end"><span class="pill">⋯</span></span></nav>
+  <main class="screen "><div class="top"><h1>Thursday 8 October</h1><div class="acts"><button class="btn sm">‹</button><span class="pill">8 Oct 2026</span><button class="btn sm" disabled>›</button></div></div><section class="strip"><ul class="strip">
+  <li class="needs"><p><b>2 drafts about you</b> <span class="dim">· Kabir logged your lunch share of the rajma and a 150&nbsp;g bowl of curd at 13:20</span></p><button class="btn sm primary">Review</button></li>
+  <li class="needs"><p><b>Vegetable pulao: 35% not yet accounted for</b> <span class="dim">· leftover in the fridge, or eaten?</span></p><button class="btn sm">Settle</button></li>
+  <li class="needs"><p><b>Waist is due</b> <span class="dim">· weekly, last measured Sun 20 Sep</span></p><button class="btn sm">Log it</button></li>
+</ul><button class="btn sm" style="justify-self:start">+3 more</button></section><section class="left"><p class="leftline">Left today: <b>406&nbsp;kcal</b> and <b>51&nbsp;g protein</b>. <span class="dim">Estimate ±180&nbsp;kcal, mostly the phulka.</span></p></section><div class="macros"><div class="macro"><span>Energy</span><span class="amount">406&nbsp;kcal</span><span class="track"><span style="width:78%"></span></span><span>1,444 of 1,850</span></div><div class="macro"><span>Protein</span><span class="amount">51&nbsp;g</span><span class="track"><span style="width:60%"></span></span><span>77 of 128&nbsp;g</span></div><div class="macro"><span>Carbs</span><span class="amount">88&nbsp;g</span><span class="track"><span style="width:55%"></span></span><span>107 of 195&nbsp;g · remainder</span></div><div class="macro"><span>Fat</span><span class="amount">21&nbsp;g</span><span class="track"><span style="width:62%"></span></span><span>34 of 55&nbsp;g</span></div></div><div class="pots"><section class="pot"><header><h3>Rajma masala <span>· one pot</span></h3><p class="meta">Kabir cooked it, today 12:30 · 2.4&nbsp;kg</p></header>
+  <div class="split"><div class="seg you" style="flex-grow:30"><span>Asha 30%</span></div><div class="seg other" style="flex-grow:45"><span>Kabir 45%</span></div><div class="seg unaccounted" style="flex-grow:25"><span>25% left</span></div></div>
+  <p class="legend"><span>You 30% · weighed</span><span>Kabir 45%</span><span>25% not yet accounted for</span><span>Noor wasn't there, so no portion</span></p>
+  <div class="ask"><p>Kabir logged 30% of this rajma for you. Is that right?</p><div class="acts"><button class="btn sm primary">Yes, confirm</button><button class="btn sm">Change my share</button><button class="btn sm">Mark the rest leftover</button></div></div></section></div></main><button class="fab" aria-label="Add">+</button>
+  <nav class="tabbar"><a class="on">Today</a><a class="">Train</a><a class="">Progress</a><a class="">Household</a></nav></div></div><div class="fold"><span>fold · 844 px</span></div></div></figure><figure class="frame" data-w="390" data-h="844"><figcaption><span class="tag">Current · live app</span><b>Now: Household's list, Progress's drafts, Tell Claude's state</b> (stacked here for comparison; three screens in the app).</figcaption>
+  <div class="stage"><div class="vp" style="width:390px"><div class="app phone"><nav class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span><span class="end"><span class="pill">⋯</span></span></nav>
+  <main class="screen "><div class="top"><h1>Household</h1><div class="acts"><button class="btn sm">‹</button><span class="pill">8 Oct 2026</span><button class="btn sm" disabled>›</button></div></div><section class="waiting-you"><div class="sec-h"><h2>Waiting on you</h2><span><span class="box"></span> All</span></div><ul class="waiting-rows">
+    <li class="waiting-row"><label><span class="box"></span><span>Rajma masala, your share 30% (240&nbsp;g), lunch Thu 8 Oct</span></label><p class="leftnote">Logged by Kabir · confirms by itself Sat 13:20</p><button class="btn sm" style="justify-self:start">Not mine…</button></li>
+    <li class="waiting-row"><label><span class="box"></span><span>Curd, homemade 150&nbsp;g, lunch Thu 8 Oct</span></label><p class="leftnote">Logged by Kabir · confirms by itself Sat 13:20</p><button class="btn sm" style="justify-self:start">Not mine…</button></li></ul>
+    <div class="acts" style="margin-top:8px"><button class="btn primary" disabled>Confirm</button></div></section>
+    <section class="tier"><header><h2>Drafts to check</h2><span>on Progress</span></header><ul class="items"><li class="item "><span>Weight 66.4&nbsp;kg · Wed 7 Oct</span><span class="prov">logged by Kabir</span><div class="draftbar"><button class="btn sm primary">Confirm</button><button class="btn sm">Not mine…</button></div></li></ul></section>
+    <section class="tier"><header><h2>Tell Claude</h2><span>in the + sheet</span></header><p class="leftnote">Waiting for Claude: “two phulka with the leftover dal and a chai around 5” · sent Wed 21:10</p></section></main><button class="fab" aria-label="Add">+</button>
+  <nav class="tabbar"><a class="">Today</a><a class="">Train</a><a class="">Progress</a><a class="on">Household</a></nav></div></div><div class="fold"><span>fold · 844 px</span></div></div></figure></div></section>
+<section><h2>Phone · 390 px · proposed</h2><p class="pg-note">Asha (owner), then Noor (record-only, after Asha back-filled four days), then a card opened with Change….</p><div class="cmp"><figure class="frame" data-w="390" data-h="844"><figcaption><span class="tag y">Proposed</span><b>Asha's Waiting.</b> Claude asks · Logged for you · To settle · You're waiting on others.</figcaption>
+  <div class="stage"><div class="vp" style="width:390px"><div class="app phone"><nav class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span><span class="end"><span class="pill wait">Waiting <span class="count">6</span></span><span class="pill">⋯</span></span></nav>
+  <main class="screen "><div class="top"><span class="back">‹ Today</span></div><div class="top"><h1>Waiting on you · 6</h1></div>
+    <p class="leftnote">What others and Claude logged about you, and what Claude asks. Anything you don't answer confirms by itself 48 hours after it was logged.</p>
+    <section class="wgroup"><h2>Claude asks <span class="count">2</span></h2><article class="cc q"><header><b>Which dal was it?</b><span>Claude, reading your note from Wed 7 Oct, 21:10</span></header>
+  <p class="said">“two phulka with the leftover dal and a chai around 5”</p>
+  <div class="chips"><button class="chip">Toor dal from Kabir's pot, Mon</button><button class="chip">Dal makhani, ordered in</button><button class="chip">Something else…</button></div>
+  <p class="auto">The dal changes Wednesday's dinner by about 60&nbsp;kcal. Claude logs it once you answer.</p></article><article class="cc q"><header><b>Romanian deadlift, set 3: 70&nbsp;kg × 18?</b><span>Claude, from your chat on Tue 6 Oct · Lower A</span></header>
+  <p class="said">Your other two sets were 70&nbsp;kg × 8 at 2 in reserve.</p>
+  <div class="chips"><button class="chip">It was 8</button><button class="chip">18 is right</button><button class="chip">Tell Claude…</button></div></article></section>
+    <section class="wgroup"><h2>Logged for you <span class="count">3</span></h2><article class="cc"><header><b>Kabir logged your lunch</b><span>Thu 8 Oct, 13:20 · from the rajma he cooked</span></header>
+  <ul class="items"><li class="item "><span>Rajma masala, your share of the pot <span class="amount">30% · 240&nbsp;g</span></span><span class="prov">286&nbsp;kcal</span></li><li class="item "><span>Curd, homemade <span class="amount">150&nbsp;g</span></span><span class="prov">108&nbsp;kcal</span></li></ul>
+  <p class="total"><span>2 items</span><span>394&nbsp;kcal · 19&nbsp;g protein</span></p>
+  <div class="acts"><button class="btn sm primary">All right</button><button class="btn sm">Change…</button><button class="btn sm">Not mine…</button></div>
+  <p class="auto">Confirms by itself Sat 10 Oct, 13:20.</p></article><article class="cc"><header><b>Claude logged your Wednesday dinner</b><span>From your note of Wed 7 Oct, 21:10 · 1 question above</span></header>
+  <ul class="items"><li class="item "><span>Phulka, whole-wheat atta <span class="amount">×2</span></span><span class="prov est">170&nbsp;kcal · ±40</span></li><li class="item "><span>Dal, 1 katori <span class="amount">which dal? see above</span></span><span class="prov est">180&nbsp;kcal · ±60</span></li><li class="item "><span>Masala chai, half sugar <span class="amount">1 cup · 150&nbsp;ml</span></span><span class="prov">51&nbsp;kcal</span></li></ul>
+  <p class="total"><span>3 items</span><span>401&nbsp;kcal · 14&nbsp;g protein</span></p>
+  <div class="acts"><button class="btn sm primary">All right</button><button class="btn sm">Change…</button><button class="btn sm">Not mine…</button></div></article><article class="cc"><header><b>Kabir logged your weight</b><span>Wed 7 Oct, 07:10 · morning, before food</span></header>
+  <ul class="items"><li class="item "><span>Weight <span class="amount">66.4&nbsp;kg</span></span><span class="prov">the bathroom scale</span></li></ul>
+  <div class="acts"><button class="btn sm primary">All right</button><button class="btn sm">Change…</button><button class="btn sm">Not mine…</button></div>
+  <p class="auto">Confirms by itself Fri 9 Oct, 07:10.</p></article><div class="acts"><button class="btn sm">All 3 are right</button></div></section>
+    <section class="wgroup"><h2>To settle <span class="count">1</span></h2><article class="cc"><header><b>Vegetable pulao: 35% not accounted for</b><span>Noor cooked it Wed 7 Oct · about 610&nbsp;kcal of it</span></header>
+  <div class="acts"><button class="btn sm">Leftover in the fridge</button><button class="btn sm">Someone ate it…</button><button class="btn sm">Thrown away</button></div></article></section><section class="wgroup"><h3>You're waiting on others</h3><ul class="others">
+  <li><b>Noor · 38 food items, 5–8 Oct</b><span>Logged by you today at 10:05. Confirm by themselves from Sat 10 Oct.</span><button class="btn sm" style="grid-row:1/span 2;grid-column:2">Take back…</button></li>
+  <li><b>Kabir · weight 81.2&nbsp;kg, Wed</b><span>Logged by you. Confirms by itself Fri 9 Oct.</span><button class="btn sm" style="grid-row:1/span 2;grid-column:2">Take back…</button></li></ul></section></main>
+  <nav class="tabbar"><a class="on">Today</a><a class="">Train</a><a class="">Progress</a><a class="">Household</a></nav></div></div><div class="fold"><span>fold · 844 px</span></div></div></figure><figure class="frame" data-w="390" data-h="844"><figcaption><span class="tag y">Proposed</span><b>Noor's Waiting.</b> A four-day back-fill as one batch card.</figcaption>
+  <div class="stage"><div class="vp" style="width:390px"><div class="app phone"><nav class="memberbar"><span class="pill ">Asha</span><span class="pill ">Kabir</span><span class="pill on">Noor</span><span class="end"><span class="pill wait">Waiting <span class="count">5</span></span><span class="pill">⋯</span></span></nav>
+  <main class="screen "><div class="top"><span class="back">‹ Today</span></div><div class="top"><h1>Waiting on you · 5</h1></div>
+    <p class="leftnote">Asha logged these for you. Look through them, or say they're right.</p>
+    <article class="cc batch"><header><b>Asha logged 4 days of food for you</b><span>Mon 5 – Thu 8 Oct · logged Thu at 10:05 · confirms by itself Sat 10 Oct</span></header>
+      <ul class="days"><li><b>Mon 5 Oct</b><span>9 items · 1,420&nbsp;kcal</span></li><li><b>Tue 6 Oct</b><span>10 items · 1,610&nbsp;kcal</span></li><li><b>Wed 7 Oct</b><span>9 items · 1,380&nbsp;kcal</span></li><li><b>Thu 8 Oct</b><span>10 items · 1,550&nbsp;kcal</span></li></ul>
+      <div class="acts"><button class="btn sm primary">All 4 days are right</button><button class="btn sm">Look day by day</button></div></article>
+    <article class="cc open"><header><b>Thu 8 Oct, as Asha logged it</b><span>10 items · 1,550&nbsp;kcal</span></header>
+      <ul class="items"><li class="item "><span>Poha with peanuts and curry leaves <span class="amount">1 plate</span></span><span class="prov">breakfast</span></li><li class="item "><span>Masala chai, no sugar <span class="amount">1 cup</span></span><span class="prov">breakfast</span></li><li class="item "><span>Idli with sambar <span class="amount">×2 · 1 katori</span></span><span class="prov">11:00</span></li><li class="item "><span>Buttermilk, salted <span class="amount">1 glass</span></span><span class="prov">11:00</span></li><li class="item "><span>Dal tadka <span class="amount">1 bowl</span></span><span class="prov">lunch</span></li><li class="item "><span>Jeera rice <span class="amount">1 cup</span></span><span class="prov">lunch</span></li><li class="item "><span>Cucumber raita <span class="amount">1 katori</span></span><span class="prov">lunch</span></li><li class="item "><span>Roasted makhana <span class="amount">1 handful</span></span><span class="prov">snack</span></li><li class="item "><span>Masala chai, no sugar <span class="amount">1 cup</span></span><span class="prov">snack</span></li><li class="item "><span>Vegetable pulao, Noor's own pot, her share <span class="amount">20%</span></span><span class="prov">dinner</span></li></ul>
+      <div class="acts"><button class="btn sm primary">Thursday is right</button><button class="btn sm">Change one…</button><button class="btn sm">Not mine…</button></div></article>
+    <article class="cc"><header><b>Asha logged your weight</b><span>Sun 4 Oct, 08:00 · morning</span></header><ul class="items"><li class="item "><span>Weight <span class="amount">58.2&nbsp;kg</span></span><span class="prov">the bathroom scale</span></li></ul><div class="acts"><button class="btn sm primary">All right</button><button class="btn sm">Change…</button><button class="btn sm">Not mine…</button></div></article></main>
+  <nav class="tabbar"><a class="on">Today</a><a class="">Train</a><a class="">Progress</a><a class="">Household</a></nav></div></div><div class="fold"><span>fold · 844 px</span></div></div></figure><figure class="frame" data-w="390" data-h="844"><figcaption><span class="tag y">Proposed</span><b>Change… on a card.</b></figcaption>
+  <div class="stage"><div class="vp" style="width:390px"><div class="app phone"><nav class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span><span class="end"><span class="pill wait">Waiting <span class="count">6</span></span><span class="pill">⋯</span></span></nav>
+  <main class="screen "><div class="top"><span class="back">‹ Waiting</span></div><article class="cc open"><header><b>Kabir logged your lunch</b><span>Thu 8 Oct, 13:20 · changing it</span></header>
+    <ul class="items"><li class="item"><span>Rajma masala, your share of the pot</span><span class="prov">286&nbsp;kcal</span><div class="draftbar"><span class="stepper"><i>−</i><b>30%</b><i>+</i></span><button class="chip">20%</button><button class="chip">25%</button><button class="chip on">30%</button><button class="chip">In grams</button></div></li>
+    <li class="item "><span>Curd, homemade <span class="amount">150&nbsp;g</span></span><span class="prov">108&nbsp;kcal</span><div class="draftbar"><span class="stepper"><i>−</i><b>150&nbsp;g</b><i>+</i></span><button class="chip">Remove</button></div></li></ul>
+    <p class="hint">A change is yours: it saves as confirmed, and Kabir sees “Asha changed the amount”.</p>
+    <div class="acts"><button class="btn sm primary">Save my change</button><button class="btn sm">Cancel</button></div></article></main>
+  <nav class="tabbar"><a class="on">Today</a><a class="">Train</a><a class="">Progress</a><a class="">Household</a></nav></div></div><div class="fold"><span>fold · 844 px</span></div></div></figure></div></section>
+<section><h2>Wide · 1,440 px</h2><p class="pg-note">Proposed: its own page from the sidebar (badge and key W). Cards in a grid on the left; on the right what you're waiting on, notes Claude hasn't read, and what you confirmed today, with Undo.</p><div class="frames"><figure class="frame" data-w="1440" data-h="900"><figcaption><span class="tag">Current · live app</span><b>Now, 1,440: Household's right column.</b></figcaption>
+  <div class="stage"><div class="vp" style="width:1440px"><div class="app wide"><aside class="sidebar"><div class="sidebar-top"><b>Household</b><span class="dim">⋯</span></div>
+  <nav><a class="">Today</a><a class="">Train</a><a class="">Progress</a><a class="on">Household</a></nav>
+  <h2>Catalogue</h2><nav><a>Foods &amp; recipes</a><a>Workouts</a><a>Exercises</a><a>Gyms &amp; equipment</a><a>Words I've learned</a></nav>
+  <div class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span></div>
+  <p class="keyhint"><kbd>N</kbd> log · <kbd>/</kbd> search · <kbd>?</kbd> keys</p></aside><main class="screen "><div class="top"><h1>Household</h1><div class="acts"><button class="btn sm">‹</button><span class="pill">8 Oct 2026</span><button class="btn sm" disabled>›</button></div></div><div class="two"><section class="l-stack"><h2 class="h2">Shared meals</h2><div class="pots"><section class="pot"><header><h3>Rajma masala <span>· one pot</span></h3><p class="meta">Kabir cooked it, today 12:30 · 2.4&nbsp;kg</p></header>
+  <div class="split"><div class="seg you" style="flex-grow:30"><span>Asha 30%</span></div><div class="seg other" style="flex-grow:45"><span>Kabir 45%</span></div><div class="seg unaccounted" style="flex-grow:25"><span>25% left</span></div></div>
+  <p class="legend"><span>You 30% · weighed</span><span>Kabir 45%</span><span>25% not yet accounted for</span><span>Noor wasn't there, so no portion</span></p>
+  <div class="ask"><p>Kabir logged 30% of this rajma for you. Is that right?</p><div class="acts"><button class="btn sm primary">Yes, confirm</button><button class="btn sm">Change my share</button><button class="btn sm">Mark the rest leftover</button></div></div></section></div></section><section class="l-stack"><section class="waiting-you"><div class="sec-h"><h2>Waiting on you</h2><span><span class="box"></span> All</span></div><ul class="waiting-rows">
+    <li class="waiting-row"><label><span class="box"></span><span>Rajma masala, your share 30% (240&nbsp;g), lunch Thu 8 Oct</span></label><p class="leftnote">Logged by Kabir · confirms by itself Sat 13:20</p></li>
+    <li class="waiting-row"><label><span class="box"></span><span>Curd, homemade 150&nbsp;g, lunch Thu 8 Oct</span></label><p class="leftnote">Logged by Kabir · confirms by itself Sat 13:20</p></li></ul><div class="acts" style="margin-top:8px"><button class="btn primary" disabled>Confirm</button></div></section></section></div></main><button class="fab" aria-label="Add">+</button></div></div><div class="fold"><span>fold · 900 px</span></div></div></figure><figure class="frame" data-w="1440" data-h="900"><figcaption><span class="tag y">Proposed</span><b>Waiting on you proposed, 1,440.</b></figcaption>
+  <div class="stage"><div class="vp" style="width:1440px"><div class="app wide"><aside class="sidebar"><div class="sidebar-top"><b>Household</b><span class="dim">⋯</span></div>
+  <nav><a class="">Today</a><a class="">Train</a><a class="">Progress</a><a class="">Household</a></nav><nav><a class="waitlink on">Waiting on you <span class="count">6</span></a></nav>
+  <h2>Catalogue</h2><nav><a>Foods &amp; recipes</a><a>Workouts</a><a>Exercises</a><a>Gyms &amp; equipment</a><a>Words I've learned</a></nav>
+  <div class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span></div>
+  <p class="keyhint"><kbd>N</kbd> add · <kbd>W</kbd> waiting · <kbd>?</kbd> keys</p></aside><main class="screen "><div class="top"><div><h1>Waiting on you · 6</h1><p class="leftnote">Anything you don't answer confirms by itself 48 hours after it was logged.</p></div><button class="btn sm">All 3 drafts are right</button></div>
+    <div class="two"><section class="l-stack"><section class="wgroup"><h2>Claude asks <span class="count">2</span></h2><div class="l-grid" style="--min:300px;--s:12px"><article class="cc q"><header><b>Which dal was it?</b><span>Claude, reading your note from Wed 7 Oct, 21:10</span></header>
+  <p class="said">“two phulka with the leftover dal and a chai around 5”</p>
+  <div class="chips"><button class="chip">Toor dal from Kabir's pot, Mon</button><button class="chip">Dal makhani, ordered in</button><button class="chip">Something else…</button></div>
+  <p class="auto">The dal changes Wednesday's dinner by about 60&nbsp;kcal. Claude logs it once you answer.</p></article><article class="cc q"><header><b>Romanian deadlift, set 3: 70&nbsp;kg × 18?</b><span>Claude, from your chat on Tue 6 Oct · Lower A</span></header>
+  <p class="said">Your other two sets were 70&nbsp;kg × 8 at 2 in reserve.</p>
+  <div class="chips"><button class="chip">It was 8</button><button class="chip">18 is right</button><button class="chip">Tell Claude…</button></div></article></div></section><section class="wgroup"><h2>Logged for you <span class="count">3</span></h2><div class="l-grid" style="--min:300px;--s:12px"><article class="cc"><header><b>Kabir logged your lunch</b><span>Thu 8 Oct, 13:20 · from the rajma he cooked</span></header>
+  <ul class="items"><li class="item "><span>Rajma masala, your share of the pot <span class="amount">30% · 240&nbsp;g</span></span><span class="prov">286&nbsp;kcal</span></li><li class="item "><span>Curd, homemade <span class="amount">150&nbsp;g</span></span><span class="prov">108&nbsp;kcal</span></li></ul>
+  <p class="total"><span>2 items</span><span>394&nbsp;kcal · 19&nbsp;g protein</span></p>
+  <div class="acts"><button class="btn sm primary">All right</button><button class="btn sm">Change…</button><button class="btn sm">Not mine…</button></div>
+  <p class="auto">Confirms by itself Sat 10 Oct, 13:20.</p></article><article class="cc"><header><b>Claude logged your Wednesday dinner</b><span>From your note of Wed 7 Oct, 21:10 · 1 question above</span></header>
+  <ul class="items"><li class="item "><span>Phulka, whole-wheat atta <span class="amount">×2</span></span><span class="prov est">170&nbsp;kcal · ±40</span></li><li class="item "><span>Dal, 1 katori <span class="amount">which dal? see above</span></span><span class="prov est">180&nbsp;kcal · ±60</span></li><li class="item "><span>Masala chai, half sugar <span class="amount">1 cup · 150&nbsp;ml</span></span><span class="prov">51&nbsp;kcal</span></li></ul>
+  <p class="total"><span>3 items</span><span>401&nbsp;kcal · 14&nbsp;g protein</span></p>
+  <div class="acts"><button class="btn sm primary">All right</button><button class="btn sm">Change…</button><button class="btn sm">Not mine…</button></div></article><article class="cc"><header><b>Kabir logged your weight</b><span>Wed 7 Oct, 07:10 · morning, before food</span></header>
+  <ul class="items"><li class="item "><span>Weight <span class="amount">66.4&nbsp;kg</span></span><span class="prov">the bathroom scale</span></li></ul>
+  <div class="acts"><button class="btn sm primary">All right</button><button class="btn sm">Change…</button><button class="btn sm">Not mine…</button></div>
+  <p class="auto">Confirms by itself Fri 9 Oct, 07:10.</p></article></div></section><section class="wgroup"><h2>To settle <span class="count">1</span></h2><article class="cc"><header><b>Vegetable pulao: 35% not accounted for</b><span>Noor cooked it Wed 7 Oct · about 610&nbsp;kcal of it</span></header>
+  <div class="acts"><button class="btn sm">Leftover in the fridge</button><button class="btn sm">Someone ate it…</button><button class="btn sm">Thrown away</button></div></article></section></section>
+    <section class="l-stack"><section class="wgroup"><h3>You're waiting on others</h3><ul class="others">
+  <li><b>Noor · 38 food items, 5–8 Oct</b><span>Logged by you today at 10:05. Confirm by themselves from Sat 10 Oct.</span><button class="btn sm" style="grid-row:1/span 2;grid-column:2">Take back…</button></li>
+  <li><b>Kabir · weight 81.2&nbsp;kg, Wed</b><span>Logged by you. Confirms by itself Fri 9 Oct.</span><button class="btn sm" style="grid-row:1/span 2;grid-column:2">Take back…</button></li></ul></section><section class="wgroup"><h3>Sent to Claude, not read yet</h3><ul class="others"><li><b>“a handful of roasted chana and a filter coffee at the office”</b><span>Today 17:40 · evening snack. Claude reads this later today.</span></li></ul></section><section class="wgroup"><h3>Done here today</h3><ul class="others"><li><b>Your breakfast, as Kabir logged it</b><span>Confirmed 09:02</span><button class="btn sm" style="grid-row:1/span 2;grid-column:2">Undo</button></li></ul></section></section></div></main><button class="fab" aria-label="Add">+</button></div></div><div class="fold"><span>fold · 900 px</span></div></div></figure></div></section>
+
+<p class="pg-note">All content is invented: the sample household Asha (the owner, prescribed), Kabir (prescribed) and Noor (record-only). Frames are drawn at their real CSS width (390 or 1,440 px) and scaled down to fit the page; the dashed line is the window's fold. Phone frames show the whole scroll.</p>
+</div>
+<script>
+function fit(){
+  document.querySelectorAll(".frame").forEach(function(fig){
+    var w=+fig.dataset.w,h=+fig.dataset.h,stage=fig.querySelector(".stage"),vp=fig.querySelector(".vp");
+    var avail=fig.getBoundingClientRect().width-2;
+    var s=Math.min(1,avail/w);
+    vp.style.transform=s===1?"":"scale("+s+")";
+    var vh=Math.max(vp.scrollHeight,h);
+    stage.style.width=(w*s+2)+"px";stage.style.height=(vh*s+2)+"px";
+    fig.querySelector(".fold").style.top=(h*s)+"px";
+    fig.dataset.scale=s;
+  });
+}
+document.querySelectorAll("[data-theme-set]").forEach(function(b){b.addEventListener("click",function(){
+  var t=b.dataset.themeSet;if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);
+  document.querySelectorAll("[data-theme-set]").forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});});});
+fit();addEventListener("resize",fit);if(document.fonts)document.fonts.ready.then(fit);
+</script>
+</body>
+</html>

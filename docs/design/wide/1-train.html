@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wide Train</title>
+<style>
+/* ===== Tokens: docs/design/DESIGN.md and app/web/src/styles.css. No new colours. ===== */
+:root{--bg:#eef1f3;--card:#fff;--steel:#dfe5ea;--steel-2:#c9d2da;--ink:#1f2a30;--dim:#56646e;--haldi:#e3a008;--haldi-ink:#5c3d00;--leaf:#2f6b3f;--chilli:#b4321f;--on-haldi:#2b1d00;--shadow-near:rgb(31 42 48/.08);--shadow-far:rgb(31 42 48/.06);--page:#f7f8f9;
+  --font:Mukta,"Noto Sans",system-ui,sans-serif;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15191c;--card:#1c2328;--steel:#232b31;--steel-2:#34404a;--ink:#e8edf0;--dim:#9aa8b2;--haldi:#f0b429;--haldi-ink:#f7d47c;--leaf:#7cc790;--chilli:#f07a63;--shadow-near:rgb(0 0 0/.32);--shadow-far:rgb(0 0 0/.24);--page:#0f1417}}
+:root[data-theme="dark"]{--bg:#15191c;--card:#1c2328;--steel:#232b31;--steel-2:#34404a;--ink:#e8edf0;--dim:#9aa8b2;--haldi:#f0b429;--haldi-ink:#f7d47c;--leaf:#7cc790;--chilli:#f07a63;--shadow-near:rgb(0 0 0/.32);--shadow-far:rgb(0 0 0/.24);--page:#0f1417}
+*,*::before,*::after{box-sizing:border-box}
+
+/* ===== The mockup page (outside the frames) ===== */
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;padding:24px 16px 80px}
+.pg{max-width:2600px;margin:0 auto}
+.pg h1{font-size:24px;margin:0 0 4px}
+.pg>h2,.pg>section>h2{font-size:19px;margin:36px 0 4px}
+.pg .sub{color:var(--dim);margin:0 0 12px;max-width:900px}
+.pg-nav{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
+.pg-nav a,.pg-nav button{font:inherit;font-size:14px;border:1px solid var(--steel-2);border-radius:999px;padding:3px 12px;color:var(--ink);text-decoration:none;background:transparent;cursor:pointer}
+.pg-nav a[aria-current="page"],.pg-nav button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.pg-opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:12px;max-width:1400px}
+.pg-opt{background:var(--card);border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;box-shadow:0 1px 2px var(--shadow-near)}
+.pg-opt .letter{font-weight:700;font-size:20px;width:34px;height:34px;border-radius:50%;background:var(--steel);display:grid;place-items:center}
+.pg-opt h3{margin:0;font-size:16px}
+.pg-opt p{margin:2px 0 0;color:var(--dim);font-size:14px}
+.pg-opt.rec .letter{background:var(--haldi);color:var(--on-haldi)}
+.pg-rec{border-left:3px solid var(--haldi);padding:4px 0 4px 10px;margin:12px 0;max-width:1000px}
+.pg-note{border-left:3px solid var(--steel-2);padding-left:10px;color:var(--dim);font-size:14px;max-width:1000px;margin:8px 0}
+.frames{display:grid;gap:20px;margin-top:10px}
+.frame{margin:0;display:grid;gap:6px}
+.frame figcaption{font-size:13px;color:var(--dim)}
+.frame figcaption b{color:var(--ink)}
+.stage{position:relative;overflow:hidden;border:1px solid var(--steel-2);border-radius:8px;background:var(--bg)}
+.pg.actual .stage{overflow:visible}
+.pg.actual .scroller{overflow-x:auto}
+.vp{position:absolute;top:0;left:0;transform-origin:0 0}
+.fold{position:absolute;left:0;right:0;border-top:2px dashed var(--haldi);pointer-events:none;z-index:5}
+.fold span{position:absolute;right:8px;top:-22px;background:var(--haldi);color:var(--on-haldi);font-size:12px;padding:0 6px;border-radius:4px}
+.phone-row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.phone-row .stage{flex:none}
+
+/* ===== The app, inside a frame (mirrors app/web/src/styles.css) ===== */
+.app{font-family:var(--font);font-size:16px;line-height:1.45;color:var(--ink);background:var(--bg);font-variant-numeric:tabular-nums;position:relative}
+.app :is(h1,h2,h3,h4,p,ul,ol,dl,dd,figure,table){margin:0}
+.app :is(ul,ol){padding:0;list-style:none}
+.app.wide{display:grid;grid-template-columns:220px minmax(0,1fr);container:app/inline-size}
+.app.phone{width:390px;padding-bottom:140px}
+.sidebar{background:var(--steel);padding:16px 12px;display:flex;flex-direction:column;gap:4px;min-height:100%}
+.sidebar-top{display:flex;justify-content:space-between;align-items:center;padding:0 4px 8px}
+.sidebar nav{display:grid;gap:2px}
+.sidebar nav a{padding:6px 10px;border-radius:8px;font-size:.9rem}
+.sidebar nav a.on{background:var(--ink);color:var(--bg)}
+.sidebar h2{margin:12px 10px 4px;font-size:.8rem;font-weight:500;color:var(--dim)}
+.sidebar .memberbar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 4px 0;margin-top:24px}
+.keyhint{font-size:.75rem;color:var(--dim);padding:8px 4px 0}
+kbd{font:inherit;font-size:.75rem;border:1px solid var(--steel-2);border-radius:4px;padding:0 4px;color:var(--dim)}
+.pill{min-height:36px;display:inline-flex;align-items:center;border:1px solid var(--steel-2);color:var(--dim);border-radius:999px;padding:2px 12px;font-size:.85rem;font-weight:500}
+.pill.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.app.phone .memberbar{display:flex;gap:6px;flex-wrap:wrap;padding:8px 16px 0}
+.tabbar{position:absolute;inset:auto 0 0 0;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--steel-2);padding:6px 8px;background:var(--bg)}
+.tabbar a{display:grid;justify-items:center;padding-block:6px;border-radius:10px;color:var(--dim);font-size:.8rem}
+.tabbar a.on{background:var(--ink);color:var(--bg)}
+.fab{position:absolute;right:24px;bottom:24px;width:56px;height:56px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:28px;border:0}
+.app.phone .fab{bottom:84px;right:16px}
+
+/* The screen. Today: max-width 1180px, padding 20 24 104. Proposed: no cap below 2,400 px; the gutter steps with the band. */
+.screen{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start;container:screen/inline-size}
+.app.phone .screen{padding:12px 16px 16px}
+.app.wide .screen{padding:20px 24px 104px;max-width:2400px}
+@container app (min-width:1900px){.app.wide .screen{padding:24px 32px 104px;gap:20px;--gap:20px}}
+
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.top h1{font-size:1.15rem;font-weight:700;line-height:1.2}
+.leftnote{color:var(--dim);font-size:.9rem;text-wrap:pretty}
+.banner{background:var(--steel);border-radius:10px;padding:8px 12px;font-size:.85rem}
+.btn{min-height:40px;border-radius:8px;padding:4px 12px;border:1px solid var(--ink);background:transparent;color:var(--ink);font:inherit;font-size:.85rem;font-weight:500;display:inline-flex;align-items:center}
+.btn.primary{background:var(--ink);color:var(--bg)}
+.btn.sm{min-height:32px}
+.acts{display:flex;gap:8px;flex-wrap:wrap}
+.chip{justify-self:start;border:1px solid var(--steel-2);border-radius:999px;padding:2px 10px;font-size:.85rem;width:fit-content;max-width:100%}
+.chip.ready{color:var(--leaf);border-color:currentColor}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.dim{color:var(--dim)} .est{color:var(--haldi-ink)} .ok{color:var(--leaf)}
+.hist{font-size:.8rem;color:var(--dim);text-decoration:underline;text-underline-offset:2px}
+.h2{font-size:1rem;font-weight:700}
+
+/* ===== Layout primitives (proposed; docs/design/wide/layout-system.md). Children never set their own width. ===== */
+.l-stack{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s,16px);align-content:start}
+.l-stack>*,.l-grid>*,.l-split>*,.l-cluster>*{min-width:0}
+.l-cluster{display:flex;flex-wrap:wrap;gap:var(--s,8px);align-items:baseline}
+.l-split{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline}
+/* Auto-fit grid: as many columns of at least --min as fit, never more than --max (default: unlimited). */
+.l-grid{--min:320px;--max:99;--s:16px;display:grid;gap:var(--s);align-items:start;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,max(var(--min),(100% - (var(--max) - 1) * var(--s)) / var(--max))),1fr))}
+.l-grid.fill{grid-template-columns:repeat(auto-fill,minmax(min(100%,max(var(--min),(100% - (var(--max) - 1) * var(--s)) / var(--max))),1fr))}
+/* Switcher: side by side when the container is at least --at wide, stacked below it. */
+.l-switch{--at:900px;display:flex;flex-wrap:wrap;gap:var(--s,24px);align-items:flex-start}
+.l-switch>*{flex-grow:1;flex-basis:calc((var(--at) - 100%) * 999);min-width:0}
+
+/* Text: every text slot declares wrap, clamp or truncate. */
+.t-wrap{overflow-wrap:anywhere}
+.t-clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:var(--lines,2);line-clamp:var(--lines,2);overflow:hidden;overflow-wrap:anywhere}
+.t-trunc{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.measure{max-inline-size:72ch}
+
+/* ===== Train ===== */
+.rx{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;background:var(--steel);border-radius:12px;padding:12px;align-content:start}
+.rx header{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.rx h2{font-size:1rem;font-weight:700;overflow-wrap:anywhere;min-width:0}
+.rx header span{flex-shrink:0;font-size:.9rem}
+.rx .cue{font-size:.85rem;color:var(--dim)}
+.rx .cue::before{content:"";display:inline-block;margin-inline-end:.52em;border-inline-start:.55em solid currentColor;border-block:.35em solid transparent}
+.rx .cue.open{display:block;-webkit-line-clamp:none}
+.rx .cue.open::before{border-inline:.35em solid transparent;border-block-start:.55em solid currentColor;border-block-end:0}
+.loadval{font-size:.9rem}
+.plates figcaption{font-size:.85rem}
+.gaps{font-size:.9rem;display:grid;gap:4px}
+.gaps li::before{content:"· "}
+.ask-inv{display:grid;gap:8px;border-top:1px solid var(--steel-2);padding-top:12px;font-size:.9rem}
+.history{display:grid;gap:8px;align-content:start}
+.session-list{display:grid;gap:2px}
+.session-row{display:grid;grid-template-columns:minmax(0,1fr);gap:0;padding:7px 10px;border-radius:8px;font-size:.9rem}
+.session-row span{color:var(--dim);font-size:.85rem}
+.session-row.on{background:var(--card);box-shadow:0 1px 2px var(--shadow-near)}
+.session-row.draft b::after{content:" · draft";color:var(--haldi-ink);font-weight:400}
+.session-open{display:grid;gap:8px;background:var(--steel);border-radius:12px;padding:12px 14px;align-content:start}
+.session-open h3{font-size:1rem;font-weight:700}
+.session-open h3 span{color:var(--dim);font-weight:400}
+.sets{display:grid;gap:2px;font-size:.9rem}
+.sets li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline;padding-block:3px;border-bottom:1px solid var(--steel-2)}
+.sets li.ex{border:0;padding-top:8px;font-weight:700}
+.sets .draftbar{grid-column:1/-1;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:.85rem}
+/* Density: an open session at least 560 px wide lists its sets in two columns (by exercise). */
+.session-open{container:sess/inline-size}
+@container sess (min-width:560px){.sets.split2{columns:2;column-gap:24px;display:block}.sets.split2 li{break-inside:avoid}}
+
+/* ===== Today ===== */
+.leftline{font-size:1.1rem;line-height:1.4;text-wrap:pretty}
+.macros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:8px;row-gap:4px}
+.macro{display:grid;gap:4px;font-size:.8rem;color:var(--dim);line-height:1.25;align-content:end}
+.macro .amount{color:var(--ink);font-size:1rem;font-weight:700}
+.track{display:block;height:6px;background:var(--steel-2);border-radius:3px;overflow:hidden}
+.track span{display:block;height:100%;background:var(--ink);border-radius:3px}
+.strip{display:grid;gap:4px}
+.needs{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px;background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem}
+.tiers{display:grid;gap:4px}
+.tier{background:var(--steel);border-radius:12px;padding:12px 14px;display:grid;gap:6px;align-content:start;container:tier/inline-size}
+.tiers>.tier:first-child{border-radius:16px 16px 12px 12px}
+.tier header{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.tier h2{font-size:1rem;font-weight:700}
+.tier header span{font-size:.85rem;color:var(--dim)}
+.tier.nothing_yet{background:transparent;border:1.5px dashed var(--steel-2);padding-block:10px}
+.tier.skipped{background:transparent;border:1.5px solid var(--steel-2);padding-block:10px}
+.tier.skipped header span{color:var(--ink)}
+.items{display:grid;gap:4px;font-size:.9rem}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline}
+.item .amount{color:var(--dim)}
+.item .num{display:none}
+.item .prov{font-size:.8rem;color:var(--dim);text-align:right}
+.item .prov.est{color:var(--haldi-ink)}
+.item .draftbar{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.85rem}
+/* Density: a tier at least 520 px wide shows each item's kcal and protein in their own columns. */
+@container tier (min-width:520px){.item{grid-template-columns:minmax(0,1fr) 5.5em 4.5em 9em}.item .num{display:block;text-align:right;color:var(--dim)}}
+.tier-add{justify-self:start}
+.foot{display:grid;font-size:.9rem}
+.foot>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-block:8px;border-top:1px solid var(--steel-2)}
+.foot dd{color:var(--dim);text-align:right;flex-shrink:0;max-width:50%}
+.closeday{background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem;display:grid;gap:6px}
+.pots{display:grid;gap:14px}
+.pot{background:var(--card);border-radius:14px;padding:14px;display:grid;gap:12px;box-shadow:0 1px 2px var(--shadow-near),0 6px 18px var(--shadow-far)}
+.pot header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.pot h2{font-size:1rem;font-weight:700;overflow-wrap:anywhere}
+.pot h2 span{font-weight:400}
+.pot .meta{color:var(--dim);font-size:.85rem}
+.split{display:flex;height:38px;border-radius:8px;overflow:hidden;gap:2px}
+.seg{flex:0 1 0px;display:flex;align-items:center;padding-inline:8px;font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:6px}
+.seg>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.seg.you{background:var(--haldi);color:var(--on-haldi)}
+.seg.other{background:var(--steel-2)}
+.seg.unaccounted{background:repeating-linear-gradient(135deg,var(--steel-2) 0 2px,transparent 2px 8px);border:1px dashed var(--steel-2);border-radius:0 8px 8px 0;color:var(--dim)}
+.legend{display:flex;gap:4px 14px;flex-wrap:wrap;font-size:.85rem;color:var(--dim)}
+.ask{background:var(--steel);border-radius:10px;padding:12px;font-size:.9rem;display:grid;gap:8px}
+.glance{display:grid;gap:8px}
+.wide-table{width:100%;border-collapse:collapse;font-size:.9rem}
+.wide-table th,.wide-table td{text-align:left;padding:4px 8px;border-bottom:1px solid var(--steel-2);font-weight:400;vertical-align:baseline}
+.wide-table thead th{color:var(--dim);font-size:.8rem}
+.wide-table tbody th{font-weight:500}
+.wide-table td.n,.wide-table th.n{text-align:right}
+.nb{white-space:nowrap}
+.fridge{display:grid;font-size:.9rem}
+.fridge li{display:flex;flex-wrap:wrap;gap:4px 12px;padding-block:8px;border-top:1px solid var(--steel-2)}
+
+/* ===== Progress ===== */
+.chart{background:var(--card);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.chart h2{font-size:1rem;font-weight:700}
+.chart .sum{font-size:.85rem;color:var(--dim)}
+.chart svg{width:100%;height:auto;display:block}
+.chart .tbl{font-size:.8rem;color:var(--dim);text-decoration:underline;text-underline-offset:2px}
+.keyrow{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.8rem;color:var(--dim)}
+.keyrow i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
+.tablewrap{overflow-x:auto}
+.week-empty td{color:var(--dim)}
+.views{display:flex;gap:6px;flex-wrap:wrap}
+
+/* ===== Catalogue ===== */
+.cat-list{display:grid;gap:8px;align-content:start}
+.search{border:1px solid var(--steel-2);background:var(--card);border-radius:8px;padding:8px 10px;color:var(--dim);font-size:.9rem}
+.cat-rows{display:grid;gap:2px}
+.cat-row{display:flex;justify-content:space-between;gap:12px;padding:6px 8px;border-radius:8px;font-size:.9rem}
+.cat-row>:first-child{min-width:0;overflow-wrap:anywhere}
+.cat-row>:last-child{flex-shrink:0;color:var(--dim);font-size:.85rem}
+.cat-row.on{background:var(--card);box-shadow:0 1px 2px var(--shadow-near)}
+.record{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;background:var(--card);border-radius:14px;padding:14px 16px;align-content:start}
+.record-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px 12px;flex-wrap:wrap}
+.record-head h2{font-size:1.1rem;font-weight:700;min-width:0;overflow-wrap:anywhere}
+.rsec{display:grid;gap:6px;align-content:start}
+.rsec h3{font-size:.9rem;font-weight:700}
+.micros{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px 12px;font-size:.9rem}
+.micros div{display:flex;justify-content:space-between;gap:8px}
+.micros dd.unknown{color:var(--dim)}
+.used-by{background:var(--steel);border-left:3px solid var(--dim);border-radius:10px;padding:8px 12px;display:grid;gap:4px;font-size:.9rem}
+.used-by h3{font-size:.9rem;font-weight:700}
+.words li{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:.9rem;padding-block:3px;border-bottom:1px solid var(--steel-2)}
+.hlist{display:grid;gap:4px;font-size:.85rem}
+.hlist li{display:grid;grid-template-columns:7.5em minmax(0,1fr);gap:8px}
+.back{color:var(--dim);font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="pg">
+<nav class="pg-nav" aria-label="Mockups"><a href="0-index.html">Index</a><a href="1-train.html" aria-current="page">Train</a><a href="2-today.html">Today</a><a href="3-progress.html">Progress</a><a href="4-catalogue.html">Catalogue</a></nav>
+<h1>Train at 1,440, 1,920 and 2,560 px</h1>
+<p class="sub">Upper A for Asha with real-length content: 7 prescriptions with cues of 300+ characters, a long exercise name, a draft set, a gym question and 20 sessions. Today the screen stops at 1,180 px and the prescriptions are one card wide whatever the window.</p>
+<div class="pg-nav"><button data-size="fit" aria-pressed="true">Fit to page</button><button data-size="actual" aria-pressed="false">Actual size</button>
+<span class="dim" style="align-self:center;margin:0 4px">Theme</span><button data-theme-set="auto" aria-pressed="true">System</button><button data-theme-set="light" aria-pressed="false">Light</button><button data-theme-set="dark" aria-pressed="false">Dark</button></div>
+<div class="pg-opts"><div class="pg-opt rec"><div class="letter">A</div><div><h3>A third column for the open session</h3><p>Prescriptions (auto-fit grid) · the session list (260–300 px) · the open session. Three jobs side by side from 1,440 up.</p></div></div><div class="pg-opt"><div class="letter">B</div><div><h3>Two columns, a denser prescription grid</h3><p>The prescriptions fill a wide left column (2 → 3 → 4 cards); history keeps the right column with the open session under its list, as today.</p></div></div></div>
+<p class="pg-rec"><b>Recommendation: A.</b> The open session sits beside its list, so J/K reads a session without scrolling past twenty rows, and the prescription grid still grows 1 → 2 → 3 columns from content alone; B leaves the open session below the fold at every width.</p>
+<section><h2>Phone, 390 px (unchanged, for reference)</h2><p class="pg-note">The phone stacks the same parts in the declared order (TRAIN_PARTS), with sessions as disclosure rows. Nothing below 1,024 px changes.</p><div class="phone-row" id="phone"></div></section>
+<section id="opt-a"><h2>A · A third column for the open session</h2><p class="pg-note">Columns: minmax(0,1.3fr) minmax(260px,300px) minmax(380px,1fr). Prescription cards are an auto-fit grid with a 340 px minimum, so they go 1 → 2 → 3 wide as the screen grows; no breakpoint names a count.</p><p class="pg-note">The open session's sets go into two columns when it is at least 560 px wide (a container query on the session, not the window).</p><div class="frames" id="a-frames"></div></section><section id="opt-b"><h2>B · Two columns, a denser prescription grid</h2><p class="pg-note">Columns: minmax(0,1fr) minmax(360px,30%). The prescription grid is auto-fill with a 340 px minimum.</p><p class="pg-note">Closest to what ships: TRAIN_PARTS keeps its two sides; only the grid inside the left column changes. The open session falls below twenty session rows, under the fold at every width.</p><div class="frames" id="b-frames"></div></section>
+<p class="pg-note">All content is invented (the sample household Asha, Kabir and Noor). Frames are drawn at their real CSS width and scaled to the page; the dashed line is the window's fold. The caption under each frame is read back from the rendered grids, not written by hand.</p>
+</div>
+<script>
+/* Frames: each option is rendered at its real CSS width (1,440, 1,920, 2,560) and scaled to fit the page.
+   The layout inside a frame is the frame's own (container queries on .app and .screen), so the
+   scaling never changes what wraps. "Actual size" shows the frames 1:1 in a sideways scroller. */
+const SIZES = [
+  { w: 1440, h: 900 },
+  { w: 1920, h: 1080 },
+  { w: 2560, h: 1440 },
+];
+const MEMBERS = ["Asha", "Kabir", "Noor"];
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const fmt = (n) => n.toLocaleString("en-IN");
+
+function sidebar(active) {
+  const main = ["Today", "Train", "Progress", "Household"];
+  const cat = ["Foods & recipes", "Workouts", "Exercises", "Gyms & equipment", "Words I've learned"];
+  return `<aside class="sidebar">
+    <div class="sidebar-top"><b>Household</b><span class="dim">⋯</span></div>
+    <nav>${main.map((m) => `<a class="${m === active ? "on" : ""}">${m}</a>`).join("")}</nav>
+    <h2>Catalogue</h2>
+    <nav>${cat.map((m) => `<a class="${m === active ? "on" : ""}">${esc(m)}</a>`).join("")}</nav>
+    <div class="memberbar">${MEMBERS.map((m, i) => `<span class="pill ${i === 0 ? "on" : ""}">${m}</span>`).join("")}</div>
+    <p class="keyhint"><kbd>N</kbd> log · <kbd>/</kbd> search · <kbd>?</kbd> keys</p>
+  </aside>`;
+}
+
+function wideApp(active, screenClass, body) {
+  return `<div class="app wide">${sidebar(active)}<main class="screen ${screenClass}">${body}</main><button class="fab" aria-label="Add">+</button></div>`;
+}
+
+function phoneApp(tab, screenClass, body) {
+  const tabs = ["Today", "Train", "Progress", "Household"];
+  return `<div class="app phone"><nav class="memberbar">${MEMBERS.map((m, i) => `<span class="pill ${i === 0 ? "on" : ""}">${m}</span>`).join("")}<span class="pill" style="margin-left:auto">⋯</span></nav>
+    <main class="screen ${screenClass}">${body}</main>
+    <button class="fab" aria-label="Add">+</button>
+    <nav class="tabbar">${tabs.map((t) => `<a class="${t === tab ? "on" : ""}">${t}</a>`).join("")}</nav></div>`;
+}
+
+/** One frame: a figure with a caption, a stage the scaled viewport sits in, and the fold line. */
+function frame(html, w, h, label) {
+  return `<figure class="frame" data-w="${w}" data-h="${h}">
+    <figcaption><b>${label ?? `${fmt(w)} × ${fmt(h)}`}</b> <span class="measure-out"></span></figcaption>
+    <div class="scroller"><div class="stage"><div class="vp" style="width:${w}px">${html}</div>
+    <div class="fold"><span>fold · ${fmt(h)} px</span></div></div></div></figure>`;
+}
+
+function renderFrames(id, make) {
+  const el = document.getElementById(id);
+  el.innerHTML = SIZES.map((s) => frame(make(), s.w, s.h)).join("");
+}
+
+function renderPhone(id, html) {
+  document.getElementById(id).innerHTML = frame(html, 390, 844, "Phone, 390 × 844 (unchanged)");
+}
+
+/** Caption: what the layout decided at this width, read back from the computed grids (data-cols="name"). */
+function measure(fig) {
+  const out = [];
+  fig.querySelectorAll(".vp [data-cols]").forEach((g) => {
+    const cs = getComputedStyle(g);
+    let n;
+    if (cs.display === "flex") {
+      const tops = new Set([...g.children].map((c) => Math.round(c.getBoundingClientRect().top)));
+      n = g.children.length && tops.size === 1 ? g.children.length : 1;
+      if (tops.size > 1 && tops.size < g.children.length) n = g.children.length - tops.size + 1;
+    } else n = cs.gridTemplateColumns.split(" ").filter((t) => t && parseFloat(t) > 0).length;
+    out.push(`${g.dataset.cols}: ${n} ${n === 1 ? "column" : "columns"}`);
+  });
+  const screen = fig.querySelector(".vp .screen");
+  if (screen && fig.dataset.w !== "390") out.unshift(`screen ${fmt(Math.round(screen.getBoundingClientRect().width / scaleOf(fig)))} px`);
+  fig.querySelector(".measure-out").textContent = out.length ? "· " + out.join(" · ") : "";
+}
+const scaleOf = (fig) => Number(fig.dataset.scale || 1);
+
+function fit() {
+  const actual = document.querySelector(".pg").classList.contains("actual");
+  document.querySelectorAll(".frame").forEach((fig) => {
+    const w = Number(fig.dataset.w);
+    const h = Number(fig.dataset.h);
+    const stage = fig.querySelector(".stage");
+    const vp = fig.querySelector(".vp");
+    const avail = fig.parentElement.getBoundingClientRect().width - 2;
+    const s = actual ? 1 : Math.min(1, avail / w);
+    fig.dataset.scale = s;
+    vp.style.transform = s === 1 ? "" : `scale(${s})`;
+    const vh = Math.max(vp.scrollHeight, h);
+    stage.style.width = `${w * s + 2}px`;
+    stage.style.height = `${vh * s}px`;
+    fig.querySelector(".fold").style.top = `${h * s}px`;
+    measure(fig);
+  });
+}
+
+function setupPage() {
+  const pg = document.querySelector(".pg");
+  document.querySelectorAll("[data-size]").forEach((b) =>
+    b.addEventListener("click", () => {
+      pg.classList.toggle("actual", b.dataset.size === "actual");
+      document.querySelectorAll("[data-size]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      fit();
+    }),
+  );
+  document.querySelectorAll("[data-theme-set]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const t = b.dataset.themeSet;
+      if (t === "auto") document.documentElement.removeAttribute("data-theme");
+      else document.documentElement.setAttribute("data-theme", t);
+      document.querySelectorAll("[data-theme-set]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    }),
+  );
+  fit();
+  addEventListener("resize", fit);
+  if (document.fonts) document.fonts.ready.then(fit);
+  // Interactions inside a frame that change its height (open a cue) refit.
+  document.addEventListener("click", (e) => {
+    const c = e.target.closest(".cue");
+    if (c) {
+      c.classList.toggle("open");
+      fit();
+    }
+  });
+}
+
+/* Seeded pseudo-random numbers, so every render draws the same invented data. */
+function rng(seed) {
+  let s = seed >>> 0;
+  return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296);
+}
+
+/* Train: invented content only (the sample household Asha, Kabir, Noor). */
+function plateSvg(bar, plates, text) {
+  const W = 14, GAP = 3, H = 56, TOP = 12, LABELS = 34, FONT = 9;
+  const width = Math.max(28 + plates.length * (W + GAP) + 8, bar.length * 5 + 4);
+  const mid = TOP + H / 2, bottom = TOP + H + 6;
+  const rects = plates
+    .map((p, i) => {
+      const h = Math.max(12, p.h * H), x = 28 + i * (W + GAP);
+      return `<rect x="${x}" y="${mid - h / 2}" width="${W}" height="${h}" rx="2" fill="var(--ink)"/><text transform="translate(${x + W / 2 + 3} ${bottom}) rotate(90)" font-size="${FONT}" fill="var(--ink)">${p.l}</text>`;
+    })
+    .join("");
+  return `<figure class="plates"><svg viewBox="0 0 ${width} ${TOP + H + LABELS}" width="${width}" height="${TOP + H + LABELS}" role="img" aria-label="${esc(text)}"><text x="0" y="${FONT}" font-size="${FONT}" fill="var(--dim)">${bar}</text><line x1="0" y1="${mid}" x2="${width}" y2="${mid}" stroke="var(--steel-2)" stroke-width="6" stroke-linecap="round"/><rect x="18" y="${mid - 10}" width="6" height="20" rx="1" fill="var(--dim)"/>${rects}</svg><figcaption>${esc(text)}</figcaption></figure>`;
+}
+
+const RX = [
+  {
+    ex: "Barbell bench press",
+    dose: "3 × 6–8 · RIR 1–2",
+    load: plateSvg("20 kg bar", [{ h: 0.9, l: "15" }, { h: 0.45, l: "2.5" }], "55 kg: the 20 kg bar, 15 + 2.5 a side"),
+    chip: ["ready", "Ready → 57.5 kg"],
+    cue: "Feet flat about 40 cm apart under the knees, shoulder blades pinched and pressed down into the bench before you unrack. Lower over 2–3 s to a touch 2 cm below the sternum, pause 0.5 s, then drive up and slightly back toward the rack. If bar speed drops on rep 6 at 55 kg, stop there and log RIR 1 rather than grinding a 7th; rest 150–180 s between sets.",
+  },
+  {
+    ex: "Single-arm cable row, half-kneeling on the left knee (cable station 3, the one by the window)",
+    dose: "3 × 10–12 each · RIR 2",
+    load: `<p class="loadval">27.5 kg on the stack</p>`,
+    chip: ["", "Needs confirmation (2 sets)"],
+    confirm: true,
+    cue: "Set the pulley at hip height, 1 notch below the handle mark (notch 7 of 14). Hips square to the stack; let the shoulder blade travel forward for a full 1 s stretch, then row the elbow past the ribs toward the back pocket. Kabir logged sets 2 and 3 for you as 12 and 11 reps at 27.5 kg; confirm or change them before this progresses.",
+  },
+  {
+    ex: "Incline dumbbell press, bench at 30°",
+    dose: "3 × 8–10 · RIR 1–2",
+    load: `<p class="loadval">2 × 22.5 kg dumbbells</p>`,
+    chip: ["", "Holding (the last two sessions stopped at 8 and 9 reps)"],
+    cue: "Bench on the third hole (30°), dumbbells kicked up off the knees one at a time. Wrists stacked over the elbows, lower for 3 s until the handles are level with the chest, press up and in without clanking. Stay at 22.5 kg until all three sets reach 10 reps at RIR 1 or more, then move to 25 kg; 120 s rest.",
+  },
+  {
+    ex: "Lat pulldown, neutral close grip",
+    dose: "3 × 10–12 · RIR 2",
+    load: `<p class="loadval">52 kg (50 on the stack + the 2.5 kg add-on, rounded)</p>`,
+    chip: ["", "Check at the gym (is the 2.5 kg add-on plate back on the stack?)"],
+    check: true,
+    cue: "Thigh pad snug, lean back about 10°. Pull the handle to the top of the sternum, elbows driving down to the hips, 1 s squeeze; let it rise for 2 s until the arms are straight. Last week the add-on was missing, so the 52 kg was 50 kg; tell the agent which it was.",
+  },
+  {
+    ex: "Cable lateral raise, behind the back",
+    dose: "3 × 12–15 each · RIR 1",
+    load: `<p class="loadval">5 kg on the stack</p>`,
+    chip: ["", "Can't move (the next load needs a 1.25 kg plate this gym doesn't have)"],
+    cue: "Pulley at the lowest notch, the cable running behind you. Raise to shoulder height in 1 s with the thumb level, lead with the elbow, lower in 3 s. At 15 clean reps on all sets, add the 1.25 kg magnet when it is back; until then, add 1 rep per set up to 20 instead.",
+  },
+  {
+    ex: "Face pull, rope, kneeling",
+    dose: "2 × 15–20 · RIR 2",
+    load: `<p class="loadval">20 kg on the stack</p>`,
+    chip: ["ready", "Ready → 22.5 kg"],
+    cue: "Pulley at eye height when kneeling. Pull the rope apart toward the ears with the thumbs pointing back, elbows above the wrists, 1 s hold at the end; external rotation, not a row. 60–90 s rest; superset with the overhead extension if the station next to it is free.",
+  },
+  {
+    ex: "Overhead triceps extension, EZ bar, seated with back support",
+    dose: "3 × 10–12 · RIR 1–2",
+    load: plateSvg("7.5 kg EZ bar", [{ h: 0.55, l: "5" }, { h: 0.3, l: "1.25" }], "20 kg: the 7.5 kg EZ bar, 5 + 1.25 a side"),
+    chip: ["ready", "Ready"],
+    cue: "Elbows in, about shoulder-width, pointing at the ceiling; lower behind the head for 3 s until the forearms pass parallel, then extend without the elbows flaring. If the elbow aches above 6/10, swap to the rope pushdown at 25 kg for the day and say so.",
+  },
+];
+
+function rxCard(r, i) {
+  return `<li class="rx" ${i === 0 ? 'style="border-radius:16px 16px 12px 12px"' : ""}>
+    <header><h2>${esc(r.ex)}</h2><span>${esc(r.dose)}</span></header>
+    ${r.load}
+    <p class="chip ${r.chip[0]}">${esc(r.chip[1])}</p>
+    <p class="cue t-clamp">${esc(r.cue)}</p>
+    ${r.confirm ? `<div class="acts"><button class="btn primary">Reps were as logged</button></div>` : ""}
+    ${r.check ? `<div class="acts"><button class="btn primary">It's there</button><button class="btn">It isn't there</button></div>` : ""}
+    <div class="acts"><button class="btn">Log a set</button></div>
+  </li>`;
+}
+
+const TRAIN_TOP = `<div class="top"><h1>Upper A, next · Iron Yard (the Riverside branch)</h1><span class="leftnote">last trained Tue 6 Oct · 4 of 7 ready to progress</span></div>`;
+const TRAIN_POLICY = `<p class="banner">Deload week from Mon 12 Oct: loads stay, one set fewer on every lift. Your trainer's note, 2 Oct.</p>`;
+const TRAIN_GAPS = `<ul class="gaps"><li>Chest-supported row has no load yet: do 2 easy sets and tell the agent what you used.</li><li>Iron Yard's 1.25 kg plates are not recorded.</li></ul>`;
+const TRAIN_Q = `<section class="ask-inv"><p>Which of these kg plates are on the rack at Iron Yard? Tap the ones you see; the rest are saved as not there.</p><div class="acts"><button class="btn">0.5 kg</button><button class="btn">1.25 kg</button><button class="btn">2.5 kg</button><button class="btn">25 kg</button><button class="btn primary">Save the plates</button></div></section>`;
+
+const SESSIONS = (() => {
+  const kinds = [
+    ["Upper A", "7 exercises · 22 sets · 7,315 kg"],
+    ["Lower B", "6 exercises · 19 sets · 11,940 kg"],
+    ["Dance class (Bollywood cardio, 55 min)", "cardio · 55 min · RPE 6"],
+    ["Upper B", "7 exercises · 21 sets · 6,880 kg"],
+    ["Treadmill intervals 10 × 1 min at 11 km/h, 1 min walk", "cardio · 24 min · 3.1 km"],
+    ["Lower A", "6 exercises · 18 sets · 12,410 kg"],
+  ];
+  const days = ["Tue 6 Oct", "Sun 4 Oct", "Sat 3 Oct", "Thu 1 Oct", "Wed 30 Sep", "Mon 28 Sep", "Sat 26 Sep", "Thu 24 Sep", "Tue 22 Sep", "Sun 20 Sep", "Sat 19 Sep", "Thu 17 Sep", "Tue 15 Sep", "Sun 13 Sep", "Fri 11 Sep", "Wed 9 Sep", "Mon 7 Sep", "Sat 5 Sep", "Thu 3 Sep", "Tue 1 Sep"];
+  return days.map((d, i) => ({ title: kinds[i % kinds.length][0], summary: `${d} · ${kinds[i % kinds.length][1]}`, draft: i === 1 }));
+})();
+
+function sessionList(cls = "") {
+  return `<ol class="session-list ${cls}">${SESSIONS.map((s, i) => `<li class="session-row ${i === 0 ? "on" : ""} ${s.draft ? "draft" : ""}"><b class="t-wrap">${esc(s.title)}</b><span>${esc(s.summary)}</span></li>`).join("")}</ol>
+    <div class="acts"><button class="btn">Show earlier</button></div>`;
+}
+
+const SETS = [
+  ["Barbell bench press", ["55 kg × 8 · RIR 2", "55 kg × 7 · RIR 1", "55 kg × 6 · RIR 1"]],
+  ["Single-arm cable row, half-kneeling on the left knee (cable station 3, the one by the window)", ["27.5 kg × 12 each · RIR 2", "27.5 kg × 12 each · RIR 2 · draft", "27.5 kg × 11 each · RIR 1 · draft"]],
+  ["Incline dumbbell press, bench at 30°", ["2 × 22.5 kg × 9 · RIR 1", "2 × 22.5 kg × 8 · RIR 1", "2 × 22.5 kg × 8 · RIR 0"]],
+  ["Lat pulldown, neutral close grip", ["52 kg × 12 · RIR 2", "52 kg × 11 · RIR 2", "52 kg × 10 · RIR 1"]],
+  ["Cable lateral raise, behind the back", ["5 kg × 15 each · RIR 1", "5 kg × 15 each · RIR 1", "5 kg × 14 each · RIR 0"]],
+  ["Face pull, rope, kneeling", ["20 kg × 20 · RIR 2", "20 kg × 18 · RIR 2"]],
+  ["Overhead triceps extension, EZ bar, seated with back support", ["20 kg × 12 · RIR 2", "20 kg × 11 · RIR 1", "20 kg × 10 · RIR 1"]],
+];
+
+function sessionOpen() {
+  const rows = SETS.map(
+    ([ex, sets]) =>
+      `<li class="ex"><span class="t-wrap">${esc(ex)}</span></li>` +
+      sets
+        .map((s) =>
+          s.endsWith("draft")
+            ? `<li><span class="t-wrap">${esc(s.replace(" · draft", ""))} <span class="est">· draft, logged by Kabir</span></span><a class="hist">History</a><div class="draftbar"><button class="btn sm primary">Yes, confirm</button><button class="btn sm">Change…</button></div></li>`
+            : `<li><span class="t-wrap">${esc(s)}</span><a class="hist">History</a></li>`,
+        )
+        .join(""),
+  ).join("");
+  return `<article class="session-open">
+    <h3 class="t-wrap">Upper A <span>Tue 6 Oct · 58 min · 7 exercises · 22 sets · 7,315 kg</span></h3>
+    <p class="leftnote t-wrap">Kabir's note: swapped to cable station 3 because a sign saying SMITH-MACHINE-2-OUT-OF-ORDER-UNTIL-FURTHER-NOTICE was taped to the frame; the floor was crowded from 19:10, so rests ran 3–4 min instead of 2–3 min.</p>
+    <div class="l-cluster"><p class="chip">Best e1RM: bench press 69.5 kg</p><p class="chip">Rep best: lat pulldown 52 kg × 12</p></div>
+    <ul class="sets split2">${rows}</ul>
+    <div class="acts"><button class="btn">Save this session as a workout</button></div>
+  </article>`;
+}
+
+/* A: a third column for the open session. */
+function trainA() {
+  return `${TRAIN_TOP}${TRAIN_POLICY}
+  <div class="train-a">
+    <section class="l-stack">${TRAIN_GAPS}<ol class="l-grid rows" style="--min:340px;--s:12px" data-cols="Prescriptions">${RX.map(rxCard).join("")}</ol>${TRAIN_Q}</section>
+    <section class="history"><h2 class="h2">Sessions</h2>${sessionList()}</section>
+    ${sessionOpen()}
+  </div>`;
+}
+
+/* B: two columns, the prescriptions as a denser auto-fit grid; the open session under its list. */
+function trainB() {
+  return `${TRAIN_TOP}${TRAIN_POLICY}
+  <div class="train-b">
+    <section class="l-stack">${TRAIN_GAPS}<ol class="l-grid fill rows" style="--min:340px;--s:12px" data-cols="Prescriptions">${RX.map(rxCard).join("")}</ol>${TRAIN_Q}</section>
+    <section class="history"><h2 class="h2">Sessions</h2>${sessionList()}${sessionOpen()}</section>
+  </div>`;
+}
+
+function trainPhone() {
+  return `<div class="top"><h1>Upper A, next · Iron Yard (the Riverside branch)</h1></div>${TRAIN_POLICY}${TRAIN_GAPS}
+  <ol class="rows" style="display:grid;gap:4px">${RX.map(rxCard).join("")}</ol>${TRAIN_Q}
+  <section class="history"><h2 class="h2">Sessions</h2><ol class="rows" style="display:grid;gap:4px">${SESSIONS.slice(0, 6).map((s) => `<li class="rx"><p class="cue t-clamp" style="color:var(--ink)"><b>${esc(s.title)}</b> <span class="dim">${esc(s.summary)}</span></p></li>`).join("")}</ol></section>`;
+}
+
+const SCREEN_CSS = `
+.train-a{display:grid;gap:24px;align-items:start;grid-template-columns:minmax(0,1.3fr) minmax(260px,300px) minmax(380px,1fr)}
+.train-b{display:grid;gap:24px;align-items:start;grid-template-columns:minmax(0,1fr) minmax(360px,30%)}
+.rows{margin:0;padding:0;list-style:none}
+`;
+
+function render() {
+  renderPhone("phone", phoneApp("Train", "train", trainPhone()));
+  renderFrames("a-frames", () => wideApp("Train", "train", trainA()));
+  renderFrames("b-frames", () => wideApp("Train", "train", trainB()));
+}
+
+document.head.insertAdjacentHTML("beforeend", "<style>" + SCREEN_CSS + "</style>");
+render();
+setupPage();
+</script>
+</body>
+</html>

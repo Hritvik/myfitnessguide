@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Today Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mukta:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f3;--card:#fff;--steel:#dfe5ea;--steel-2:#c9d2da;--ink:#1f2a30;--dim:#56646e;--haldi:#e3a008;--haldi-ink:#5c3d00;--leaf:#2f6b3f;--chilli:#b4321f;--on-haldi:#2b1d00;--shadow-near:rgb(31 42 48/.08);--shadow-far:rgb(31 42 48/.06);--page:#f7f8f9;
+  --font:Mukta,"Noto Sans",system-ui,sans-serif;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#15191c;--card:#1c2328;--steel:#232b31;--steel-2:#34404a;--ink:#e8edf0;--dim:#9aa8b2;--haldi:#f0b429;--haldi-ink:#f7d47c;--leaf:#7cc790;--chilli:#f07a63;--shadow-near:rgb(0 0 0/.32);--shadow-far:rgb(0 0 0/.24);--page:#0f1417}}
+:root[data-theme="dark"]{--bg:#15191c;--card:#1c2328;--steel:#232b31;--steel-2:#34404a;--ink:#e8edf0;--dim:#9aa8b2;--haldi:#f0b429;--haldi-ink:#f7d47c;--leaf:#7cc790;--chilli:#f07a63;--shadow-near:rgb(0 0 0/.32);--shadow-far:rgb(0 0 0/.24);--page:#0f1417}
+*,*::before,*::after{box-sizing:border-box}
+
+/* ===== The mockup page (outside the frames) ===== */
+body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.45;padding:24px 16px 80px}
+.pg{max-width:1500px;margin:0 auto}
+.pg h1{font-size:24px;margin:0 0 4px;line-height:1.2}
+.pg>section>h2,.pg>h2{font-size:19px;margin:36px 0 6px}
+.pg h3.pgh{font-size:16px;margin:20px 0 6px}
+.pg .sub{color:var(--dim);margin:0 0 12px;max-width:900px}
+.pg p,.pg li{overflow-wrap:anywhere}
+.pg-nav{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
+.pg-nav a,.pg-nav button{font:inherit;font-size:14px;border:1px solid var(--steel-2);border-radius:999px;padding:3px 12px;color:var(--ink);text-decoration:none;background:transparent;cursor:pointer}
+.pg-nav a[aria-current="page"],.pg-nav button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.pg-note{border-left:3px solid var(--steel-2);padding-left:10px;color:var(--dim);font-size:14px;max-width:1000px;margin:8px 0}
+.pg-rec{border-left:3px solid var(--haldi);padding:4px 0 4px 10px;margin:12px 0;max-width:1000px}
+.changes{width:100%;max-width:1200px;border-collapse:collapse;font-size:14px;margin:8px 0 4px;table-layout:fixed}
+.changes th,.changes td{text-align:left;vertical-align:top;padding:8px 10px 8px 0;border-bottom:1px solid var(--steel-2);overflow-wrap:anywhere}
+.changes thead th{color:var(--dim);font-weight:500;font-size:13px}
+.changes td:first-child{color:var(--dim)}
+.tag{display:inline-block;font-size:12px;border-radius:999px;padding:0 8px;border:1px solid var(--steel-2);color:var(--dim);white-space:nowrap}
+.tag.y{background:var(--haldi);border-color:var(--haldi);color:var(--on-haldi)}
+.tablewrap{overflow-x:auto;max-width:100%}
+@media (max-width:700px){.changes,.changes thead,.changes tbody,.changes tr,.changes th,.changes td{display:block}.changes thead{display:none}.changes tr{border-bottom:1px solid var(--steel-2);padding:6px 0}.changes td{border:0;padding:2px 0}.changes td[data-h]::before{content:attr(data-h) ": ";color:var(--dim);font-weight:500}}
+
+.cmp{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,394px),1fr));gap:24px;align-items:start}
+.cmp.three{grid-template-columns:repeat(auto-fill,minmax(min(100%,394px),1fr))}
+.frames{display:grid;gap:28px}
+.frame{margin:0;display:grid;gap:6px;min-width:0}
+.frame figcaption{font-size:13px;color:var(--dim);max-width:600px}
+.frame figcaption b{color:var(--ink)}
+.frame figcaption .tag{margin-right:6px}
+.stage{position:relative;overflow:hidden;border:1px solid var(--steel-2);border-radius:8px;background:var(--bg)}
+.vp{position:absolute;top:0;left:0;transform-origin:0 0}
+.fold{position:absolute;left:0;right:0;border-top:2px dashed var(--haldi);pointer-events:none;z-index:5}
+.fold span{position:absolute;right:8px;top:-22px;background:var(--haldi);color:var(--on-haldi);font-size:12px;padding:0 6px;border-radius:4px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px;max-width:1400px}
+.card-link{display:grid;gap:4px;background:var(--card);border-radius:12px;padding:12px 14px;color:var(--ink);text-decoration:none;box-shadow:0 1px 2px var(--shadow-near)}
+.card-link b{font-size:16px}
+.card-link span{color:var(--dim);font-size:14px}
+.oq{display:grid;gap:12px;max-width:1100px}
+.oq li{background:var(--card);border-radius:12px;padding:12px 14px;list-style:none;display:grid;gap:4px}
+.oq{padding:0;margin:8px 0}
+.oq h3{margin:0;font-size:16px}
+.oq p{margin:0}
+
+/* ===== The app, inside a frame (mirrors app/web/src/styles.css) ===== */
+.app{font-family:var(--font);font-size:16px;line-height:1.45;color:var(--ink);background:var(--bg);font-variant-numeric:tabular-nums;position:relative}
+.app :is(h1,h2,h3,h4,p,ul,ol,dl,dd,figure,table){margin:0}
+.app :is(ul,ol){padding:0;list-style:none}
+.app :is(p,li,span,b,h1,h2,h3,dt,dd,td,th,a,label){overflow-wrap:anywhere}
+.app button{font:inherit}
+.app.wide{display:grid;grid-template-columns:220px minmax(0,1fr);min-height:900px}
+.app.wide.panel{grid-template-columns:220px minmax(0,1fr) 360px}
+.app.phone{width:390px;min-height:844px;padding-bottom:140px}
+.sidebar{background:var(--steel);padding:16px 12px;display:flex;flex-direction:column;gap:4px}
+.sidebar-top{display:flex;justify-content:space-between;align-items:center;padding:0 4px 8px}
+.sidebar nav{display:grid;gap:2px}
+.sidebar nav a{padding:6px 10px;border-radius:8px;font-size:.9rem;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.sidebar nav a.on{background:var(--ink);color:var(--bg)}
+.sidebar h2{margin:12px 10px 4px;font-size:.8rem;font-weight:500;color:var(--dim)}
+.sidebar .memberbar{display:flex;flex-wrap:wrap;gap:6px;padding:8px 4px 0;margin-top:24px}
+.sidebar .waitlink{margin-top:10px;border:1px solid var(--steel-2);background:var(--bg)}
+.keyhint{font-size:.75rem;color:var(--dim);padding:8px 4px 0}
+kbd{font:inherit;font-size:.75rem;border:1px solid var(--steel-2);border-radius:4px;padding:0 4px;color:var(--dim)}
+.pill{min-height:36px;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--steel-2);color:var(--dim);border-radius:999px;padding:2px 12px;font-size:.85rem;font-weight:500;background:transparent}
+.pill.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.count{display:inline-grid;place-items:center;min-width:22px;height:22px;border-radius:999px;background:var(--haldi);color:var(--on-haldi);font-size:.8rem;font-weight:700;padding:0 6px}
+.pill.wait{color:var(--ink);border-color:var(--haldi)}
+.app.phone .memberbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:8px 16px 0}
+.app.phone .memberbar .end{margin-left:auto;display:flex;gap:6px}
+.tabbar{position:absolute;inset:auto 0 0 0;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--steel-2);padding:6px 8px;background:var(--bg)}
+.tabbar a{display:grid;justify-items:center;padding-block:6px;border-radius:10px;color:var(--dim);font-size:.8rem}
+.tabbar a.on{background:var(--ink);color:var(--bg)}
+.fab{position:absolute;right:24px;bottom:24px;width:56px;height:56px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-size:28px;border:0}
+.app.phone .fab{bottom:84px;right:16px}
+
+.screen{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-content:start;container:screen/inline-size;min-width:0}
+.app.phone .screen{padding:12px 16px 16px}
+.app.wide .screen{padding:20px 24px 104px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px 12px;flex-wrap:wrap}
+.top h1{font-size:1.15rem;font-weight:700;line-height:1.2}
+.top .back{font-size:.9rem;color:var(--dim)}
+.leftnote{color:var(--dim);font-size:.9rem}
+.banner{background:var(--steel);border-radius:10px;padding:8px 12px;font-size:.85rem}
+.btn{min-height:40px;border-radius:8px;padding:4px 12px;border:1px solid var(--ink);background:transparent;color:var(--ink);font:inherit;font-size:.85rem;font-weight:500;display:inline-flex;align-items:center;gap:6px;text-align:left}
+.btn.primary{background:var(--ink);color:var(--bg)}
+.btn.sm{min-height:32px}
+.btn.quiet{border-color:var(--steel-2)}
+.btn[disabled]{opacity:.55}
+.acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.chip{border:1px solid var(--steel-2);border-radius:999px;padding:2px 10px;font-size:.85rem;width:fit-content;max-width:100%;background:transparent;color:var(--ink)}
+.chip.ready{color:var(--leaf);border-color:currentColor}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip.you{border-color:var(--haldi)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.dim{color:var(--dim)} .est{color:var(--haldi-ink)} .ok{color:var(--leaf)}
+.h2{font-size:1rem;font-weight:700}
+.l-stack{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--s,16px);align-content:start;min-width:0}
+.l-stack>*,.l-grid>*{min-width:0}
+.l-grid{--min:320px;--s:16px;display:grid;gap:var(--s);align-items:start;grid-template-columns:repeat(auto-fill,minmax(min(100%,var(--min)),1fr))}
+.two{display:grid;gap:24px;align-items:start;grid-template-columns:minmax(0,1.25fr) minmax(320px,1fr)}
+.field{display:grid;gap:4px;font-size:.85rem;color:var(--dim)}
+.input{border:1px solid var(--steel-2);background:var(--card);border-radius:8px;padding:8px 10px;color:var(--ink);font-size:.95rem;min-height:40px}
+.input.ph{color:var(--dim)}
+.input.area{min-height:84px}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px;flex-wrap:wrap}
+.sec-h h2,.sec-h h3{font-size:1rem;font-weight:700}
+
+/* Today */
+.leftline{font-size:1.1rem;line-height:1.4}
+.macros{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));column-gap:8px;row-gap:4px}
+.macro{display:grid;gap:4px;font-size:.8rem;color:var(--dim);line-height:1.25;align-content:end}
+.macro .amount{color:var(--ink);font-size:1rem;font-weight:700}
+.track{display:block;height:6px;background:var(--steel-2);border-radius:3px;overflow:hidden}
+.track span{display:block;height:100%;background:var(--ink);border-radius:3px}
+.strip{display:grid;gap:4px}
+.needs{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:4px 12px;background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem}
+.tiers{display:grid;gap:4px}
+.tier{background:var(--steel);border-radius:12px;padding:12px 14px;display:grid;gap:6px;align-content:start}
+.tiers>.tier:first-child{border-radius:16px 16px 12px 12px}
+.tier header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 8px;flex-wrap:wrap}
+.tier h2,.tier h3{font-size:1rem;font-weight:700}
+.tier header span{font-size:.85rem;color:var(--dim)}
+.tier.nothing_yet{background:transparent;border:1.5px dashed var(--steel-2);padding-block:10px}
+.tier.skipped{background:transparent;border:1.5px solid var(--steel-2);padding-block:10px}
+.items{display:grid;gap:4px;font-size:.9rem}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline}
+.item .amount{color:var(--dim)}
+.item .prov{font-size:.8rem;color:var(--dim);text-align:right}
+.item .prov.est{color:var(--haldi-ink)}
+.item .draftbar{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:.85rem}
+.item.draft>span:first-child{border-left:3px solid var(--haldi);padding-left:8px}
+.waittag{grid-column:1/-1;font-size:.8rem;color:var(--haldi-ink);padding-left:11px}
+.pending{grid-column:1/-1;border:1.5px dashed var(--steel-2);border-radius:10px;padding:8px 10px;font-size:.85rem;display:grid;gap:2px;background:var(--bg)}
+.pending q{font-style:italic}
+.usual{display:grid;gap:6px;font-size:.9rem}
+.tier-add{justify-self:start}
+.foot{display:grid;font-size:.9rem}
+.foot>div{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding-block:8px;border-top:1px solid var(--steel-2)}
+.foot dd{color:var(--dim);text-align:right;flex-shrink:0;max-width:50%}
+.closeday{background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem;display:grid;gap:6px}
+.pots{display:grid;gap:14px}
+.pot{background:var(--card);border-radius:14px;padding:14px;display:grid;gap:12px;box-shadow:0 1px 2px var(--shadow-near),0 6px 18px var(--shadow-far)}
+.pot header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.pot h2,.pot h3{font-size:1rem;font-weight:700}
+.pot h2 span,.pot h3 span{font-weight:400}
+.pot .meta{color:var(--dim);font-size:.85rem}
+.split{display:flex;height:38px;border-radius:8px;overflow:hidden;gap:2px}
+.seg{flex:0 1 0px;display:flex;align-items:center;padding-inline:8px;font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;min-width:6px}
+.seg>span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.seg.you{background:var(--haldi);color:var(--on-haldi)}
+.seg.other{background:var(--steel-2)}
+.seg.unaccounted{background:repeating-linear-gradient(135deg,var(--steel-2) 0 2px,transparent 2px 8px);border:1px dashed var(--steel-2);border-radius:0 8px 8px 0;color:var(--dim)}
+.legend{display:flex;gap:4px 14px;flex-wrap:wrap;font-size:.85rem;color:var(--dim)}
+.ask{background:var(--steel);border-radius:10px;padding:12px;font-size:.9rem;display:grid;gap:8px}
+.glance{display:grid;gap:8px}
+.wide-table{width:100%;border-collapse:collapse;font-size:.9rem}
+.wide-table th,.wide-table td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--steel-2);font-weight:400;vertical-align:baseline}
+.wide-table thead th{color:var(--dim);font-size:.8rem}
+.wide-table tbody th{font-weight:500}
+.wide-table td.n{text-align:right}
+.fridge{display:grid;font-size:.9rem}
+.fridge li{display:flex;flex-wrap:wrap;gap:4px 12px;padding-block:8px;border-top:1px solid var(--steel-2)}
+
+/* Your week (digest spec §6.2) */
+.week{background:var(--card);border-radius:14px;padding:12px 14px;display:grid;gap:8px;border:1px solid var(--steel-2)}
+.week header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.week h2{font-size:1rem;font-weight:700}
+.week ol{display:grid;gap:6px;font-size:.9rem;counter-reset:n}
+.week ol li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px}
+.week ol li::before{counter-increment:n;content:counter(n);display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--steel);font-size:.75rem;font-weight:700;margin-top:1px}
+.week ol.weekdays li::before{display:none}
+.week .lbl{font-size:.8rem;color:var(--dim)}
+.waitline{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center;background:var(--steel);border-left:4px solid var(--haldi);border-radius:12px;padding:10px 12px;font-size:.9rem}
+
+/* Confirm cards, Claude's questions (Waiting) */
+.wgroup{display:grid;gap:8px}
+.wgroup>h2,.wgroup>h3{font-size:.95rem;font-weight:700;display:flex;gap:8px;align-items:baseline}
+.cc{background:var(--card);border-radius:12px;padding:12px 14px;display:grid;gap:8px;box-shadow:0 1px 2px var(--shadow-near)}
+.cc header{display:grid;gap:2px}
+.cc header b{font-size:.95rem}
+.cc header span{font-size:.8rem;color:var(--dim)}
+.cc .items{border-top:1px solid var(--steel-2);padding-top:6px}
+.cc .total{display:flex;justify-content:space-between;gap:12px;font-size:.85rem;color:var(--dim)}
+.cc .auto{font-size:.8rem;color:var(--dim)}
+.cc.q{border-left:4px solid var(--haldi)}
+.cc.q .said{background:var(--steel);border-radius:10px;padding:6px 10px;font-size:.85rem;color:var(--dim)}
+.cc.batch .days{display:grid;gap:2px;font-size:.9rem}
+.cc.batch .days li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding-block:5px;border-bottom:1px solid var(--steel-2)}
+.cc.batch .days li span{color:var(--dim);font-size:.85rem}
+.cc.open .items{gap:6px}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--steel-2);border-radius:8px;overflow:hidden;font-size:.9rem}
+.stepper b{padding:0 10px;min-width:56px;text-align:center}
+.stepper i{font-style:normal;width:32px;height:32px;display:grid;place-items:center;background:var(--steel);color:var(--ink)}
+.others{display:grid;font-size:.9rem}
+.others li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center;padding-block:8px;border-top:1px solid var(--steel-2)}
+.others li span{color:var(--dim);font-size:.85rem;grid-column:1}
+
+/* Train */
+.rx{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;background:var(--steel);border-radius:12px;padding:12px;align-content:start}
+.rx header{display:flex;justify-content:space-between;align-items:baseline;gap:4px 12px;flex-wrap:wrap}
+.rx h2,.rx h3{font-size:1rem;font-weight:700;min-width:0}
+.rx header span{font-size:.9rem}
+.rx .cue{font-size:.85rem;color:var(--dim)}
+.rx .last{font-size:.85rem;color:var(--dim)}
+.loadval{font-size:.9rem}
+.plates{display:flex;align-items:center;gap:2px;height:44px}
+.plates .bar{width:56px;height:6px;background:var(--dim);border-radius:2px}
+.plates .pl{width:10px;border-radius:2px;background:var(--ink)}
+.plates .lbl{font-size:.8rem;color:var(--dim);margin-left:8px}
+.gaps{font-size:.9rem;display:grid;gap:4px}
+.ask-inv{display:grid;gap:8px;border-top:1px solid var(--steel-2);padding-top:12px;font-size:.9rem}
+.history{display:grid;gap:8px;align-content:start}
+.session-list{display:grid;gap:2px}
+.session-row{display:grid;gap:0;padding:7px 10px;border-radius:8px;font-size:.9rem}
+.session-row span{color:var(--dim);font-size:.85rem}
+.session-row.on{background:var(--card);box-shadow:0 1px 2px var(--shadow-near)}
+.session-row .w{color:var(--haldi-ink)}
+.srow{background:var(--steel);border-radius:12px;padding:10px 12px;display:grid;gap:2px;font-size:.9rem}
+.srow span{color:var(--dim);font-size:.85rem}
+.session-open{display:grid;gap:8px;background:var(--steel);border-radius:12px;padding:12px 14px;align-content:start}
+.session-open h3{font-size:1rem;font-weight:700}
+.session-open h3 span{color:var(--dim);font-weight:400}
+.sets{display:grid;gap:2px;font-size:.9rem}
+.sets li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:baseline;padding-block:3px;border-bottom:1px solid var(--steel-2)}
+.sets li.ex{border:0;padding-top:8px;font-weight:700}
+.sets li .fx{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+.handoff{background:var(--card);border-radius:14px;padding:12px 14px;display:grid;gap:8px;border:1px solid var(--steel-2)}
+.handoff p{font-size:.9rem}
+.three{display:grid;gap:24px;align-items:start;grid-template-columns:minmax(0,1.3fr) minmax(240px,280px) minmax(340px,1fr)}
+
+/* Progress */
+.goal{display:grid;gap:4px}
+.goal h2{font-size:.9rem;font-weight:500;color:var(--dim)}
+.goal .goal-value{font-size:1.6rem;line-height:1.2}
+.goal .goal-value span{font-size:.95rem;color:var(--dim)}
+.answer{font-size:1.1rem;line-height:1.4}
+.chart{background:var(--card);border-radius:12px;padding:12px 14px;display:grid;gap:6px;min-width:0}
+.chart h2,.chart h3{font-size:1rem;font-weight:700}
+.chart .sum{font-size:.85rem;color:var(--dim)}
+.chart svg{width:100%;height:auto;display:block}
+.ranges{display:flex;gap:6px;flex-wrap:wrap}
+.rlist{display:grid;font-size:.9rem}
+.rlist li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding-block:6px;border-top:1px solid var(--steel-2);align-items:baseline}
+.rlist li .acts{grid-column:1/-1}
+.weekdays{display:grid;gap:6px;font-size:.85rem}
+.weekdays li{display:grid;grid-template-columns:3em minmax(0,1fr) 7em;gap:8px;align-items:center}
+
+/* Household */
+.people{display:grid;gap:6px}
+.person{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;background:var(--steel);border-radius:12px;padding:10px 12px;font-size:.9rem;align-items:center}
+.person>span{color:var(--dim);font-size:.85rem;grid-column:1}
+.person .acts{grid-column:2;grid-row:1/span 4}
+.person.you{border-left:4px solid var(--haldi)}
+.leftover{gap:8px}
+.waiting-rows{display:grid;gap:8px;font-size:.9rem}
+.waiting-row{display:grid;gap:4px;padding-block:6px;border-top:1px solid var(--steel-2)}
+.waiting-row label{display:flex;gap:8px;align-items:baseline}
+.box{display:inline-block;width:16px;height:16px;border:1.5px solid var(--ink);border-radius:3px;flex-shrink:0;transform:translateY(2px)}
+.box.on{background:var(--ink)}
+
+/* The "+" sheet */
+.sheetwrap{position:relative}
+.dimmed{height:150px;overflow:hidden;opacity:.45;pointer-events:none}
+.sheet{background:var(--card);border-radius:16px 16px 0 0;padding:14px 16px 24px;display:grid;gap:12px;box-shadow:0 -6px 18px var(--shadow-far)}
+.panel .sheet{border-radius:0;box-shadow:-6px 0 18px var(--shadow-far);align-content:start;min-height:900px}
+.sheet-head{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.sheet-tabs{display:flex;gap:2px;flex-wrap:wrap;background:var(--steel);border-radius:10px;padding:3px}
+.sheet-tabs span{padding:4px 9px;border-radius:8px;font-size:.85rem}
+.sheet-tabs span.on{background:var(--card);font-weight:700}
+.sheet h3{font-size:.95rem;font-weight:700}
+.sheet .grp{display:grid;gap:6px}
+.pick-list{display:grid;gap:2px}
+.pick{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 12px;padding:7px 8px;border-radius:8px;font-size:.9rem;background:var(--bg);align-items:center}
+.pick small{color:var(--dim);font-size:.8rem;grid-column:1}
+.pick .btn{grid-column:2;grid-row:1/span 2}
+.sheet-notice{font-size:.85rem;background:var(--steel);border-radius:8px;padding:6px 10px}
+.saved{color:var(--leaf);font-size:.85rem}
+.hint{font-size:.8rem;color:var(--dim)}
+.setpad{display:grid;gap:8px;background:var(--steel);border-radius:12px;padding:10px 12px}
+.setpad .row{display:flex;gap:8px 12px;flex-wrap:wrap;align-items:center;font-size:.9rem}
+.mark{outline:2px dashed var(--haldi);outline-offset:3px;border-radius:12px}
+.callout{font-size:.75rem;background:var(--haldi);color:var(--on-haldi);border-radius:4px;padding:0 6px;justify-self:start;font-weight:500}
+</style>
+</head>
+<body>
+<div class="pg">
+<nav class="pg-nav" aria-label="Mockups"><a href="0-index.html">Index</a><a href="1-today.html" aria-current="page">Today</a><a href="2-train.html">Train</a><a href="3-progress.html">Progress</a><a href="4-household.html">Household</a><a href="5-add-sheet.html">The “+” sheet</a><a href="6-waiting.html">Waiting on you</a></nav>
+<h1>Today: current vs proposed</h1>
+<p class="sub">Today opens with the week, then one line for what waits on you, then the day itself. Every form on Today becomes a mark, a one-tap usual or a question.</p>
+<div class="pg-nav"><span class="dim" style="align-self:center;margin-right:4px;font-size:14px">Theme</span><button data-theme-set="auto" aria-pressed="true">System</button><button data-theme-set="light" aria-pressed="false">Light</button><button data-theme-set="dark" aria-pressed="false">Dark</button></div>
+
+<section><h2>What changes</h2><div class="tablewrap"><table class="changes"><colgroup><col style="width:30%"><col style="width:40%"><col style="width:30%"></colgroup>
+  <thead><tr><th>Now (live app, main f0a366f)</th><th>Proposed (refined A, see and confirm)</th><th>Why</th></tr></thead><tbody>
+  <tr><td data-h="Now">Opens on the date bar, then the needs-you strip: at most 3 cards of mixed kinds, “+3 more”.</td><td data-h="Proposed"><b>Your week</b> first (digest spec §6.2: dates, the Next-week items, Read the week, Dismiss), then <b>one line</b> for everything waiting, which opens Waiting on you.</td><td data-h="Why">Today speaks first, and the drafts stop being split between the strip, the tiers and the pot card.</td></tr><tr><td data-h="Now">A draft about you carries its own “Yes, confirm · Not mine…” bar inside the meal tier, and the pot card has its own ask.</td><td data-h="Proposed">The draft stays visible in its tier, marked with a haldi rule and “Logged by Kabir · waiting for you in Waiting”. The pot card shows your share as “waiting for you”. Confirming happens in one list.</td><td data-h="Why">One hand-off object, one place to act on it (decided).</td></tr><tr><td data-h="Now">“Add to …” under every tier opens the full food form (search, pick, amount, how measured, Save: about 12–15 taps for the usual breakfast).</td><td data-h="Proposed">An empty meal offers <b>the usual</b> for that slot in one tap, or “Something else: Tell Claude”. No per-tier form.</td><td data-h="Why">Quick entry stays only for the usual, pot shares and sets.</td></tr><tr><td data-h="Now">What you sent to Tell Claude appears nowhere until someone runs the inbox.</td><td data-h="Proposed">It shows in its meal as a dashed <b>pending</b> row with your words and “Claude reads this later today”.</td><td data-h="Why">Tell Claude has to keep its promise visibly.</td></tr><tr><td data-h="Now">“Close the day”: a footer card with Complete or Partial.</td><td data-h="Proposed"><b>“Is today done?”</b>: the same two answers, asked as a question, and moved to the top of Today after dinner.</td><td data-h="Why">The app asks; you confirm.</td></tr><tr><td data-h="Now">Footer: the next session with two loads.</td><td data-h="Proposed">One line, “Next session: Upper A, Fri · loads in Train”.</td><td data-h="Why">Train owns what's next.</td></tr></tbody></table></div></section>
+<section><h2>Phone · 390 px</h2><p class="pg-note">Same day, same data: Asha's Thursday at 17:50. Kabir logged her lunch share and curd; she sent Claude a note at 17:40; dinner is not logged.</p><div class="cmp"><figure class="frame" data-w="390" data-h="844"><figcaption><span class="tag">Current · live app</span><b>Today now.</b> Strip, left line, pot with its ask, tiers with inline draft bars, Close the day.</figcaption>
+  <div class="stage"><div class="vp" style="width:390px"><div class="app phone"><nav class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span><span class="end"><span class="pill">⋯</span></span></nav>
+  <main class="screen "><div class="top"><h1>Thursday 8 October</h1><div class="acts"><button class="btn sm">‹</button><span class="pill">8 Oct 2026</span><button class="btn sm" disabled>›</button></div></div><section class="strip"><ul class="strip">
+  <li class="needs"><p><b>2 drafts about you</b> <span class="dim">· Kabir logged your lunch share of the rajma and a 150&nbsp;g bowl of curd at 13:20</span></p><button class="btn sm primary">Review</button></li>
+  <li class="needs"><p><b>Vegetable pulao: 35% not yet accounted for</b> <span class="dim">· leftover in the fridge, or eaten?</span></p><button class="btn sm">Settle</button></li>
+  <li class="needs"><p><b>Waist is due</b> <span class="dim">· weekly, last measured Sun 20 Sep</span></p><button class="btn sm">Log it</button></li>
+</ul><button class="btn sm" style="justify-self:start">+3 more</button></section><section class="left"><p class="leftline">Left today: <b>406&nbsp;kcal</b> and <b>51&nbsp;g protein</b>. <span class="dim">Estimate ±180&nbsp;kcal, mostly the phulka.</span></p></section><div class="macros"><div class="macro"><span>Energy</span><span class="amount">406&nbsp;kcal</span><span class="track"><span style="width:78%"></span></span><span>1,444 of 1,850</span></div><div class="macro"><span>Protein</span><span class="amount">51&nbsp;g</span><span class="track"><span style="width:60%"></span></span><span>77 of 128&nbsp;g</span></div><div class="macro"><span>Carbs</span><span class="amount">88&nbsp;g</span><span class="track"><span style="width:55%"></span></span><span>107 of 195&nbsp;g · remainder</span></div><div class="macro"><span>Fat</span><span class="amount">21&nbsp;g</span><span class="track"><span style="width:62%"></span></span><span>34 of 55&nbsp;g</span></div></div><div class="pots"><section class="pot"><header><h3>Rajma masala <span>· one pot</span></h3><p class="meta">Kabir cooked it, today 12:30 · 2.4&nbsp;kg</p></header>
+  <div class="split"><div class="seg you" style="flex-grow:30"><span>Asha 30%</span></div><div class="seg other" style="flex-grow:45"><span>Kabir 45%</span></div><div class="seg unaccounted" style="flex-grow:25"><span>25% left</span></div></div>
+  <p class="legend"><span>You 30% · weighed</span><span>Kabir 45%</span><span>25% not yet accounted for</span><span>Noor wasn't there, so no portion</span></p>
+  <div class="ask"><p>Kabir logged 30% of this rajma for you. Is that right?</p><div class="acts"><button class="btn sm primary">Yes, confirm</button><button class="btn sm">Change my share</button><button class="btn sm">Mark the rest leftover</button></div></div></section></div><ol class="tiers">
+  <li class="tier"><header><h2>Breakfast</h2><span>08:10 · 512&nbsp;kcal · 38&nbsp;g protein</span></header><ul class="items">
+  <li class="item "><span>Rolled oats, cooked in toned milk <span class="amount">45&nbsp;g dry · 200&nbsp;ml</span></span><span class="prov">weighed</span></li>
+  <li class="item "><span>Whey isolate, unflavoured <span class="amount">1 scoop · 31&nbsp;g</span></span><span class="prov">label</span></li>
+  <li class="item "><span>Banana, robusta <span class="amount">1 medium</span></span><span class="prov est">estimated ±15</span></li>
+</ul><button class="btn sm tier-add">Add to breakfast</button></li>
+  <li class="tier"><header><h2>Lunch</h2><span>13:20 · 932&nbsp;kcal · 39&nbsp;g protein</span></header><ul class="items">
+  <li class="item "><span>Rajma masala, cooked with extra tomato and kasuri methi, your share (one pot) <span class="amount">30% · 240&nbsp;g</span></span><span class="prov">weighed</span><div class="draftbar"><span>Logged by Kabir · confirms by itself Sat 13:20</span><button class="btn sm primary">Yes, confirm</button><button class="btn sm">Not mine…</button></div></li>
+  <li class="item "><span>Phulka, whole-wheat atta, no ghee <span class="amount">×3</span></span><span class="prov est">estimated ±60</span></li>
+  <li class="item "><span>Curd, homemade from full-cream milk, set overnight <span class="amount">150&nbsp;g</span></span><span class="prov">weighed</span><div class="draftbar"><span>Logged by Kabir · confirms by itself Sat 13:20</span><button class="btn sm primary">Yes, confirm</button><button class="btn sm">Not mine…</button></div></li>
+  <li class="item "><span>Kachumber: cucumber, onion, tomato, lemon and chaat masala <span class="amount">1 katori · 90&nbsp;g</span></span><span class="prov">weighed</span></li>
+  <li class="item "><span>Mango pickle, oil-based <span class="amount">1 tsp</span></span><span class="prov est">estimated ±10</span></li>
+  <li class="item "><span>Masala chai, half sugar <span class="amount">1 cup · 150&nbsp;ml</span></span><span class="prov">my usual</span></li></ul><button class="btn sm tier-add">Add to lunch</button></li>
+  <li class="tier nothing_yet"><header><h2>Evening snack</h2><span>nothing yet</span></header><button class="btn sm tier-add">Add to evening snack</button></li>
+  <li class="tier nothing_yet"><header><h2>Dinner</h2><span>nothing yet</span></header><button class="btn sm tier-add">Add to dinner</button></li>
+</ol><section class="closeday"><b>Close the day</b><span class="dim">Complete, or partial with the meals you skipped. A partial day stays out of your weekly averages.</span><div class="acts"><button class="btn">Complete</button><button class="btn">Partial…</button></div></section><dl class="foot"><div><dt>Next session: Upper A at Iron Yard</dt><dd>Fri, 7 exercises</dd></div><div><dt>Barbell bench press</dt><dd>57.5&nbsp;kg · 3 × 6–8</dd></div><div><dt>Lat pulldown, neutral close grip</dt><dd>52&nbsp;kg · check the add-on plate</dd></div></dl></main><button class="fab" aria-label="Add">+</button>
+  <nav class="tabbar"><a class="on">Today</a><a class="">Train</a><a class="">Progress</a><a class="">Household</a></nav></div></div><div class="fold"><span>fold · 844 px</span></div></div></figure><figure class="frame" data-w="390" data-h="844"><figcaption><span class="tag y">Proposed</span><b>Today proposed.</b> Your week, one Waiting line, then the day. Drafts are marked, not acted on here. Dinner offers the usual.</figcaption>
+  <div class="stage"><div class="vp" style="width:390px"><div class="app phone"><nav class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span><span class="end"><span class="pill wait">Waiting <span class="count">6</span></span><span class="pill">⋯</span></span></nav>
+  <main class="screen "><div class="top"><h1>Thursday 8 October</h1><div class="acts"><button class="btn sm">‹</button><span class="pill">8 Oct 2026</span><button class="btn sm" disabled>›</button></div></div><section class="week"><header><h2>Your week · 28 Sep–4 Oct</h2><span class="dim" style="font-size:.8rem">Claude wrote it Sun 5 Oct</span></header>
+  <p class="lbl">Next week</p>
+  <ol><li><span>Add a fourth set to the lat pulldown on Upper A: it went up in both of the last two weeks.</span></li>
+  <li><span>Protein was under 128&nbsp;g on 3 of 6 counted days. Aim for it on the four training days first.</span></li>
+  <li><span>Take your waist on Sunday: the last one was 20 Sep.</span></li></ol>
+  <div class="acts"><button class="btn sm primary">Read the week</button><button class="btn sm">Dismiss</button></div></section><section class="waitline"><p><b>6 waiting on you</b> <span class="dim">· 2 drafts from Kabir · Claude logged your Wednesday dinner and asks 2 things · a pulao to settle</span></p><button class="btn sm primary">Open</button></section><section class="left"><p class="leftline">Left today: <b>406&nbsp;kcal</b> and <b>51&nbsp;g protein</b>. <span class="dim">Estimate ±180&nbsp;kcal, mostly the phulka.</span></p></section><div class="macros"><div class="macro"><span>Energy</span><span class="amount">406&nbsp;kcal</span><span class="track"><span style="width:78%"></span></span><span>1,444 of 1,850</span></div><div class="macro"><span>Protein</span><span class="amount">51&nbsp;g</span><span class="track"><span style="width:60%"></span></span><span>77 of 128&nbsp;g</span></div><div class="macro"><span>Carbs</span><span class="amount">88&nbsp;g</span><span class="track"><span style="width:55%"></span></span><span>107 of 195&nbsp;g · remainder</span></div><div class="macro"><span>Fat</span><span class="amount">21&nbsp;g</span><span class="track"><span style="width:62%"></span></span><span>34 of 55&nbsp;g</span></div></div><div class="pots"><section class="pot"><header><h3>Rajma masala <span>· one pot</span></h3><p class="meta">Kabir cooked it, today 12:30 · 2.4&nbsp;kg</p></header>
+  <div class="split"><div class="seg you" style="flex-grow:30"><span>Asha 30%</span></div><div class="seg other" style="flex-grow:45"><span>Kabir 45%</span></div><div class="seg unaccounted" style="flex-grow:25"><span>25% left</span></div></div>
+  <p class="legend"><span>You 30% · <span class="est">waiting for you</span></span><span>Kabir 45%</span><span>25% not yet accounted for</span><span>Noor wasn't there, so no portion</span></p></section></div><ol class="tiers">
+  <li class="tier"><header><h2>Breakfast</h2><span>08:10 · 512&nbsp;kcal · 38&nbsp;g protein</span></header><ul class="items">
+  <li class="item "><span>Rolled oats, cooked in toned milk <span class="amount">45&nbsp;g dry · 200&nbsp;ml</span></span><span class="prov">weighed</span></li>
+  <li class="item "><span>Whey isolate, unflavoured <span class="amount">1 scoop · 31&nbsp;g</span></span><span class="prov">label</span></li>
+  <li class="item "><span>Banana, robusta <span class="amount">1 medium</span></span><span class="prov est">estimated ±15</span></li>
+</ul></li>
+  <li class="tier"><header><h2>Lunch</h2><span>13:20 · 932&nbsp;kcal · 39&nbsp;g protein</span></header><ul class="items">
+  <li class="item draft"><span>Rajma masala, cooked with extra tomato and kasuri methi, your share (one pot) <span class="amount">30% · 240&nbsp;g</span></span><span class="prov">weighed</span><span class="waittag">Logged by Kabir · waiting for you in Waiting</span></li>
+  <li class="item "><span>Phulka, whole-wheat atta, no ghee <span class="amount">×3</span></span><span class="prov est">estimated ±60</span></li>
+  <li class="item draft"><span>Curd, homemade from full-cream milk, set overnight <span class="amount">150&nbsp;g</span></span><span class="prov">weighed</span><span class="waittag">Logged by Kabir · waiting for you in Waiting</span></li>
+  <li class="item "><span>Kachumber: cucumber, onion, tomato, lemon and chaat masala <span class="amount">1 katori · 90&nbsp;g</span></span><span class="prov">weighed</span></li>
+  <li class="item "><span>Mango pickle, oil-based <span class="amount">1 tsp</span></span><span class="prov est">estimated ±10</span></li>
+  <li class="item "><span>Masala chai, half sugar <span class="amount">1 cup · 150&nbsp;ml</span></span><span class="prov">my usual</span></li></ul></li>
+  <li class="tier"><header><h2>Evening snack</h2><span>with Claude</span></header><div class="pending"><span><b>Sent to Claude at 17:40</b> <q>a handful of roasted chana and a filter coffee at the office</q></span><span class="dim">Claude reads this later today. What it logs comes to Waiting for you to confirm.</span></div></li>
+  <li class="tier nothing_yet"><header><h2>Dinner</h2><span>nothing yet</span></header>
+    <div class="usual"><span>Your usual dinner: <b>toor dal, 2 phulka and kachumber</b> <span class="dim">· about 520&nbsp;kcal, 24&nbsp;g protein</span></span>
+    <div class="acts"><button class="btn sm primary">Log the usual</button><button class="btn sm">Something else: Tell Claude</button></div></div></li>
+</ol><section class="closeday"><b>Is today done?</b><span class="dim">Dinner isn't logged yet and Claude hasn't read your 17:40 note. After dinner this question moves to the top of Today.</span><div class="acts"><button class="btn">Yes, complete</button><button class="btn">Partial…</button></div></section><dl class="foot"><div><dt>Next session: Upper A at Iron Yard</dt><dd>Fri · loads in Train</dd></div></dl></main><button class="fab" aria-label="Add">+</button>
+  <nav class="tabbar"><a class="on">Today</a><a class="">Train</a><a class="">Progress</a><a class="">Household</a></nav></div></div><div class="fold"><span>fold · 844 px</span></div></div></figure></div></section>
+<section><h2>Wide · 1,440 px</h2><p class="pg-note">Ticket 66's Today B: at a 1,440 window the screen is 1,172 px, so the rail and the meals stack on the left beside the household column. The Your-week card and the Waiting line run full width; on wide the Next-week items sit side by side.</p><div class="frames"><figure class="frame" data-w="1440" data-h="900"><figcaption><span class="tag">Current · live app</span><b>Today now, 1,440.</b></figcaption>
+  <div class="stage"><div class="vp" style="width:1440px"><div class="app wide"><aside class="sidebar"><div class="sidebar-top"><b>Household</b><span class="dim">⋯</span></div>
+  <nav><a class="on">Today</a><a class="">Train</a><a class="">Progress</a><a class="">Household</a></nav>
+  <h2>Catalogue</h2><nav><a>Foods &amp; recipes</a><a>Workouts</a><a>Exercises</a><a>Gyms &amp; equipment</a><a>Words I've learned</a></nav>
+  <div class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span></div>
+  <p class="keyhint"><kbd>N</kbd> log · <kbd>/</kbd> search · <kbd>?</kbd> keys</p></aside><main class="screen "><div class="top"><h1>Thursday 8 October</h1><div class="acts"><button class="btn sm">‹</button><span class="pill">8 Oct 2026</span><button class="btn sm" disabled>›</button></div></div><section class="strip"><ul class="strip">
+  <li class="needs"><p><b>2 drafts about you</b> <span class="dim">· Kabir logged your lunch share of the rajma and a 150&nbsp;g bowl of curd at 13:20</span></p><button class="btn sm primary">Review</button></li>
+  <li class="needs"><p><b>Vegetable pulao: 35% not yet accounted for</b> <span class="dim">· leftover in the fridge, or eaten?</span></p><button class="btn sm">Settle</button></li>
+  <li class="needs"><p><b>Waist is due</b> <span class="dim">· weekly, last measured Sun 20 Sep</span></p><button class="btn sm">Log it</button></li>
+</ul><button class="btn sm" style="justify-self:start">+3 more</button></section><div class="two"><section class="l-stack"><section class="left"><p class="leftline">Left today: <b>406&nbsp;kcal</b> and <b>51&nbsp;g protein</b>. <span class="dim">Estimate ±180&nbsp;kcal, mostly the phulka.</span></p></section><div class="macros"><div class="macro"><span>Energy</span><span class="amount">406&nbsp;kcal</span><span class="track"><span style="width:78%"></span></span><span>1,444 of 1,850</span></div><div class="macro"><span>Protein</span><span class="amount">51&nbsp;g</span><span class="track"><span style="width:60%"></span></span><span>77 of 128&nbsp;g</span></div><div class="macro"><span>Carbs</span><span class="amount">88&nbsp;g</span><span class="track"><span style="width:55%"></span></span><span>107 of 195&nbsp;g · remainder</span></div><div class="macro"><span>Fat</span><span class="amount">21&nbsp;g</span><span class="track"><span style="width:62%"></span></span><span>34 of 55&nbsp;g</span></div></div><ol class="tiers">
+  <li class="tier"><header><h2>Breakfast</h2><span>08:10 · 512&nbsp;kcal · 38&nbsp;g protein</span></header><ul class="items">
+  <li class="item "><span>Rolled oats, cooked in toned milk <span class="amount">45&nbsp;g dry · 200&nbsp;ml</span></span><span class="prov">weighed</span></li>
+  <li class="item "><span>Whey isolate, unflavoured <span class="amount">1 scoop · 31&nbsp;g</span></span><span class="prov">label</span></li>
+  <li class="item "><span>Banana, robusta <span class="amount">1 medium</span></span><span class="prov est">estimated ±15</span></li>
+</ul><button class="btn sm tier-add">Add to breakfast</button></li>
+  <li class="tier"><header><h2>Lunch</h2><span>13:20 · 932&nbsp;kcal · 39&nbsp;g protein</span></header><ul class="items">
+  <li class="item "><span>Rajma masala, cooked with extra tomato and kasuri methi, your share (one pot) <span class="amount">30% · 240&nbsp;g</span></span><span class="prov">weighed</span><div class="draftbar"><span>Logged by Kabir · confirms by itself Sat 13:20</span><button class="btn sm primary">Yes, confirm</button><button class="btn sm">Not mine…</button></div></li>
+  <li class="item "><span>Phulka, whole-wheat atta, no ghee <span class="amount">×3</span></span><span class="prov est">estimated ±60</span></li>
+  <li class="item "><span>Curd, homemade from full-cream milk, set overnight <span class="amount">150&nbsp;g</span></span><span class="prov">weighed</span><div class="draftbar"><span>Logged by Kabir · confirms by itself Sat 13:20</span><button class="btn sm primary">Yes, confirm</button><button class="btn sm">Not mine…</button></div></li>
+  <li class="item "><span>Kachumber: cucumber, onion, tomato, lemon and chaat masala <span class="amount">1 katori · 90&nbsp;g</span></span><span class="prov">weighed</span></li>
+  <li class="item "><span>Mango pickle, oil-based <span class="amount">1 tsp</span></span><span class="prov est">estimated ±10</span></li>
+  <li class="item "><span>Masala chai, half sugar <span class="amount">1 cup · 150&nbsp;ml</span></span><span class="prov">my usual</span></li></ul><button class="btn sm tier-add">Add to lunch</button></li>
+  <li class="tier nothing_yet"><header><h2>Evening snack</h2><span>nothing yet</span></header><button class="btn sm tier-add">Add to evening snack</button></li>
+  <li class="tier nothing_yet"><header><h2>Dinner</h2><span>nothing yet</span></header><button class="btn sm tier-add">Add to dinner</button></li>
+</ol><section class="closeday"><b>Close the day</b><span class="dim">Complete, or partial with the meals you skipped. A partial day stays out of your weekly averages.</span><div class="acts"><button class="btn">Complete</button><button class="btn">Partial…</button></div></section><dl class="foot"><div><dt>Next session: Upper A at Iron Yard</dt><dd>Fri, 7 exercises</dd></div><div><dt>Barbell bench press</dt><dd>57.5&nbsp;kg · 3 × 6–8</dd></div><div><dt>Lat pulldown, neutral close grip</dt><dd>52&nbsp;kg · check the add-on plate</dd></div></dl></section><section class="l-stack"><div class="pots"><section class="pot"><header><h3>Rajma masala <span>· one pot</span></h3><p class="meta">Kabir cooked it, today 12:30 · 2.4&nbsp;kg</p></header>
+  <div class="split"><div class="seg you" style="flex-grow:30"><span>Asha 30%</span></div><div class="seg other" style="flex-grow:45"><span>Kabir 45%</span></div><div class="seg unaccounted" style="flex-grow:25"><span>25% left</span></div></div>
+  <p class="legend"><span>You 30% · weighed</span><span>Kabir 45%</span><span>25% not yet accounted for</span><span>Noor wasn't there, so no portion</span></p>
+  <div class="ask"><p>Kabir logged 30% of this rajma for you. Is that right?</p><div class="acts"><button class="btn sm primary">Yes, confirm</button><button class="btn sm">Change my share</button><button class="btn sm">Mark the rest leftover</button></div></div></section></div><section class="glance"><h2 class="h2">The household</h2>
+  <table class="wide-table"><thead><tr><th>Member</th><th>Left</th><th>Drafts waiting</th></tr></thead><tbody>
+  <tr><th>Asha</th><td>406&nbsp;kcal · 51&nbsp;g protein</td><td>2</td></tr>
+  <tr><th>Kabir</th><td>812&nbsp;kcal · 64&nbsp;g protein</td><td>1</td></tr>
+  <tr><th>Noor</th><td class="dim">No target set</td><td>38</td></tr></tbody></table>
+  <h3 class="h2">In the fridge</h3>
+  <ul class="fridge"><li><span>Vegetable pulao, Noor's</span><span>35% · not yet settled</span><span class="leftnote">since Wed</span></li>
+  <li><span>Dal tadka (toor and masoor, tempered with garlic and dried red chilli)</span><span>about ½ pot</span><span class="leftnote">since Mon</span></li>
+  <li><span>Rajma masala</span><span>25% · ~600&nbsp;g</span><span class="leftnote">today</span></li></ul></section></section></div></main><button class="fab" aria-label="Add">+</button></div></div><div class="fold"><span>fold · 900 px</span></div></div></figure><figure class="frame" data-w="1440" data-h="900"><figcaption><span class="tag y">Proposed</span><b>Today proposed, 1,440.</b> The household table gains “Waiting on them” and a Log for… button per member.</figcaption>
+  <div class="stage"><div class="vp" style="width:1440px"><div class="app wide"><aside class="sidebar"><div class="sidebar-top"><b>Household</b><span class="dim">⋯</span></div>
+  <nav><a class="on">Today</a><a class="">Train</a><a class="">Progress</a><a class="">Household</a></nav><nav><a class="waitlink ">Waiting on you <span class="count">6</span></a></nav>
+  <h2>Catalogue</h2><nav><a>Foods &amp; recipes</a><a>Workouts</a><a>Exercises</a><a>Gyms &amp; equipment</a><a>Words I've learned</a></nav>
+  <div class="memberbar"><span class="pill on">Asha</span><span class="pill ">Kabir</span><span class="pill ">Noor</span></div>
+  <p class="keyhint"><kbd>N</kbd> add · <kbd>W</kbd> waiting · <kbd>?</kbd> keys</p></aside><main class="screen "><div class="top"><h1>Thursday 8 October</h1><div class="acts"><button class="btn sm">‹</button><span class="pill">8 Oct 2026</span><button class="btn sm" disabled>›</button></div></div><section class="week"><header><h2>Your week · 28 Sep–4 Oct</h2><span class="dim" style="font-size:.8rem">Claude wrote it Sun 5 Oct</span></header>
+  <p class="lbl">Next week</p>
+  <ol class="l-grid" style="--min:300px;--s:12px"><li><span>Add a fourth set to the lat pulldown on Upper A: it went up in both of the last two weeks.</span></li>
+  <li><span>Protein was under 128&nbsp;g on 3 of 6 counted days. Aim for it on the four training days first.</span></li>
+  <li><span>Take your waist on Sunday: the last one was 20 Sep.</span></li></ol>
+  <div class="acts"><button class="btn sm primary">Read the week</button><button class="btn sm">Dismiss</button></div></section><section class="waitline"><p><b>6 waiting on you</b> <span class="dim">· 2 drafts from Kabir · Claude logged your Wednesday dinner and asks 2 things · a pulao to settle</span></p><button class="btn sm primary">Open</button></section><div class="two"><section class="l-stack"><section class="left"><p class="leftline">Left today: <b>406&nbsp;kcal</b> and <b>51&nbsp;g protein</b>. <span class="dim">Estimate ±180&nbsp;kcal, mostly the phulka.</span></p></section><div class="macros"><div class="macro"><span>Energy</span><span class="amount">406&nbsp;kcal</span><span class="track"><span style="width:78%"></span></span><span>1,444 of 1,850</span></div><div class="macro"><span>Protein</span><span class="amount">51&nbsp;g</span><span class="track"><span style="width:60%"></span></span><span>77 of 128&nbsp;g</span></div><div class="macro"><span>Carbs</span><span class="amount">88&nbsp;g</span><span class="track"><span style="width:55%"></span></span><span>107 of 195&nbsp;g · remainder</span></div><div class="macro"><span>Fat</span><span class="amount">21&nbsp;g</span><span class="track"><span style="width:62%"></span></span><span>34 of 55&nbsp;g</span></div></div><ol class="tiers">
+  <li class="tier"><header><h2>Breakfast</h2><span>08:10 · 512&nbsp;kcal · 38&nbsp;g protein</span></header><ul class="items">
+  <li class="item "><span>Rolled oats, cooked in toned milk <span class="amount">45&nbsp;g dry · 200&nbsp;ml</span></span><span class="prov">weighed</span></li>
+  <li class="item "><span>Whey isolate, unflavoured <span class="amount">1 scoop · 31&nbsp;g</span></span><span class="prov">label</span></li>
+  <li class="item "><span>Banana, robusta <span class="amount">1 medium</span></span><span class="prov est">estimated ±15</span></li>
+</ul></li>
+  <li class="tier"><header><h2>Lunch</h2><span>13:20 · 932&nbsp;kcal · 39&nbsp;g protein</span></header><ul class="items">
+  <li class="item draft"><span>Rajma masala, cooked with extra tomato and kasuri methi, your share (one pot) <span class="amount">30% · 240&nbsp;g</span></span><span class="prov">weighed</span><span class="waittag">Logged by Kabir · waiting for you in Waiting</span></li>
+  <li class="item "><span>Phulka, whole-wheat atta, no ghee <span class="amount">×3</span></span><span class="prov est">estimated ±60</span></li>
+  <li class="item draft"><span>Curd, homemade from full-cream milk, set overnight <span class="amount">150&nbsp;g</span></span><span class="prov">weighed</span><span class="waittag">Logged by Kabir · waiting for you in Waiting</span></li>
+  <li class="item "><span>Kachumber: cucumber, onion, tomato, lemon and chaat masala <span class="amount">1 katori · 90&nbsp;g</span></span><span class="prov">weighed</span></li>
+  <li class="item "><span>Mango pickle, oil-based <span class="amount">1 tsp</span></span><span class="prov est">estimated ±10</span></li>
+  <li class="item "><span>Masala chai, half sugar <span class="amount">1 cup · 150&nbsp;ml</span></span><span class="prov">my usual</span></li></ul></li>
+  <li class="tier"><header><h2>Evening snack</h2><span>with Claude</span></header><div class="pending"><span><b>Sent to Claude at 17:40</b> <q>a handful of roasted chana and a filter coffee at the office</q></span><span class="dim">Claude reads this later today. What it logs comes to Waiting for you to confirm.</span></div></li>
+  <li class="tier nothing_yet"><header><h2>Dinner</h2><span>nothing yet</span></header>
+    <div class="usual"><span>Your usual dinner: <b>toor dal, 2 phulka and kachumber</b> <span class="dim">· about 520&nbsp;kcal, 24&nbsp;g protein</span></span>
+    <div class="acts"><button class="btn sm primary">Log the usual</button><button class="btn sm">Something else: Tell Claude</button></div></div></li>
+</ol><section class="closeday"><b>Is today done?</b><span class="dim">Dinner isn't logged yet and Claude hasn't read your 17:40 note. After dinner this question moves to the top of Today.</span><div class="acts"><button class="btn">Yes, complete</button><button class="btn">Partial…</button></div></section><dl class="foot"><div><dt>Next session: Upper A at Iron Yard</dt><dd>Fri · loads in Train</dd></div></dl></section><section class="l-stack"><div class="pots"><section class="pot"><header><h3>Rajma masala <span>· one pot</span></h3><p class="meta">Kabir cooked it, today 12:30 · 2.4&nbsp;kg</p></header>
+  <div class="split"><div class="seg you" style="flex-grow:30"><span>Asha 30%</span></div><div class="seg other" style="flex-grow:45"><span>Kabir 45%</span></div><div class="seg unaccounted" style="flex-grow:25"><span>25% left</span></div></div>
+  <p class="legend"><span>You 30% · <span class="est">waiting for you</span></span><span>Kabir 45%</span><span>25% not yet accounted for</span><span>Noor wasn't there, so no portion</span></p></section></div><section class="glance"><h2 class="h2">The household today</h2>
+  <table class="wide-table"><thead><tr><th>Member</th><th>Left</th><th>Waiting on them</th><th></th></tr></thead><tbody>
+  <tr><th>Asha</th><td>406&nbsp;kcal · 51&nbsp;g protein</td><td>6</td><td></td></tr>
+  <tr><th>Kabir</th><td>812&nbsp;kcal · 64&nbsp;g protein</td><td>1 from you</td><td><button class="btn sm">Log for Kabir</button></td></tr>
+  <tr><th>Noor</th><td class="dim">Record-only</td><td>38 from you</td><td><button class="btn sm">Log for Noor</button></td></tr></tbody></table>
+  <h3 class="h2">In the fridge</h3>
+  <ul class="fridge"><li><span>Vegetable pulao, Noor's</span><span>35% · in your Waiting</span><span class="leftnote">since Wed</span></li>
+  <li><span>Dal tadka (toor and masoor, tempered with garlic and dried red chilli)</span><span>about ½ pot</span><span class="leftnote">since Mon</span></li>
+  <li><span>Rajma masala</span><span>25% · ~600&nbsp;g</span><span class="leftnote">today</span></li></ul></section></section></div></main><button class="fab" aria-label="Add">+</button></div></div><div class="fold"><span>fold · 900 px</span></div></div></figure></div></section>
+
+<p class="pg-note">All content is invented: the sample household Asha (the owner, prescribed), Kabir (prescribed) and Noor (record-only). Frames are drawn at their real CSS width (390 or 1,440 px) and scaled down to fit the page; the dashed line is the window's fold. Phone frames show the whole scroll.</p>
+</div>
+<script>
+function fit(){
+  document.querySelectorAll(".frame").forEach(function(fig){
+    var w=+fig.dataset.w,h=+fig.dataset.h,stage=fig.querySelector(".stage"),vp=fig.querySelector(".vp");
+    var avail=fig.getBoundingClientRect().width-2;
+    var s=Math.min(1,avail/w);
+    vp.style.transform=s===1?"":"scale("+s+")";
+    var vh=Math.max(vp.scrollHeight,h);
+    stage.style.width=(w*s+2)+"px";stage.style.height=(vh*s+2)+"px";
+    fig.querySelector(".fold").style.top=(h*s)+"px";
+    fig.dataset.scale=s;
+  });
+}
+document.querySelectorAll("[data-theme-set]").forEach(function(b){b.addEventListener("click",function(){
+  var t=b.dataset.themeSet;if(t==="auto")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);
+  document.querySelectorAll("[data-theme-set]").forEach(function(x){x.setAttribute("aria-pressed",String(x===b))});});});
+fit();addEventListener("resize",fit);if(document.fonts)document.fonts.ready.then(fit);
+</script>
+</body>
+</html>

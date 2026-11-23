@@ -1,0 +1,40 @@
+{
+  "name": "@myfitnessguide/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The household's PWA: the Today screen first, reading the Worker's /tools API",
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.ts",
+    "dev:web": "vite",
+    "seed:sample": "node scripts/seed-sample.ts",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:layout": "node scripts/sweep-layout.ts --gate",
+    "test:e2e": "node e2e/run.ts --full",
+    "test:e2e:fast": "node e2e/run.ts --fast",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@myfitnessguide/worker": "0.0.0",
+    "@playwright/test": "1.64.0",
+    "@types/node": "26.6.4",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "fast-check": "4.10.2",
+    "playwright-core": "1.64.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.3",
+    "vitest": "5.0.3"
+  },
+  "dependencies": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  }
+}
