@@ -39,6 +39,5 @@ The browser suite seeds a sample household on a fixed clock.
 
 ## Local configuration
 
-Real deployment identifiers are never committed. `app/worker/wrangler.jsonc` and
-`app/worker/wrangler.oauth.jsonc` are gitignored; the `.example.jsonc` files are
-the templates. `app/worker/ACCESS.md` is the deployment runbook.
+Real deployment identifiers are never committed. `app/worker/wrangler.jsonc` is
+gitignored; the `.example.jsonc` file is the template. `app/worker/ACCESS.md` is the deployment runbook.

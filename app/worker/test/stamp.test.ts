@@ -143,9 +143,8 @@ describe("the stamp (e2e spec §9)", () => {
     put("app/web/dist/z.js");
     put("app/worker/.wrangler/state/d1.sql");
     put("app/notes.local");
-    // The two local-only deployment configs are read and checked by the gate itself (check 2).
+    // The local-only deployment config is read and checked by the gate itself (check 2).
     put("app/worker/wrangler.jsonc");
-    put("app/worker/wrangler.oauth.jsonc");
     expect(ignoredSource(dir)).toEqual([]);
     // The exemption is those paths alone: another ignored wrangler config is still hidden source.
     put("app/worker/wrangler.extra.jsonc");

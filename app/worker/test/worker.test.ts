@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readWranglerConfig, WORKER } from "../scripts/deploy-gate";
-import worker, { parseServiceTokens, type Env } from "../src/index";
+import worker, { parseServiceTokens, type Env } from "../src/serve";
 import { household } from "./fixtures";
 import { SqliteDb } from "./sqlite";
 
@@ -114,7 +114,7 @@ describe("wrangler.jsonc serves the built PWA", () => {
       directory: "../web/dist",
       binding: "ASSETS",
       not_found_handling: "single-page-application",
-      run_worker_first: ["/mcp", "/tools", "/tools/*"],
+      run_worker_first: ["/mcp", "/authorize", "/callback", "/oauth/*", "/register", "/.well-known/*", "/tools", "/tools/*"],
     });
   });
 });

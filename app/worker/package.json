@@ -21,7 +21,6 @@
     "dev": "mkdir -p ../web/dist && wrangler dev --local",
     "deploy": "node scripts/deploy-gate.ts",
     "validate:release": "npm run typecheck && npm test && node scripts/validate-release.ts",
-    "validate:oauth": "npm run typecheck && npm test && node scripts/validate-release.ts oauth",
     "migrations:local": "wrangler d1 migrations apply gym-tracker --local"
   },
   "devDependencies": {

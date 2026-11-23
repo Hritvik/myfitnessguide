@@ -151,7 +151,7 @@ function nameIn(x: unknown, path: string): [string, string] | null {
   return null;
 }
 
-export function checkConfig(c: WranglerConfig, expectedMain: "src/index.ts" | "src/oauth-entry.ts" = "src/index.ts"): string | null {
+export function checkConfig(c: WranglerConfig, expectedMain: "src/index.ts" = "src/index.ts"): string | null {
   if (c.redirected) return `a redirected config (.wrangler/deploy/config.json → ${c.path}) is in effect; delete .wrangler/deploy and deploy from wrangler.jsonc`;
   const config = c.raw;
   if (config.main !== expectedMain) return `top level main is ${String(config.main)}, not ${expectedMain}`;

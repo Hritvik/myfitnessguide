@@ -10,7 +10,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const dir = join(dirname(fileURLToPath(import.meta.url)), "..");
-const names = ["wrangler.jsonc", "wrangler.oauth.jsonc"];
+const names = ["wrangler.jsonc"];
 
 for (const name of names) {
   const real = join(dir, name);

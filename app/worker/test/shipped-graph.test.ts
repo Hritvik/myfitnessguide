@@ -114,7 +114,6 @@ describe("the shipped entry's import graph", () => {
 
   describe.each([
     ["wrangler.jsonc", "src/index.ts"],
-    ["wrangler.oauth.jsonc", "src/oauth-entry.ts"],
   ])("%s", (config, entry) => {
     it("never reaches the dev-only entry nor names its header", () => {
       const main = mainOf(config);

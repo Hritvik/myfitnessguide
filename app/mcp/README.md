@@ -7,13 +7,13 @@ product surface.
 Members should connect an OAuth-capable MCP client directly to:
 
 ```text
-https://gym-tracker-mcp.hritvikdinkar.workers.dev/mcp
+https://myfitnessguide.hritvikdinkar.workers.dev/mcp
 ```
 
-That hosted endpoint authenticates the member in the browser, requires no
-local process or service-token file, and exposes the canonical remote-member
-tool profile. The endpoint keeps its legacy hostname so existing client
-connections continue to work.
+That hosted endpoint authenticates the member with Google, requires no local
+process or service-token file, and exposes the canonical remote-member tool
+profile. It is the same Worker as the app and the API (worker decision 172);
+the old `gym-tracker-mcp` Worker is gone.
 
 The local adapter reads `GET /tools` at startup and registers one MCP tool per
 API tool, with the API's own JSON schema and description. Each call is a

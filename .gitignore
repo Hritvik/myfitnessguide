@@ -91,4 +91,3 @@ wheels/
 
 # Deployment identifiers live in local-only configs (see app/worker/*.example.jsonc)
 app/worker/wrangler.jsonc
-app/worker/wrangler.oauth.jsonc

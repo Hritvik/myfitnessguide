@@ -26,7 +26,7 @@
  */
 import { parseIdentity, type Verifier } from "./auth";
 import { autoConfirm } from "./autoconfirm";
-import worker, { serve, type Env } from "./index";
+import worker, { serve, type Env } from "./serve";
 
 export interface DevEnv extends Env {
   /** 32 random bytes as 64 hex characters, new per run. */

@@ -1908,3 +1908,19 @@ surface* as closely as possible. Hritvik can veto any line.
    reference is still open and needs its own decision before the plan
    contract grows.
    Test: `prep-plan.tools.test.ts`, `query-budget.test.ts`.
+
+172. **One Worker, one remote MCP** (23 Nov 2026). The OAuth MCP and the app
+   share `myfitnessguide.<subdomain>.workers.dev`: `index.ts` wraps `serve.ts`
+   (the Access `/tools` API, the PWA and the cron) in the OAuth provider, so
+   `/mcp`, `/authorize`, `/callback`, `/oauth/token`, `/register` and the
+   metadata documents are the member MCP surface on the canonical origin.
+   The separate `gym-tracker-mcp` Worker and `wrangler.oauth.jsonc` are gone;
+   members re-register against the canonical URL. The OAuth paths are public
+   by Access **bypass** (the provider authenticates them itself), while
+   `/tools` and the PWA stay Access-gated. `serve.ts` is kept separate because
+   the OAuth provider imports the `cloudflare:` runtime: the Node-run tests
+   and the dev-only entry load only `serve.ts`, never the deployment entry.
+   The deploy gate still checks the one config; the Google client id/secret
+   and the `OAUTH_KV` binding are the only new production settings.
+   Test: `entry.test.ts`, `worker.test.ts`, `validate-release.test.ts`,
+   `shipped-graph.test.ts`.

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { parseIdentity } from "../src/auth";
-import worker, { serve, type Env } from "../src/index";
+import worker, { serve, type Env } from "../src/serve";
 import { rsaKeys, signJwt } from "./jwt";
 import { memberOf, sampleDb, whoamiAt } from "./local-members";
 

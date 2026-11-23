@@ -22,6 +22,7 @@
   "name": "myfitnessguide",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   // The household's PWA, built by `npm run build:web` at the repo root, on the
   // same origin as the API, so one Access sign-in covers both. Only /tools and
   // /tools/* run the Worker (which checks the identity); every other path is
@@ -30,8 +31,14 @@
     "directory": "../web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/mcp", "/tools", "/tools/*"]
+    "run_worker_first": ["/mcp", "/authorize", "/callback", "/oauth/*", "/register", "/.well-known/*", "/tools", "/tools/*"]
   },
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "<oauth-kv-namespace-id>"
+    }
+  ],
   "d1_databases": [
     {
       "binding": "DB",

@@ -8,18 +8,23 @@ same resources.
 
 ## Local configuration
 
-The deployment configs are gitignored; only placeholders are committed:
+The deployment config is gitignored; only placeholders are committed:
 
 - `app/worker/wrangler.jsonc` - copy from `wrangler.example.jsonc`
-- `app/worker/wrangler.oauth.jsonc` - copy from `wrangler.oauth.example.jsonc`
 
 Fill in the D1 database id, the Access team domain and AUD tag, the service-token
-client ids, and the OAuth KV namespace id. `npm run deploy` reads the local files;
-nothing here needs to be committed. `npm test` copies the templates in when the
-local files are missing, so a fresh clone runs green with placeholder values.
-The deploy gate exempts exactly these two paths from its ignored-source check
-(it reads and validates both configs itself), so a filled-in local config does
-not block `npm run deploy`.
+client ids, and the OAuth KV namespace id. `npm run deploy` reads the local file;
+nothing here needs to be committed. `npm test` copies the template in when the
+local file is missing, so a fresh clone runs green with placeholder values.
+The deploy gate exempts that path from its ignored-source check (it reads and
+validates the config itself), so a filled-in local config does not block
+`npm run deploy`.
+
+The OAuth MCP needs two secrets on the **same** Worker, set once (they are not
+in `wrangler.jsonc`): `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+(`npx wrangler secret put GOOGLE_CLIENT_ID --name myfitnessguide`, likewise the
+secret). The provider keeps grants in the `OAUTH_KV` KV namespace bound in
+`wrangler.jsonc`.
 
 ## What exists
 
@@ -28,7 +33,9 @@ not block `npm run deploy`.
 | Cloudflare account | `<account-email>`, ID `<account-id>` | |
 | D1 database | `gym-tracker`, ID `<d1-database-id>`, location `apac` | `wrangler.jsonc`, binding `DB` |
 | Zero Trust team | `<team-name>` → `<team-name>.cloudflareaccess.com` | Zero Trust → Settings |
-| Worker | `myfitnessguide.<subdomain>.workers.dev`, with an hourly cron that auto-confirms drafts; also serves the PWA (`app/web/dist`) at `/` | first deployed 5 Oct 2026 |
+| Worker | `myfitnessguide.<subdomain>.workers.dev`, with an hourly cron that auto-confirms drafts; serves the PWA (`app/web/dist`) at `/` and the OAuth MCP at `/mcp` | first deployed 5 Oct 2026 |
+| OAuth KV | `OAUTH_KV`, id `<oauth-kv-namespace-id>` | `wrangler.jsonc`; grants for the MCP |
+| Google OIDC client | redirect URI `https://myfitnessguide.<subdomain>.workers.dev/callback` | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` secrets |
 | Access application | `myfitnessguide`, self-hosted; login method One-time PIN; AUD `<aud-tag>` | `ACCESS_AUD` in `wrangler.jsonc` |
 | Service token | `gym-tracker-agent`, client id `<service-token-client-id>.access` | secret in `~/.config/myfitnessguide/access-service-token.json` |
 
@@ -66,6 +73,33 @@ Access must protect the Worker's domain **before** the first deploy.
 7. `npm run deploy` (the gated deploy, under Routine operations), then check that a request without a token is refused:
    `curl -s -o /dev/null -w '%{http_code}\n' https://myfitnessguide.<subdomain>.workers.dev/tools`
    should be 302/403, never 200.
+
+## Remote MCP on the app origin
+
+The OAuth MCP and the app are one Worker (worker decision 172). Cloudflare
+Access gates `/tools` and the PWA, so the OAuth paths must be **bypassed** in
+the `myfitnessguide` Access application, or the client never reaches the
+provider:
+
+```text
+/mcp
+/authorize
+/callback
+/oauth/*
+/register
+/.well-known/*
+```
+
+Add these as Bypass policies (or a separate self-hosted application with a
+Bypass policy) in Zero Trust → Access → Applications. `/tools` and `/tools/*`
+stay Access-protected. Google's OAuth client must also allow the callback
+`https://myfitnessguide.<subdomain>.workers.dev/callback`.
+
+Deploy order for this change: set the two Google secrets, add the bypasses,
+then `npm run deploy`. Check `/authorize` returns the consent page (200, not a
+302 to Access) and `/mcp` answers 401 without a token; `/tools` must still be
+302. Members re-register their client against the canonical URL; the old
+`gym-tracker-mcp` Worker and `wrangler.oauth.jsonc` are gone.
 
 ## Routine operations
 

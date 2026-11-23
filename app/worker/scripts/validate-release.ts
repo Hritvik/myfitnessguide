@@ -1,6 +1,6 @@
 /**
- * Local release validation for the app and member OAuth Workers. Both share
- * production D1 and tool code (ChatGPT reconciliation decision 9).
+ * Local release validation for the one Worker (decision 172): the app, its
+ * PWA, and the member MCP on the same origin.
  *
  * This command builds and checks artifacts only: every Wrangler CLI call has
  * --dry-run, an explicit config and a pinned Worker name. It never lists or
@@ -14,7 +14,6 @@ import { bundleDir, checkBundle, checkConfig, checkEnv, envSettings, isMain, rea
 
 export const RELEASE_TARGETS = [
   { id: "app", config: "wrangler.jsonc", main: "src/index.ts" },
-  { id: "oauth", config: "wrangler.oauth.jsonc", main: "src/oauth-entry.ts" },
 ] as const;
 type ReleaseTarget = typeof RELEASE_TARGETS[number];
 
@@ -37,24 +36,20 @@ function database(config: WranglerConfig): string {
 
 export function runReleaseValidation(io: ReleaseIO): number {
   try {
-    if (io.argv.length > 0 && !(io.argv.length === 1 && io.argv[0] === "oauth")) {
-      throw new Error("only the optional 'oauth' target is accepted; config, environment and deploy arguments are refused");
+    if (io.argv.length > 0) {
+      throw new Error("config, environment and deploy arguments are refused");
     }
     const environment = checkEnv(io.env());
     if (environment) throw new Error(environment);
-    // Check both configs even for an OAuth-only build: its shared D1 must still agree.
     const releases = RELEASE_TARGETS.map((target) => {
       const config = io.config(target);
       const error = checkConfig(config, target.main);
       if (error) throw new Error(`${target.config}: ${error}`);
       return { target, config };
     });
-    if (new Set(releases.map(({ config }) => database(config))).size !== 1) {
-      throw new Error("app and OAuth release configs must use the same production D1 DB");
-    }
-    const selected = releases.filter(({ target }) => io.argv.length === 0 || target.id === "oauth");
-    if (selected.some(({ target }) => target.id === "app")) io.build();
-    for (const { target, config } of selected) {
+    database(releases[0]!.config);
+    io.build();
+    for (const { target, config } of releases) {
       const error = checkBundle(io.bundle(target, String(config.raw.name)));
       if (error) throw new Error(`${target.config}: ${error}`);
       io.log(`Validated ${config.raw.name} (${target.config}, ${target.main}): local validation only.`);

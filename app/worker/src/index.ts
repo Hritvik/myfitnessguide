@@ -1,46 +1,209 @@
 /**
- * The Gym Tracker Worker: the household's PWA (Workers Static Assets) and the
- * HTTP tool endpoints on one origin behind Cloudflare Access, and a Cron
- * Trigger that auto-confirms 48 h-old drafts.
+ * The deployed Worker: one origin for the OAuth MCP and the app.
+ *
+ * - `/mcp`, `/authorize`, `/callback`, `/oauth/token`, `/register` and the
+ *   metadata documents are the member MCP surface, served by the OAuth
+ *   provider. Member sign-in is Google OIDC.
+ * - `/tools` and `/tools/*` are the Access-authenticated API the PWA and the
+ *   local adapter use; everything else is the PWA.
+ * - The Cron Trigger auto-confirms 48 h-old drafts.
+ *
+ * This used to be two Workers (`myfitnessguide` and `gym-tracker-mcp`) with
+ * two deployments that drifted. Member clients can re-register, so there is
+ * one now (worker decision 172): the legacy hostname and its config are gone.
+ *
+ * The OAuth provider imports the `cloudflare:` runtime, so this module is the
+ * deployment entry only; `serve.ts` holds the Node-loadable surface the tests
+ * and the dev-only entry use.
  */
-import { createApp, type App } from "./app";
-import { accessVerifier, parseIdentity, type Identity, type Verifier } from "./auth";
+import OAuthProvider, { AuthorizationError, CimdFetchError, type AuthRequest } from "@cloudflare/workers-oauth-provider";
+import { createApp } from "./app";
 import { autoConfirm } from "./autoconfirm";
-import type { Resolver, ServiceChannel, ServicePrincipal } from "./context";
-import type { Db } from "./db";
+import { exchangeGoogleIdentity, googleAuthorizationUrl, type GoogleOidcConfig } from "./google-oidc";
+import { serve, verifierFor, type Env } from "./serve";
 
-/** The Workers Static Assets binding: the built PWA (`app/web/dist`). */
-export interface Assets {
-  fetch(request: Request): Promise<Response>;
+/** The one public origin: clients register against it, and Google returns here. */
+const ORIGIN = "https://myfitnessguide.hritvikdinkar.workers.dev";
+const CALLBACK = `${ORIGIN}/callback`;
+const SCOPES = ["mcp:read", "mcp:write", "offline_access"];
+
+export interface OAuthEnv extends Env {
+  /** The OAuth provider's grant store (binding OAUTH_KV). */
+  OAUTH_KV?: KvNamespaceLike;
+  /** Google OIDC client for member sign-in. */
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  /** Injected by the provider for the /authorize and /callback handlers. */
+  OAUTH_PROVIDER?: OAuthProviderApi;
 }
 
-export interface Env {
-  /** The D1 binding. */
-  DB: Db;
-  /**
-   * The built PWA. `run_worker_first` in wrangler.jsonc sends only /tools and
-   * /tools/* to the Worker; anything else that reaches it is handed back here.
-   */
-  ASSETS?: Assets;
-  /** The Access team domain, e.g. "<team>.cloudflareaccess.com". Unset = every request is refused. */
-  ACCESS_TEAM_DOMAIN?: string;
-  /** The Access application's AUD tag. */
-  ACCESS_AUD?: string;
-  /** JSON: client id -> legacy resolver string, or {resolver, channel}. */
-  SERVICE_TOKENS?: string;
-  /** IANA time zone for "today" (default Asia/Kolkata). */
-  TIMEZONE?: string;
-  /**
-   * Local development only: exactly "member:<email>" or "service:<client id>"
-   * (lower-case prefix; no whitespace, comma or control character), honoured
-   * only for requests to localhost or 127.0.0.1. Any other value refuses
-   * every request and never falls back to Access. The browser suite and the
-   * sample seed sign several members in through a request header, which only
-   * the dev-only entry (src/dev-entry.ts, never `main`, never imported) reads
-   * (worker decisions 156, 161).
-   */
-  LOCAL_DEV_IDENTITY?: string;
+interface KvNamespaceLike {
+  get(key: string): Promise<string | null>;
+  put(key: string, value: string, options?: { expirationTtl?: number }): Promise<void>;
+  delete(key: string): Promise<void>;
 }
+
+interface OAuthProps {
+  email: string;
+  name?: string;
+  /** Stable for this authorization grant and retained across token refreshes. */
+  connectionId?: string;
+}
+
+interface WorkerContext<Props = unknown> {
+  props: Props;
+  auth: { scope: string[]; clientId?: string };
+}
+
+interface OAuthProviderApi {
+  parseAuthRequest(request: Request): Promise<AuthRequest>;
+  describeConsent(request: AuthRequest): Promise<ConsentDetails>;
+  beginConsent(request: AuthRequest): Promise<{ handle: string; headers: Headers }>;
+  approveConsent(request: Request, handle: string, options: { scope: string[] }): Promise<{ request: AuthRequest; headers: Headers }>;
+  denyConsent(request: Request, handle: string): Promise<{ headers: Headers }>;
+  beginUpstream(request: AuthRequest, options: { data: unknown; headers: Headers }): Promise<{ state: string; headers: Headers }>;
+  finishUpstream<T>(request: Request): Promise<{ request: AuthRequest; data: T; headers: Headers }>;
+  completeAuthorization(options: {
+    request: AuthRequest;
+    userId: string;
+    metadata: Record<string, never>;
+    scope: string[];
+    props: OAuthProps;
+  }): Promise<{ redirectTo: string }>;
+}
+
+interface ConsentDetails {
+  clientName: string;
+  clientDomain?: string;
+  redirectHost: string;
+  redirectIsLoopback: boolean;
+  scope: string[];
+}
+
+const escapeHtml = (value: string): string => value.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
+
+function consentPage(details: ConsentDetails, handle: string): string {
+  const name = escapeHtml(details.clientName);
+  const publisher = details.clientDomain
+    ? `Published by <strong>${escapeHtml(details.clientDomain)}</strong>.`
+    : "This app registered itself; its name is not verified.";
+  const scopes = details.scope.map((scope) => `<label><input type="checkbox" name="scope" value="${escapeHtml(scope)}" checked> ${escapeHtml(scope)}</label>`).join("<br>");
+  return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Authorize ${name}</title>
+<main style="font:16px system-ui;max-width:40rem;margin:10vh auto;padding:1.5rem"><h1>Allow ${name} to use MyFitnessGuide?</h1>
+<p>${publisher} Access will be sent to <strong>${escapeHtml(details.redirectHost)}</strong>.</p>
+${details.redirectIsLoopback ? "<p><strong>This sends access to an app on this computer. Continue only if you started this sign-in.</strong></p>" : ""}
+<form method="post"> <input type="hidden" name="handle" value="${escapeHtml(handle)}">${scopes}<p><button name="decision" value="approve">Allow</button> <button name="decision" value="deny">Deny</button></p></form></main>`;
+}
+
+function oauthError(error: unknown): Response | null {
+  if (error instanceof AuthorizationError && error.redirectTo) return Response.redirect(error.redirectTo, 302);
+  if (error instanceof AuthorizationError || error instanceof CimdFetchError) {
+    const message = error instanceof AuthorizationError ? error.description : "This app could not be verified.";
+    return new Response(message, { status: 400, headers: { "content-type": "text/plain; charset=utf-8" } });
+  }
+  return null;
+}
+
+function googleConfig(env: OAuthEnv): GoogleOidcConfig {
+  if (!env.GOOGLE_CLIENT_ID || !env.GOOGLE_CLIENT_SECRET) throw new Error("Google OAuth is not configured");
+  return { clientId: env.GOOGLE_CLIENT_ID, clientSecret: env.GOOGLE_CLIENT_SECRET, callbackUrl: CALLBACK };
+}
+
+async function beginGoogleLogin(env: OAuthEnv, request: AuthRequest, headers: Headers): Promise<Response> {
+  const nonce = crypto.randomUUID();
+  const upstream = await env.OAUTH_PROVIDER!.beginUpstream(request, { data: { nonce }, headers });
+  upstream.headers.set("location", googleAuthorizationUrl(googleConfig(env), upstream.state, nonce));
+  return new Response(null, { status: 302, headers: upstream.headers });
+}
+
+const apiHandler = {
+  async fetch(request: Request, env: OAuthEnv, ctx: WorkerContext<OAuthProps>): Promise<Response> {
+    if (!ctx.auth.scope.includes("mcp:read") || !ctx.auth.scope.includes("mcp:write")) {
+      return new Response("Insufficient OAuth scope", { status: 403 });
+    }
+    const email = ctx.props.email;
+    if (!email) return new Response("Unauthorized", { status: 401 });
+    return createApp({
+      db: env.DB,
+      verify: async () => ({ kind: "member", email }),
+      serviceTokens: {},
+      remoteMcpConnectionId: ctx.props.connectionId ?? `legacy:${ctx.auth.clientId ?? "unknown"}`,
+      ...(env.TIMEZONE ? { timeZone: env.TIMEZONE } : {}),
+    }).fetch(request);
+  },
+};
+
+const defaultHandler = {
+  async fetch(request: Request, env: OAuthEnv): Promise<Response> {
+    const url = new URL(request.url);
+    try {
+      if (url.pathname === "/authorize" && request.method === "GET") {
+        const auth = await env.OAUTH_PROVIDER!.parseAuthRequest(request);
+        const details = await env.OAUTH_PROVIDER!.describeConsent(auth);
+        const consent = await env.OAUTH_PROVIDER!.beginConsent(auth);
+        consent.headers.set("content-type", "text/html; charset=utf-8");
+        return new Response(consentPage(details, consent.handle), { headers: consent.headers });
+      }
+      if (url.pathname === "/authorize" && request.method === "POST") {
+        const form = await request.formData();
+        const handle = String(form.get("handle") ?? "");
+        if (form.get("decision") !== "approve") {
+          const denied = await env.OAUTH_PROVIDER!.denyConsent(request, handle);
+          return new Response(null, { status: 302, headers: denied.headers });
+        }
+        const approved = await env.OAUTH_PROVIDER!.approveConsent(request, handle, { scope: form.getAll("scope").map(String) });
+        return beginGoogleLogin(env, approved.request, approved.headers);
+      }
+      if (url.pathname === "/callback" && request.method === "GET") {
+        const resumed = await env.OAUTH_PROVIDER!.finishUpstream<{ nonce: string }>(request);
+        if (url.searchParams.has("error")) {
+          return new Response("Google sign-in was declined.", { status: 403, headers: resumed.headers });
+        }
+        const code = url.searchParams.get("code");
+        if (!code) return new Response("Missing authorization code.", { status: 400, headers: resumed.headers });
+        const identity = await exchangeGoogleIdentity(googleConfig(env), code, resumed.data.nonce);
+        const result = await env.OAUTH_PROVIDER!.completeAuthorization({
+          request: resumed.request, userId: encodeURIComponent(identity.sub), metadata: {}, scope: resumed.request.scope,
+          props: { email: identity.email, ...(identity.name ? { name: identity.name } : {}), connectionId: crypto.randomUUID() },
+        });
+        resumed.headers.set("location", result.redirectTo);
+        return new Response(null, { status: 302, headers: resumed.headers });
+      }
+      // Everything else is the app: /tools (Access), the PWA, and the cron.
+      return serve(request, env, verifierFor(env));
+    } catch (error) {
+      const response = oauthError(error);
+      if (response) return response;
+      console.error("OAuth request failed", error instanceof Error ? error.message : "unknown error");
+      return new Response("Authorization failed.", { status: 500 });
+    }
+  },
+};
+
+const provider = new OAuthProvider<OAuthEnv>({
+  apiRoute: "/mcp",
+  apiHandler,
+  defaultHandler,
+  authorizeEndpoint: "/authorize",
+  tokenEndpoint: "/oauth/token",
+  clientRegistrationEndpoint: "/register",
+  scopesSupported: SCOPES,
+  requiredScopes: ["mcp:read", "mcp:write"],
+  resourceMetadata: { resource: `${ORIGIN}/mcp`, authorization_servers: [ORIGIN] },
+  clientIdMetadataDocumentEnabled: true,
+  accessTokenTTL: 3600,
+  refreshTokenTTL: 2_592_000,
+});
+
+export default {
+  fetch(request: Request, env: OAuthEnv, ctx?: { waitUntil(promise: Promise<unknown>): void }): Promise<Response> {
+    return provider.fetch(request, env, ctx ?? { waitUntil: () => undefined });
+  },
+
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(autoConfirm(env.DB, new Date(controller.scheduledTime)));
+  },
+};
 
 interface ScheduledController {
   scheduledTime: number;
@@ -50,93 +213,3 @@ interface ScheduledController {
 interface ExecutionContext {
   waitUntil(promise: Promise<unknown>): void;
 }
-
-function localDevVerifier(identity: Identity): Verifier {
-  return async (request) => {
-    const host = new URL(request.url).hostname;
-    return host === "localhost" || host === "127.0.0.1" ? identity : null;
-  };
-}
-
-/** /tools, /mcp and everything under them belong to the authenticated API. */
-export function isApiPath(pathname: string): boolean {
-  return pathname === "/mcp" || pathname === "/tools" || pathname.startsWith("/tools/");
-}
-
-const refuseAll: Verifier = async () => null;
-
-let cached: { key: string; verify: Verifier } | null = null;
-
-/** One verifier per isolate, so the Access certs are fetched once. A set LOCAL_DEV_IDENTITY never falls back to Access. */
-function verifierFor(env: Env): Verifier {
-  if (env.LOCAL_DEV_IDENTITY !== undefined) {
-    const identity = parseIdentity(env.LOCAL_DEV_IDENTITY);
-    return identity ? localDevVerifier(identity) : refuseAll;
-  }
-  if (!env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) return refuseAll;
-  const key = `${env.ACCESS_TEAM_DOMAIN}|${env.ACCESS_AUD}`;
-  if (cached?.key !== key) cached = { key, verify: accessVerifier({ teamDomain: env.ACCESS_TEAM_DOMAIN, audience: env.ACCESS_AUD }) };
-  return cached.verify;
-}
-
-const RESOLVERS = new Set<Resolver>(["claude_code", "hosted_model"]);
-const SERVICE_CHANNELS = new Set<ServiceChannel>(["local_agent", "unattended"]);
-
-/** Invalid service-token configuration refuses every service principal. */
-export function parseServiceTokens(raw: string | undefined): Record<string, ServicePrincipal> {
-  let value: unknown;
-  try {
-    value = JSON.parse(raw || "{}");
-  } catch {
-    return {};
-  }
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const normalized: Record<string, ServicePrincipal> = {};
-  for (const [clientId, entry] of Object.entries(value)) {
-    if (!clientId || clientId === "__proto__" || clientId === "prototype" || clientId === "constructor") return {};
-    if (typeof entry === "string") {
-      if (!RESOLVERS.has(entry as Resolver)) return {};
-      normalized[clientId] = { resolver: entry as Resolver, channel: "local_agent" };
-      continue;
-    }
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return {};
-    const record = entry as Record<string, unknown>;
-    if (Object.keys(record).sort().join(",") !== "channel,resolver") return {};
-    if (!RESOLVERS.has(record.resolver as Resolver) || !SERVICE_CHANNELS.has(record.channel as ServiceChannel)) return {};
-    normalized[clientId] = { resolver: record.resolver as Resolver, channel: record.channel as ServiceChannel };
-  }
-  return normalized;
-}
-
-function appFor(env: Env, verify: Verifier, now?: () => Date): App {
-  const serviceTokens = parseServiceTokens(env.SERVICE_TOKENS);
-  return createApp({
-    db: env.DB,
-    verify,
-    serviceTokens,
-    ...(env.TIMEZONE ? { timeZone: env.TIMEZONE } : {}),
-    ...(now ? { now } : {}),
-  });
-}
-
-/**
- * One request, with the verifier given: the default export below, and the
- * dev-only entry with its own verifier. The API's paths never fall through
- * to the assets, so /tools is always answered by the code that checks the
- * caller's identity. `now` is the app's clock (absent: the wall clock, as
- * the default export always runs); only the dev-only entry passes one.
- */
-export async function serve(request: Request, env: Env, verify: Verifier, now?: () => Date): Promise<Response> {
-  if (env.ASSETS && !isApiPath(new URL(request.url).pathname)) return env.ASSETS.fetch(request);
-  return appFor(env, verify, now).fetch(request);
-}
-
-export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    return serve(request, env, verifierFor(env));
-  },
-
-  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(autoConfirm(env.DB, new Date(controller.scheduledTime)));
-  },
-};

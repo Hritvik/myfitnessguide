@@ -10,7 +10,7 @@ to its owner.
 
 | Part | Where | Does |
 |---|---|---|
-| Remote MCP | `app/worker/src/oauth-entry.ts` | Member access from ChatGPT and other OAuth-capable MCP clients |
+| Remote MCP | `app/worker/src/index.ts` | Member access from ChatGPT and other OAuth-capable MCP clients, on the app origin |
 | Privileged MCP adapter | `app/mcp/` | Local administration and unattended jobs ([README](app/mcp/README.md)) |
 | Coaching skills | `myfitnessguide/skills/` | Optional Claude Code guidance for privileged workflows |
 | Worker API and D1 | `app/worker/` | Every rule, check and computation, behind Cloudflare Access ([ACCESS.md](app/worker/ACCESS.md)) |
@@ -29,10 +29,9 @@ npm test                             # every workspace's unit tests, then the br
 npm run test:e2e -w @myfitnessguide/web   # the full browser suite (about 30 minutes)
 ```
 
-The Worker tests run against a local D1. `npm test` copies the example configs
-(`app/worker/wrangler.example.jsonc`, `app/worker/wrangler.oauth.example.jsonc`)
-into place when the real ones are missing, so a fresh clone needs no Cloudflare
-account. The local browser suite seeds a sample household on a fixed clock.
+The Worker tests run against a local D1. `npm test` copies the example config
+(`app/worker/wrangler.example.jsonc`) into place when the real one is missing,
+so a fresh clone needs no Cloudflare account. The local browser suite seeds a sample household on a fixed clock.
 
 Each browser-suite run leaves its summary (verdict, counts, timings, layout
 findings) in `$TMPDIR/myfitnessguide-e2e-last/<mode>.json`; see
@@ -44,10 +43,10 @@ step here; there are no repository hooks.
 
 ## Deploying your own
 
-Deployment identifiers live in local-only files that are gitignored:
-`app/worker/wrangler.jsonc` and `app/worker/wrangler.oauth.jsonc`. Copy the
-`.example.jsonc` templates and fill in your account, D1 database, Access
-application and service tokens. [`app/worker/ACCESS.md`](app/worker/ACCESS.md)
+Deployment identifiers live in a local-only file that is gitignored:
+`app/worker/wrangler.jsonc`. Copy the `.example.jsonc` template and fill in
+your account, D1 database, OAuth KV namespace, Access application and service
+tokens. [`app/worker/ACCESS.md`](app/worker/ACCESS.md)
 is the runbook: D1 creation, Access policies, service tokens, and the deploy
 gate.
 
@@ -60,7 +59,7 @@ A deployed instance exposes its OAuth MCP endpoint at the Worker's origin plus
 https://<your-worker>.workers.dev/mcp
 ```
 
-The browser sign-in identifies the member and the server exposes the tools that
+The Google sign-in identifies the member and the server exposes the tools that
 member may use. No repository checkout, Node installation, service token, or
 local MCP process is needed.
 

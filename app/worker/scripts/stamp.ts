@@ -273,7 +273,7 @@ const SOURCE_LIKE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs|css|html|sql|json|jsonc)$/
  * validates them itself (check 2), so they are not the hidden source this
  * walks for.
  */
-const IGNORED_CONFIG = new Set(["app/worker/wrangler.jsonc", "app/worker/wrangler.oauth.jsonc"]);
+const IGNORED_CONFIG = new Set(["app/worker/wrangler.jsonc"]);
 
 /**
  * Source-like files under app/ that an ignore hides (.gitignore, info/exclude
