@@ -133,7 +133,7 @@ function prepOccurrences(ordered: readonly MealInput[], book: RecipeBook, cat: C
           amount_unit: row.amount_unit,
           note: row.note,
         };
-        occurrences.push({ date: meal.date, meal_slot: meal.meal_slot, meal: cook.name, recipe: recipe.ref, eaters, step });
+        occurrences.push({ date: meal.date, meal_slot: meal.meal_slot, meal: cook.name, recipe: recipe.ref, eaters, position: row.position, step });
       }
     }
   }

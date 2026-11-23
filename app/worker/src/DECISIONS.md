@@ -1924,3 +1924,11 @@ surface* as closely as possible. Hritvik can veto any line.
    and the `OAUTH_KV` binding are the only new production settings.
    Test: `entry.test.ts`, `worker.test.ts`, `validate-release.test.ts`,
    `shipped-graph.test.ts`.
+
+173. **A recipe's consecutive steps on one food are ordered** (23 Nov 2026).
+   Two `day_before` steps used to share 08:00-22:00, so a soak and its cook
+   could overlap and neither said which came first. When consecutive steps
+   of one recipe and food overlap, the scheduler splits their windows at the
+   overlap's midpoint: the earlier step ends and the later begins there, so
+   the schedule never claims a prep step can start before its predecessor
+   finished. Test: `app/domain/test/prep.test.ts`.

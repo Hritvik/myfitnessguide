@@ -271,3 +271,13 @@ Choices made while turning the schema tickets into D1 migrations, where the spec
     (`YYYY-MM-DDTHH:MM`), the form the member reads, never UTC; a CHECK
     holds the format and `window_start <= window_end`, and `due_on` stays
     the calendar date for ordering.
+
+75. **`prep_task` is rebuilt without a GLOB format check** (0040). D1's
+    LIKE/GLOB pattern limit is far below stock SQLite's, so 0039's 66-byte
+    date GLOB made every prep_task INSERT fail with "pattern too complex"
+    in production while local tests passed. 0040 rebuilds the table (rows,
+    indexes and triggers copied) with
+    `length(...) = 16 AND strftime('%Y-%m-%dT%H:%M', ...) IS ...`, which
+    has no pattern. `sql-patterns.test.ts` checks the **final** schema, not
+    each historical migration, and refuses any effective GLOB/LIKE pattern
+    over 40 bytes.

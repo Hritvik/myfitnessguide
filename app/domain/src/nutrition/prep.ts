@@ -44,6 +44,8 @@ export interface PrepOccurrence {
   recipe: string;
   /** Members with a portion of the dish; empty when shares are not decided. */
   eaters: readonly string[];
+  /** The recipe step's position, so consecutive steps can be ordered. */
+  position?: number;
   step: PrepStep;
 }
 
@@ -194,6 +196,8 @@ export function prepTaskKey(task: Omit<PrepTask, "task_key">): string {
 interface Expanded extends PrepTask {
   step: PrepStep;
   eaters: string[];
+  recipe: string;
+  position: number;
   /** The consumer meal's own datetime, for batching order. */
   consumes: string;
 }
@@ -201,7 +205,7 @@ interface Expanded extends PrepTask {
 function expand(occurrence: PrepOccurrence, step: PrepStep): Expanded {
   const window = prepWindow(step, occurrence.date, occurrence.meal_slot);
   const assignees = step.who === "eater" ? [...new Set(occurrence.eaters)] : [];
-  const task: Omit<Expanded, "task_key" | "consumes" | "step" | "eaters"> = {
+  const task: Omit<Expanded, "task_key" | "consumes" | "step" | "eaters" | "recipe" | "position"> = {
     due_by: window.end,
     window_start: window.start,
     window_end: window.end,
@@ -220,6 +224,8 @@ function expand(occurrence: PrepOccurrence, step: PrepStep): Expanded {
     task_key: prepTaskKey(task),
     step,
     eaters: [...occurrence.eaters],
+    recipe: occurrence.recipe,
+    position: occurrence.position ?? 0,
     consumes: at(occurrence.date, MEAL_TIME[occurrence.meal_slot] ?? "12:00"),
   };
 }
@@ -277,6 +283,44 @@ function batchDate(start: string, firstUse: string, dueBy: string, batchDay: num
   return candidate <= firstUse.slice(0, 10) && `${candidate}T10:00` <= dueBy ? candidate : opened;
 }
 
+/** The wall-clock midpoint of two YYYY-MM-DDTHH:MM values. */
+function midpoint(a: string, b: string): string {
+  const ms = (Date.parse(`${a}:00Z`) + Date.parse(`${b}:00Z`)) / 2;
+  return new Date(ms).toISOString().slice(0, 16);
+}
+
+/**
+ * Consecutive steps of one recipe on the same food happen in order: the
+ * soak must finish before the cook begins. When their windows overlap, they
+ * split at the overlap's midpoint instead of both running 08:00-22:00.
+ */
+function orderConsecutiveSteps(tasks: Expanded[]): void {
+  const groups = new Map<string, Expanded[]>();
+  for (const task of tasks) {
+    const foods = task.quantity.map((q) => q.food?.trim().toLowerCase()).filter((food): food is string => Boolean(food));
+    if (foods.length === 0) continue;
+    const key = `${task.recipe}|${foods.join("|")}`;
+    groups.set(key, [...(groups.get(key) ?? []), task]);
+  }
+  for (const group of groups.values()) {
+    const ordered = [...group].sort((a, b) => a.position - b.position);
+    for (let i = 1; i < ordered.length; i++) {
+      const first = ordered[i - 1]!;
+      const next = ordered[i]!;
+      if (first.position >= next.position) continue;
+      const start = first.window_start > next.window_start ? first.window_start : next.window_start;
+      const end = first.window_end < next.window_end ? first.window_end : next.window_end;
+      if (start >= end) continue;
+      const boundary = midpoint(start, end);
+      first.window_end = boundary;
+      first.due_by = boundary;
+      first.task_key = prepTaskKey(first);
+      next.window_start = boundary;
+      next.task_key = prepTaskKey(next);
+    }
+  }
+}
+
 /**
  * The schedule for a plan: one task per prep moment, batchable steps merged
  * across consumers within their shelf life, and a thaw task for each part
@@ -288,6 +332,7 @@ export function buildPrepSchedule(occurrences: readonly PrepOccurrence[], option
   const expanded = occurrences
     .filter((occurrence) => options.from === undefined || prepWindow(occurrence.step, occurrence.date, occurrence.meal_slot).start.slice(0, 10) >= options.from)
     .map((o) => expand(o, o.step));
+  orderConsecutiveSteps(expanded);
 
   const groups = new Map<string, Expanded[]>();
   const singles: Expanded[] = [];

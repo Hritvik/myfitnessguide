@@ -124,4 +124,23 @@ describe("buildPrepSchedule", () => {
     expect(batch.storage).toBe("fridge");
     expect(tasks.some((t) => t.action.startsWith("Move the frozen"))).toBe(false);
   });
+
+  it("orders a recipe's soak before its cook when their windows overlap", () => {
+    const soak = step({
+      action: "Soak", lead: "day_before", who: "anyone", batchable: true, keeps_days: 1,
+      food: "kabuli chana", amount_value: 80, amount_unit: "g",
+    });
+    const cook = step({
+      action: "Pressure-cook", lead: "day_before", who: "cook", batchable: true, keeps_days: 3,
+      food: "kabuli chana", amount_value: 80, amount_unit: "g",
+    });
+    const at = (s: PrepStep, position: number) => ({ date: "2026-11-26", meal_slot: "lunch", meal: "Chole", recipe: "R063", eaters: ["Hritvik"], position, step: s });
+    const tasks = buildPrepSchedule([at(soak, 1), at(cook, 2)]);
+    const first = tasks.find((t) => t.action === "Soak")!;
+    const next = tasks.find((t) => t.action === "Pressure-cook")!;
+    expect(first.window_start).toBe("2026-11-25T08:00");
+    expect(first.window_end).toBe("2026-11-25T15:00");
+    expect(next.window_start).toBe("2026-11-25T15:00");
+    expect(next.window_end).toBe("2026-11-25T22:00");
+  });
 });
