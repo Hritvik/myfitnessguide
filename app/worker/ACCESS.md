@@ -76,29 +76,28 @@ Access must protect the Worker's domain **before** the first deploy.
 
 ## Remote MCP on the app origin
 
-The OAuth MCP and the app are one Worker (worker decision 172). Cloudflare
-Access gates `/tools` and the PWA, so the OAuth paths must be **bypassed** in
-the `myfitnessguide` Access application, or the client never reaches the
-provider:
+The OAuth MCP and the app are one Worker (worker decision 172). The OAuth
+endpoints cannot sit behind Access (Google's client cannot present an Access
+identity), so the `myfitnessguide` Access application is scoped to the **data
+API only**:
 
 ```text
-/mcp
-/authorize
-/callback
-/oauth/*
-/register
-/.well-known/*
+myfitnessguide.<subdomain>.workers.dev/tools
+myfitnessguide.<subdomain>.workers.dev/tools/*
 ```
 
-Add these as Bypass policies (or a separate self-hosted application with a
-Bypass policy) in Zero Trust → Access → Applications. `/tools` and `/tools/*`
-stay Access-protected. Google's OAuth client must also allow the callback
+That leaves `/`, `/assets/*`, `/mcp`, `/authorize`, `/callback`, `/oauth/*`,
+`/register` and `/.well-known/*` public. The PWA shell is therefore public;
+every data call still passes Access. Do not add the bare hostname as a
+destination, or the OAuth endpoints are gated again. Google's OAuth client
+must allow the callback
 `https://myfitnessguide.<subdomain>.workers.dev/callback`.
 
-Deploy order for this change: set the two Google secrets, add the bypasses,
-then `npm run deploy`. Check `/authorize` returns the consent page (200, not a
-302 to Access) and `/mcp` answers 401 without a token; `/tools` must still be
-302. Members re-register their client against the canonical URL; the old
+Deploy order for this change: set the two Google secrets, scope the Access
+application to the two `/tools` destinations, then `npm run deploy`. Check
+`/authorize` returns 400 (no parameters, not a 302 to Access), `/mcp` answers
+401 without a token, `/` answers 200, and `/tools` still answers 302. Members
+re-register their client against the canonical URL; the old
 `gym-tracker-mcp` Worker and `wrangler.oauth.jsonc` are gone.
 
 ## Routine operations

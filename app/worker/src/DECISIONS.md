@@ -1916,8 +1916,8 @@ surface* as closely as possible. Hritvik can veto any line.
    metadata documents are the member MCP surface on the canonical origin.
    The separate `gym-tracker-mcp` Worker and `wrangler.oauth.jsonc` are gone;
    members re-register against the canonical URL. The OAuth paths are public
-   by Access **bypass** (the provider authenticates them itself), while
-   `/tools` and the PWA stay Access-gated. `serve.ts` is kept separate because
+   because the Access application is scoped to `/tools` and `/tools/*`; the
+   PWA shell is public too, while every data call stays Access-gated. `serve.ts` is kept separate because
    the OAuth provider imports the `cloudflare:` runtime: the Node-run tests
    and the dev-only entry load only `serve.ts`, never the deployment entry.
    The deploy gate still checks the one config; the Google client id/secret
