@@ -123,7 +123,9 @@ function shiftMinutes(dateTime: string, minutes: number): string {
 export function prepWindow(step: PrepStep, date: string, mealSlot: string): { start: string; end: string } {
   const fallback = DEFAULT_LEAD[step.lead];
   const minH = step.lead_min_h ?? fallback.min;
-  const maxH = step.lead_max_h ?? fallback.max;
+  // A single bound must not invert the window: the nearest lead can be
+  // further out than the default furthest one.
+  const maxH = Math.max(minH, step.lead_max_h ?? fallback.max);
   // The evening and day before are calendar offsets, not hour counts: they
   // mean the previous day whatever slot the meal is in.
   if (step.lead === "evening_before") {
@@ -164,10 +166,29 @@ function addFor(into: PrepFor[], add: readonly PrepFor[]): void {
 const normal = (action: string) => action.trim().replace(/\s+/g, " ").toLowerCase();
 
 /** A short, deterministic identity for a task across plan revisions. */
+function fnv1a(value: string, seed: number): string {
+  let hash = seed >>> 0;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, "0");
+}
+
+/** A short, deterministic identity for a task across plan revisions; content-derived, so two different jobs never share one. */
 export function prepTaskKey(task: Omit<PrepTask, "task_key">): string {
-  const foods = task.quantity.map((q) => q.food ?? "_").join("+");
-  const key = `${task.due_by.slice(0, 10)}|${normal(task.action)}|${task.who}|${[...task.assignees].sort().join(",")}|${foods}|${task.storage ?? "_"}`;
-  return key.slice(0, 300);
+  const body = JSON.stringify({
+    due: task.due_by,
+    action: normal(task.action),
+    who: task.who,
+    assignees: [...task.assignees].sort(),
+    quantity: task.quantity,
+    for: task.for,
+    batch: task.batch_id,
+    storage: task.storage,
+  });
+  const readable = normal(task.action).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "task";
+  return `${readable}#${fnv1a(body, 0x811c9dc5)}${fnv1a(body, 0x01000193)}`;
 }
 
 interface Expanded extends PrepTask {
@@ -203,6 +224,25 @@ function expand(occurrence: PrepOccurrence, step: PrepStep): Expanded {
   };
 }
 
+/** One task without the scheduler's private fields (step, eaters, consumes). */
+function plainTask(task: PrepTask): PrepTask {
+  return {
+    task_key: task.task_key,
+    due_by: task.due_by,
+    window_start: task.window_start,
+    window_end: task.window_end,
+    action: task.action,
+    who: task.who,
+    assignees: task.assignees,
+    quantity: task.quantity,
+    for: task.for,
+    parts: task.parts,
+    batch_id: task.batch_id,
+    storage: task.storage,
+    note: task.note,
+  };
+}
+
 /** Two non-batchable tasks at the same moment are one job, whatever their foods. */
 function sameMoment(a: Expanded, b: Expanded): boolean {
   return normal(a.action) === normal(b.action) && a.who === b.who && a.window_start === b.window_start;
@@ -221,7 +261,7 @@ function combine(a: Expanded, b: Expanded): Expanded {
 }
 
 /** The date a batch is made on: the weekly session when it fits, else the first window. */
-function batchDate(start: string, latest: string, batchDay: number | null): string {
+function batchDate(start: string, firstUse: string, dueBy: string, batchDay: number | null): string {
   const opened = start.slice(0, 10);
   if (batchDay === null) return opened;
   let candidate = opened;
@@ -232,8 +272,9 @@ function batchDate(start: string, latest: string, batchDay: number | null): stri
       break;
     }
   }
-  // A batch day that would delay the first meal is not used.
-  return candidate <= latest.slice(0, 10) ? candidate : opened;
+  // A batch day that would delay the first meal (or land after the first
+  // deadline) is not used.
+  return candidate <= firstUse.slice(0, 10) && `${candidate}T10:00` <= dueBy ? candidate : opened;
 }
 
 /**
@@ -267,7 +308,7 @@ export function buildPrepSchedule(occurrences: readonly PrepOccurrence[], option
     if (twin) combine(twin, single);
     else moments.push(single);
   }
-  tasks.push(...moments);
+  tasks.push(...moments.map(plainTask));
 
   for (const [groupKey, members] of groups) {
     const sorted = [...members].sort((a, b) => a.consumes.localeCompare(b.consumes));
@@ -307,11 +348,18 @@ export function buildPrepSchedule(occurrences: readonly PrepOccurrence[], option
 function finishBatch(members: Expanded[], batchDay: number | null, groupKey: string): PrepTask[] {
   const first = members[0]!;
   const step = first.step;
-  const latestConsumer = members.reduce((latest, m) => (m.consumes > latest ? m.consumes : latest), first.consumes);
-  const date = batchDate(first.window_start, latestConsumer, batchDay);
+  const dueBy = members.reduce((earliest, m) => (m.due_by < earliest ? m.due_by : earliest), members[0]!.due_by);
+  // A batch day may move the work later, but never past the first meal it
+  // serves: the Sunday session cannot soak Wednesday's chana.
+  const firstUse = first.consumes.slice(0, 10);
+  const date = batchDate(first.window_start, firstUse, dueBy, batchDay);
   const start = date === first.window_start.slice(0, 10) ? first.window_start : at(date, "10:00");
-  const keeps = members.reduce((wide, m) => Math.max(wide, m.step.keeps_days ?? 0), 0);
+  const knownKeeps = members.flatMap((m) => (m.step.keeps_days === null ? [] : [m.step.keeps_days]));
+  // Blank is never zero: an unrecorded shelf life does not claim "keeps 0
+  // days" and freeze everything; it simply does not split.
+  const keeps = knownKeeps.length === 0 ? Number.POSITIVE_INFINITY : Math.max(...knownKeeps);
   const freezerOk = members.some((m) => m.step.freezer_ok);
+  const batchId = `batch:${groupKey}:${date}`;
 
   const parts: PrepPart[] = [];
   const thawTasks: Omit<PrepTask, "task_key">[] = [];
@@ -347,7 +395,7 @@ function finishBatch(members: Expanded[], batchDay: number | null, groupKey: str
         quantity: member.quantity.map((q) => ({ ...q })),
         for: member.for.map((f) => ({ ...f })),
         parts: [],
-        batch_id: null,
+        batch_id: batchId,
         storage: "fridge",
         note: "Thaw overnight before use.",
       };
@@ -355,12 +403,10 @@ function finishBatch(members: Expanded[], batchDay: number | null, groupKey: str
     }
   }
 
-  const batchId = `batch:${groupKey}:${date}`;
-  const dueBy = members.reduce((earliest, m) => (m.due_by < earliest ? m.due_by : earliest), members[0]!.due_by);
   const task: Omit<PrepTask, "task_key"> = {
     due_by: dueBy,
     window_start: start,
-    window_end: `${date}T22:00`,
+    window_end: dueBy,
     action: first.action,
     who: first.who,
     assignees: [...new Set(members.flatMap((m) => m.assignees))].sort(),
@@ -372,6 +418,6 @@ function finishBatch(members: Expanded[], batchDay: number | null, groupKey: str
     note: step.note,
   };
   const out: PrepTask[] = [{ ...task, task_key: prepTaskKey(task) }];
-  for (const thaw of thawTasks) out.push({ ...thaw, task_key: prepTaskKey(thaw), batch_id: batchId });
+  for (const thaw of thawTasks) out.push({ ...thaw, task_key: prepTaskKey(thaw) });
   return out;
 }

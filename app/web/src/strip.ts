@@ -84,6 +84,8 @@ function card(c: NeedsCard, timeZone: string): StripCard {
           ? { kind: "reading", label: "Log a reading", metric: c.metric, bodyState: (c.body_state ?? null) as BodyState | null }
           : { kind: "link", label: "Open Progress", href: "/progress" },
       };
+    case "prep":
+      return { key: "prep", text: c.message, action: { kind: "link", label: "See prep", href: "#prep" } };
   }
 }
 

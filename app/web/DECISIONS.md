@@ -1022,3 +1022,11 @@ Built for ticket 29 (*Web app shell and the Today screen*) on 6 Oct 2026, in the
      clamp's four companions, the unmatched `.catalogue-cols` rules, and
      `ADOPTED` with its exemption in the structure lint, whose count fell
      to 125.
+
+123. **Prep is a strip, and a due prep card points at it.** Today renders
+    `day_prep`'s pending tasks above the needs strip, through `<Text>` (no
+    raw text nodes), under `id="prep"`. `needs_you`'s `prep` card is a link
+    to that anchor, so the Worker's card union and the web's stay in step;
+    a card kind without a `strip.ts` case would render `undefined` and
+    crash the strip. Test: the text/structure lints, `load.test.ts`, and
+    the privacy tool table.

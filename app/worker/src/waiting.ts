@@ -154,7 +154,7 @@ export async function dueLines(ctx: Ctx, member: Member, today: string): Promise
        FROM prep_task t JOIN meal_plan p ON p.id = t.meal_plan_id
       WHERE t.household_id = ?1 AND p.status = 'active' AND p.archived_at IS NULL AND p.superseded_at IS NULL
         AND t.status = 'pending' AND t.window_start <= ?2 AND t.window_end >= ?3
-      ORDER BY t.window_start, t.id LIMIT 6`,
+      ORDER BY t.window_start, t.id`,
     ctx.householdId, horizon, floor,
   );
   const name = member.name.trim().toLowerCase();
@@ -165,7 +165,7 @@ export async function dueLines(ctx: Ctx, member: Member, today: string): Promise
     if (row.who === "eater" && !assignees.some((assignee) => assignee.trim().toLowerCase() === name)) continue;
     prep.push({ kind: "prep", task_id: row.id, action: row.action, who: row.who, due_on: row.due_on, window_start: row.window_start, window_end: row.window_end, message: row.action });
   }
-  return [...prep, ...lines, ...flags.map((f): DueLine => ({ kind: "flag", flag_id: f.id, subject: f.subject, due_on: f.due_on, window_days: FLAG_WINDOW_DAYS }))];
+  return [...prep.slice(0, 6), ...lines, ...flags.map((f): DueLine => ({ kind: "flag", flag_id: f.id, subject: f.subject, due_on: f.due_on, window_days: FLAG_WINDOW_DAYS }))];
 }
 
 // ---------------------------------------------------------------- the read

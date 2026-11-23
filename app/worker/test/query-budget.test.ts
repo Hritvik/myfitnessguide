@@ -273,6 +273,18 @@ describe.each([23, 40])("D1 statements per call, gym with %i implements", (imple
     withinBudget(await x.counted("cook_sheet", { date: MONDAY }), READ_BUDGET);
     const task = x.t.get("SELECT id FROM prep_task ORDER BY id LIMIT 1") as { id: number };
     withinBudget(await x.counted("settle_prep_task", { task_id: task.id, status: "done", reason: "budget" }), READ_BUDGET);
+    withinBudget(await x.counted("catalogue_lookup", { refs: [recipe.ref] }), READ_BUDGET);
+    withinBudget(await x.counted("log_intake", { member: "Hritvik", date: MONDAY, meal_slot: "snack", items: [{ source: "food", food: "curd", value: 50, unit: "g", provenance: "weighed", confidence: "high" }] }), READ_BUDGET);
+    withinBudget(await x.counted("household_meal", {
+      date: MONDAY, meal_slot: "dinner",
+      cooks: [{ name: "Budget dal", lines: [{ food: "peas", value: 100, unit: "g", provenance: "weighed" }], portions: [{ member: "Hritvik", fraction: 1, provenance: "estimated" }] }],
+      items: [],
+    }), READ_BUDGET);
+    withinBudget(await x.counted("upsert_recipe", {
+      name: "Budget prep recipe", kind: "dish", servings: 1, lines: [{ food: "peas", value: 100, unit: "g" }],
+      prep_steps: [{ action: "Soak", lead: "hours_before", lead_min_h: 8, lead_max_h: 12, batchable: true, keeps_days: 1 }],
+    }), READ_BUDGET);
+    withinBudget(await x.counted("update_recipe", { recipe: recipe.ref, change_reason: "budget", patch: { prep_steps: null } }), READ_BUDGET);
     withinBudget(await x.counted("needs_you", { member: "Hritvik", date: MONDAY }, "hritvik"), READ_BUDGET);
     withinBudget(await x.counted("waiting", { member: "Hritvik", date: MONDAY }, "hritvik"), READ_BUDGET);
   });

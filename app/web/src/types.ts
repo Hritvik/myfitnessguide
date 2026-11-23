@@ -165,7 +165,8 @@ export type NeedsCard =
   | { rule: "yesterday_open"; date: string; items: number; message: string }
   | { rule: "load"; session: string; date: string | null; prescriptions: { prescription_id: number; exercise: string; state: { kind: string } }[]; message: string }
   | { rule: "flag"; flag_id: number; subject: string; due_on: string; more: number; message: string }
-  | { rule: "measurement"; cadence: string; last: string | null; message: string; /** A reading cadence's metric and body state; absent from a Worker before Task 25. */ metric?: string | null; body_state?: string | null };
+  | { rule: "measurement"; cadence: string; last: string | null; message: string; /** A reading cadence's metric and body state; absent from a Worker before Task 25. */ metric?: string | null; body_state?: string | null }
+  | { rule: "prep"; count: number; tasks: { task_id: number; action: string; due_on: string }[]; message: string };
 
 export interface NeedsYou {
   member: string;

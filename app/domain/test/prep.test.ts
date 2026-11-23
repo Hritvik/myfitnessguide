@@ -98,4 +98,30 @@ describe("buildPrepSchedule", () => {
   it("is empty for a plan with no prep steps", () => {
     expect(buildPrepSchedule([])).toEqual([]);
   });
+
+  it("never moves a batch day past the first meal it serves", () => {
+    // Plan #1 with the Sunday session (0): Wednesday's soak must not move.
+    const sunday = buildPrepSchedule(planOne(), { batch_day: 0 });
+    const soak = sunday.find((t) => t.action === "Soak" && t.quantity.some((q) => q.food === "kala chana"))!;
+    expect(soak.window_start.slice(0, 10)).toBe("2026-11-25");
+    expect(soak.due_by.slice(0, 10)).toBe("2026-11-25");
+    expect(soak.window_end >= soak.window_start).toBe(true);
+    expect(soak.window_end <= soak.due_by).toBe(true);
+  });
+
+  it("keeps a batch in the fridge when the shelf life is unknown, never assuming zero days", () => {
+    const cook = step({
+      action: "Cook a pot", lead: "day_before", who: "cook", batchable: true,
+      keeps_days: null, batch_days: 5, storage: "fridge", freezer_ok: true,
+      food: "dal", amount_value: 100, amount_unit: "g",
+    });
+    const tasks = buildPrepSchedule([
+      ...occ("2026-11-23", "dinner", "Dal", "R-dal", [cook], []),
+      ...occ("2026-11-27", "dinner", "Dal", "R-dal", [cook], []),
+    ]);
+    const batch = tasks.find((t) => t.action === "Cook a pot")!;
+    expect(batch.parts).toEqual([]);
+    expect(batch.storage).toBe("fridge");
+    expect(tasks.some((t) => t.action.startsWith("Move the frozen"))).toBe(false);
+  });
 });

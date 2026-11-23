@@ -111,8 +111,9 @@ export async function preparedBatches(ctx: Ctx, today: string): Promise<Row[]> {
               c.id AS component_id, c.name AS component,
               CASE
                 WHEN c.cooked_weight_g IS NOT NULL
-                 AND EXISTS (SELECT 1 FROM portion p WHERE p.component_id = c.id AND p.kind = 'weighed')
-                THEN MAX(0.0, 1.0 - (SELECT COALESCE(sum(p.weighed_g), 0) FROM portion p WHERE p.component_id = c.id AND p.kind = 'weighed') / c.cooked_weight_g)
+                THEN MAX(0.0, 1.0
+                  - (SELECT COALESCE(sum(p.weighed_g), 0) FROM portion p WHERE p.component_id = c.id AND p.kind = 'weighed') / c.cooked_weight_g
+                  - (SELECT COALESCE(sum(p.fraction), 0) FROM portion p WHERE p.component_id = c.id AND p.kind = 'fraction'))
                 ELSE MAX(0.0, 1.0 - (SELECT COALESCE(sum(p.fraction), 0) FROM portion p WHERE p.component_id = c.id AND p.kind = 'fraction'))
               END AS fraction
        FROM cook k JOIN component c ON c.cook_id = k.id

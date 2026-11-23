@@ -387,3 +387,15 @@ any line.
     latest day, so Progress's headline verdict reads the same value as the
     chart's last point (click test: 96.5 cm "On track" beside a chart
     ending 238.8 cm on the same day).
+
+51. **Prep scheduling is a pure rule, and a batch never runs past its first
+    meal.** `nutrition/prep.ts` turns occurrences (meal date, slot, eaters,
+    a recipe's step) into dated tasks: hours before the slot's nominal time,
+    the calendar evening before, or the same meal. Steps merge at the same
+    moment whatever their foods, and batch across days only within their
+    `batch_days`/`keeps_days` horizon; a freezable batch splits at its
+    fridge life and gains a thaw the evening before each frozen consumer.
+    `batch_day` may move a batch later but never past the first meal it
+    serves or its first deadline. Unknown shelf life is not zero: it does
+    not split. Task keys are a hash of the whole task (batch id included),
+    so two different jobs cannot collide. Test: `test/prep.test.ts`.

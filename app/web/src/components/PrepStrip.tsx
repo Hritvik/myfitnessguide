@@ -17,13 +17,16 @@ function detail(task: PrepTaskView): string {
 export function PrepStrip({ tasks }: { tasks: PrepTaskView[] }) {
   if (tasks.length === 0) return null;
   return (
-    <section className="strip" aria-label="Prep">
+    <section className="strip" id="prep" aria-label="Prep">
       <ul>
-        {tasks.map((task) => (
-          <li key={task.id} className="needs">
-            <Text as="p">{`${task.action}${detail(task) ? ` — ${detail(task)}` : ""}`}</Text>
-          </li>
-        ))}
+        {tasks.map((task) => {
+          const detailText = detail(task);
+          return (
+            <li key={task.id} className="needs">
+              <Text as="p">{`${task.action}${detailText ? ` — ${detailText}` : ""}`}</Text>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

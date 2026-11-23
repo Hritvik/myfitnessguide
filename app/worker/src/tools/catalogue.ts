@@ -613,12 +613,27 @@ const updateRecipe = writeTool({
     const finalIds = new Set(finalLines.flatMap((line) => (line.id === null ? [] : [line.id])));
     let finalSteps = await loadRecipeSteps(ctx, recipe.id);
     if (plannedSteps !== null) {
-      if (finalSteps.length > 0) {
-        tx.versions("recipe_prep_step", "delete", finalSteps.map((step) => ({ id: step.id as number, data: step as unknown as Row })));
-        tx.exec("DELETE FROM recipe_prep_step WHERE recipe_id = ?", recipe.id);
+      // Retain each position's row and amend it, so a change is a version of
+      // the same step (stable id) rather than a delete and a new row.
+      const before = finalSteps;
+      const retained = Math.min(before.length, plannedSteps.length);
+      const after: RecipePrepStepRow[] = [];
+      for (let i = 0; i < retained; i++) {
+        const prior = before[i]!;
+        const row = { ...prior, ...plannedSteps[i], id: prior.id, recipe_id: recipe.id, position: i + 1 } as RecipePrepStepRow;
+        const { id: _id, ...changes } = row;
+        tx.update("recipe_prep_step", prior.id as number, changes as unknown as Row, row as unknown as Row);
+        after.push(row);
       }
-      const stepIds = plannedSteps.length === 0 ? [] : await tx.createMany("recipe_prep_step", plannedSteps);
-      finalSteps = plannedSteps.map((data, i) => ({ ...(data as unknown as RecipePrepStepRow), id: stepIds[i] as number }));
+      const added = plannedSteps.slice(retained);
+      const addedIds = added.length === 0 ? [] : await tx.createMany("recipe_prep_step", added);
+      added.forEach((row, i) => after.push({ ...(row as unknown as RecipePrepStepRow), id: addedIds[i] as number }));
+      const removed = before.slice(retained);
+      if (removed.length > 0) {
+        tx.versions("recipe_prep_step", "delete", removed.map((step) => ({ id: step.id as number, data: step as unknown as Row })));
+        tx.exec("DELETE FROM recipe_prep_step WHERE recipe_id = ? AND position > ?", recipe.id, retained);
+      }
+      finalSteps = after;
     }
     return {
       action: "updated",

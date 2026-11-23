@@ -257,7 +257,7 @@ export async function previewMealPlanInput(ctx: Ctx, input: { entries: MealInput
 
     const prepSchedule = buildPrepSchedule(prepOccurrences(ordered, book, cat), { batch_day: input.batch_day ?? null, from });
 
-    return { from, to, meals, members, issues, prep_schedule: prepSchedule };
+    return { from, to, meals, members, issues, prep_schedule: prepSchedule, batch_day: input.batch_day ?? null };
 }
 
 type PlanRow = Row & {
@@ -373,7 +373,7 @@ async function stagePlanGraph(ctx: Ctx, args: {
     const changes = { superseded_at: ctx.nowIso(), superseded_reason: args.changeReason };
     tx.update("meal_plan", args.predecessor.id, changes, { ...args.predecessor, ...changes });
   }
-  const canonicalJson = json({ entries: args.entries });
+  const canonicalJson = json({ entries: args.entries, batch_day: args.preview.batch_day ?? null });
   const previewJson = json(args.preview);
   assertPersistedPlanPayload(canonicalJson, previewJson);
   const [planId] = await tx.createMany("meal_plan", [{
@@ -571,7 +571,11 @@ const saveMealPlan = writeTool({
     const predecessor = input.plan_id === undefined ? null : await planById(ctx, input.plan_id);
     if (predecessor) assertCurrent(predecessor, input.expected_revision!);
     const normalizedEntries = orderedEntries(input.entries as MealInput[]);
-    const preview = await previewMealPlanInput(ctx, { entries: normalizedEntries, batch_day: input.batch_day });
+    // batch_day is a plan parameter: a revision keeps the predecessor's when
+    // the caller does not name a new one.
+    const inheritedBatchDay = predecessor === null ? null : ((JSON.parse(predecessor.canonical_json) as { batch_day?: number | null }).batch_day ?? null);
+    const batchDay = input.batch_day !== undefined ? input.batch_day : inheritedBatchDay ?? undefined;
+    const preview = await previewMealPlanInput(ctx, { entries: normalizedEntries, batch_day: batchDay });
     if (input.status === "active") await assertNoActiveOverlap(ctx, preview.from, preview.to, predecessor?.id ?? null);
     const row = await stagePlanGraph(ctx, { name: input.name, status: input.status, entries: normalizedEntries, preview, changeReason: input.change_reason, predecessor });
     return { action: predecessor ? "revised" : "created", plan: publicPlan(row), preview };
@@ -640,6 +644,13 @@ const settlePrepTask = writeTool({
   async run(ctx, input) {
     const row = await first<PrepTaskRow>(ctx.db, "SELECT * FROM prep_task WHERE id = ? AND household_id = ?", input.task_id, ctx.householdId);
     if (!row) throw new ToolError("not_found", `no prep task ${input.task_id}`, 404);
+    if (ctx.caller.kind === "member" && row.who === "eater") {
+      const name = (await ctx.memberById(ctx.caller.memberId)).name.trim().toLowerCase();
+      const assignees = (JSON.parse(row.canonical_json) as { assignees?: string[] }).assignees ?? [];
+      if (!assignees.some((assignee) => assignee.trim().toLowerCase() === name)) {
+        throw new ToolError("not_visible", "this prep task belongs to another member", 403);
+      }
+    }
     const pending = input.status === "pending";
     const changes = {
       status: input.status,

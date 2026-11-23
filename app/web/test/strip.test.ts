@@ -46,6 +46,11 @@ describe("buildStrip", () => {
     expect(buildStrip(needs({ cards: [], more: [] }), TZ)).toBeNull();
   });
 
+  it("turns a due prep card into a link to the Prep strip, never an undefined card", () => {
+    const prep = buildStrip(needs({ cards: [{ rule: "prep", count: 2, tasks: [{ task_id: 1, action: "Soak", due_on: "2026-10-06" }], message: "2 prep tasks due now: Soak." }], more: [] }), TZ);
+    expect(prep?.cards[0]).toEqual({ key: "prep", text: "2 prep tasks due now: Soak.", action: { kind: "link", label: "See prep", href: "#prep" } });
+  });
+
   it("opens the Reading tab from a reading cadence's card, on its metric and body state; any other cadence opens Progress", () => {
     const weigh = buildStrip(needs({ cards: [{ rule: "measurement", cadence: "fasted_weight", metric: "weight", body_state: "fasted", last: null, message: "Log a fasted weight." }], more: [] }), TZ);
     expect(weigh?.cards[0]).toEqual({ key: "measurement:fasted_weight", text: "Log a fasted weight.", action: { kind: "reading", label: "Log a reading", metric: "weight", bodyState: "fasted" } });

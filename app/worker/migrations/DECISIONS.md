@@ -266,4 +266,8 @@ Choices made while turning the schema tickets into D1 migrations, where the spec
     immutable (a plan revision inserts a successor's rows and carries the
     old state), and only `status`/`settled_*` may change. Nothing existing
     is rewritten: a recipe with no steps and a plan with no prep read
-    exactly as before.
+    exactly as before. `prep_task.window_start`/`window_end` are the one
+    deliberate exception to rule 2: they store household-local wall clock
+    (`YYYY-MM-DDTHH:MM`), the form the member reads, never UTC; a CHECK
+    holds the format and `window_start <= window_end`, and `due_on` stays
+    the calendar date for ordering.

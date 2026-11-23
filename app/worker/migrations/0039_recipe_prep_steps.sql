@@ -55,8 +55,10 @@ CREATE TABLE prep_task (
   who             TEXT    NOT NULL CHECK (who IN ('eater', 'cook', 'anyone')),
   status          TEXT    NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'done', 'skipped')),
   due_on          TEXT    NOT NULL CHECK (date(due_on) IS due_on),
-  window_start    TEXT    NOT NULL,
-  window_end      TEXT    NOT NULL,
+  -- The window is household-local wall clock (YYYY-MM-DDTHH:MM), the form
+  -- the member reads; `due_on` stays the calendar date for ordering.
+  window_start    TEXT    NOT NULL CHECK (window_start GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]'),
+  window_end      TEXT    NOT NULL CHECK (window_end GLOB '[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]' AND window_end >= window_start),
   settled_on      TEXT    CHECK (settled_on IS NULL OR date(settled_on) IS settled_on),
   settled_by      INTEGER REFERENCES member (id),
   settled_reason  TEXT    CHECK (settled_reason IS NULL OR length(trim(settled_reason)) BETWEEN 1 AND 1000),

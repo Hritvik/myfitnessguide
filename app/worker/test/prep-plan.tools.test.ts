@@ -119,8 +119,12 @@ describe("recipe prep steps", () => {
     });
     expect(amended.recipe.prep_steps).toHaveLength(1);
     expect(amended.recipe.prep_steps[0].lead_max_h).toBe(14);
-    const versions = x.t.all("SELECT count(*) AS n FROM record_version WHERE table_name = 'recipe_prep_step'")[0]!.n;
-    expect(Number(versions)).toBeGreaterThanOrEqual(3);
+    const stepId = amended.recipe.prep_steps[0].id;
+    const history = x.t.all("SELECT record_id, data FROM record_version WHERE table_name = 'recipe_prep_step' AND record_id = ? ORDER BY version", stepId);
+    expect(history.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(history.map((row) => row.record_id)).size).toBe(1);
+    expect(JSON.parse(history[0]!.data as string).lead_max_h).toBe(12);
+    expect(JSON.parse(history.at(-1)!.data as string).lead_max_h).toBe(14);
   });
 });
 
@@ -141,13 +145,18 @@ describe("plan prep schedule", () => {
 
     const cook = schedule.find((t) => t.action === "Pressure-cook")!;
     expect(cook.who).toBe("cook");
+    expect(cook.window_start.slice(0, 10)).toBe(WED);
     expect(cook.parts.map((p: any) => p.storage)).toEqual(["fridge", "freezer"]);
+    expect(merged.quantity.find((q: any) => q.food === "kala chana").value).toBe(140);
     expect(cook.parts.find((p: any) => p.storage === "freezer").for).toEqual([{ date: SUN, meal_slot: "lunch", meal: c.chole }]);
     const thaw = schedule.find((t) => t.action.startsWith("Move the frozen"))!;
     expect(thaw).toMatchObject({ who: "eater", assignees: ["Hritvik"], for: [{ date: SUN }] });
+    expect(thaw.window_start.slice(0, 10)).toBe("2026-11-28");
 
     expect(schedule.filter((t) => t.action === "Assemble overnight oats")).toHaveLength(3);
-    expect(schedule.filter((t) => t.action === "Chop onion and capsicum")).toHaveLength(4);
+    const chops = schedule.filter((t) => t.action === "Chop onion and capsicum");
+    expect(chops).toHaveLength(4);
+    expect(chops.every((t) => t.assignees.length === 1 && t.assignees[0] === "Hritvik")).toBe(true);
     const masala = schedule.find((t) => t.action.startsWith("Make the onion"))!;
     expect(masala.window_start.slice(0, 10)).toBe(MON);
   });
@@ -161,15 +170,23 @@ describe("plan prep schedule", () => {
     expect(sheet.tasks.every((t: any) => t.who === "cook")).toBe(true);
     expect(sheet.meals.find((m: any) => m.meal_slot === "dinner").dishes).toEqual([c.kala]);
     expect(sheet.meals.flatMap((m: any) => m.dishes)).not.toContain("Assemble overnight oats");
+    const memberDay = await x.ok("day_prep", { member: "Hritvik", date: WED });
+    expect(memberDay.tasks.every((t: any) => t.who !== "cook")).toBe(true);
+    const tooLong = await x.call("cook_sheet", { date: WED, to: "2026-12-03" });
+    expect([tooLong.http, tooLong.body.error.code]).toEqual([400, "invalid_period"]);
   });
 
   it("returns no schedule when no planned recipe has steps, and identical totals", async () => {
     const x = setup();
     const c = await catalogue(x);
-    const entries = [meal(MON, "lunch", c.bhurji), meal(MON, "dinner", c.bhurji)];
-    const reply = await x.ok("preview_meal_plan", { entries });
-    expect(reply.prep_schedule).toEqual([]);
-    expect(reply.meals).toHaveLength(2);
+    const entries = [meal(TUE, "lunch", c.penne), meal(WED, "lunch", c.penne)];
+    const withSteps = await x.ok("preview_meal_plan", { entries });
+    expect(withSteps.prep_schedule.length).toBeGreaterThan(0);
+    await x.ok("update_recipe", { recipe: c.penne, change_reason: "no prep", patch: { prep_steps: null } });
+    const without = await x.ok("preview_meal_plan", { entries });
+    expect(without.prep_schedule).toEqual([]);
+    expect(without.meals).toEqual(withSteps.meals);
+    expect(without.members).toEqual(withSteps.members);
   });
 
   it("persists the schedule, keeps a settled task done across a revision, and fills prepared batches", async () => {
@@ -180,22 +197,32 @@ describe("plan prep schedule", () => {
     const planId = saved.plan.id;
     const read = await x.ok("meal_plan", { plan_id: planId });
     expect(read.prep_tasks.length).toBe(saved.preview.prep_schedule.length);
+    expect(read.proposal.batch_day).toBe(1);
 
     const soakTask = read.prep_tasks.find((t: any) => t.action === "Soak");
     const settled = await x.ok("settle_prep_task", { task_id: soakTask.id, status: "done" }, "hritvik");
     expect(settled.task.status).toBe("done");
+    const oats = read.prep_tasks.find((t: any) => t.action === "Assemble overnight oats");
+    const denied = await x.call("settle_prep_task", { task_id: oats.id, status: "done" }, "asha");
+    expect([denied.http, denied.body.error.code]).toEqual([403, "not_visible"]);
 
+    // No batch_day: the revision inherits the plan's own parameter.
     const revised = await x.ok("save_meal_plan", {
       plan_id: planId, expected_revision: 1, name: "Hritvik fat-loss week 23-29 Nov 2026",
-      status: "active", entries, batch_day: 1, change_reason: "keep the plan",
+      status: "active", entries, change_reason: "keep the plan",
     });
+    expect(revised.preview.batch_day).toBe(1);
     const after = await x.ok("meal_plan", { plan_id: revised.plan.id });
     expect(after.prep_tasks.find((t: any) => t.task_key === soakTask.task_key).status).toBe("done");
 
-    // A pot cooked with shares not decided is an open batch.
-    await x.ok("household_meal", { date: TUE, meal_slot: "dinner", cooks: [{ name: "Dal", lines: [cookLineOf(await food(x, "masoor"))], portions: [] }], items: [] });
+    // A pot cooked with shares not decided is an open batch, until a
+    // disposition settles it.
+    const pot = await x.ok("household_meal", { date: TUE, meal_slot: "dinner", cooks: [{ name: "Dal", lines: [cookLineOf(await food(x, "masoor"))], portions: [] }], items: [] });
     const context = await x.ok("household_planning_context", { from: TUE, to: TUE });
     expect(context.prepared_batches).toEqual([expect.objectContaining({ cook: "Dal", fraction: expect.any(Number) })]);
+    await x.ok("mark_remainder", { component_id: pot.cooks[0].components[0].id, disposition: "discarded", provenance: "estimated" }, "hritvik");
+    const settledPot = await x.ok("household_planning_context", { from: TUE, to: TUE });
+    expect(settledPot.prepared_batches).toEqual([]);
   });
 });
 
@@ -205,10 +232,9 @@ describe("next prep after a logged meal", () => {
     const c = await catalogue(x);
     await x.ok("save_meal_plan", { name: "Week", status: "active", entries: planOne(c), batch_day: 1, change_reason: "plan" });
     const logged = await x.ok("household_meal", { date: TUE, meal_slot: "dinner", cooks: [{ name: "Soya-stuffed capsicum", recipe: c.capsicum, portions: [{ member: "Hritvik", fraction: 1, provenance: "estimated" }] }], items: [] });
-    const actions = logged.next_prep.map((t: any) => t.action);
-    expect(actions).toContain("Soak");
-    expect(actions).toContain("Chop onion and capsicum");
-    expect(actions.some((a: string) => a.startsWith("Assemble overnight oats"))).toBe(false);
+    const actions = logged.next_prep.map((t: any) => t.action).sort();
+    expect(actions).toEqual(["Chop onion and capsicum", "Soak"]);
+    expect(logged.next_prep.some((t: any) => t.who === "cook")).toBe(false);
     const soak = logged.next_prep.find((t: any) => t.action === "Soak");
     expect(soak.quantity.map((q: any) => q.food).sort()).toEqual(["kabuli chana", "kala chana"]);
   });
