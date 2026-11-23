@@ -5,7 +5,7 @@ import type { Ctx } from "../context";
 import { all, first, type Row } from "../db";
 import { Clarify, ToolError } from "../errors";
 import { bestScore, EVERY_WORD, nameDistance, NEAR_SPELLING, prepareQuery } from "../fuzzy";
-import { describeRecipe, findRecipe, loadRecipeLines, RecipeBook, type RecipeLineRow, type RecipeRow } from "../recipes";
+import { describeRecipe, findRecipe, loadRecipeLines, loadRecipeSteps, RecipeBook, type RecipeLineRow, type RecipePrepStepRow, type RecipeRow } from "../recipes";
 import { readTool, writeTool, type Tool } from "../tool";
 import { ExerciseIndex } from "../training";
 import { loadWorkouts } from "../workouts";
@@ -204,11 +204,78 @@ const recipeLine = z.object({
   note: z.string().optional(),
 }).strict();
 
+/** One ordered prep operation on a recipe: the soak, the batch, the evening assembly. */
+const prepStep = z.object({
+  action: z.string().min(1).max(200).describe("The operation, as an imperative: \"Soak\", \"Pressure-cook\", \"Assemble overnight oats\"."),
+  lead: z.enum(["same_meal", "minutes_before", "hours_before", "evening_before", "day_before"]),
+  lead_min_h: z.number().min(0).optional().describe("The nearest the step may be done before the meal, in hours."),
+  lead_max_h: z.number().min(0).optional().describe("The furthest ahead the step may start, in hours (12 for an 8-12 hour soak)."),
+  duration_min: z.number().int().positive().optional(),
+  who: z.enum(["eater", "cook", "anyone"]).optional().describe("Who does it; defaults to anyone."),
+  batchable: z.boolean().optional().describe("Whether several meals can share one batch."),
+  keeps_days: z.number().min(0).optional().describe("Fridge life of the prepared thing, in days."),
+  batch_group: z.string().min(1).max(100).optional().describe("Steps prepared together share a group, so two separate nights' soaks do not merge."),
+  batch_days: z.number().min(0).optional().describe("How many days of consumers one batch may cover; defaults to keeps_days."),
+  storage: z.enum(["fridge", "freezer", "counter"]).optional(),
+  freezer_ok: z.boolean().optional().describe("A batch beyond its fridge life can be frozen and thawed instead of split."),
+  food: z.string().min(1).optional().describe("The food the operation acts on, as a ref, name or alias."),
+  amount_value: z.number().positive().optional(),
+  amount_unit: z.enum(["g", "ml", "piece"]).optional(),
+  note: z.string().max(1000).optional(),
+}).strict().superRefine((step, issue) => {
+  if ((step.amount_value === undefined) !== (step.amount_unit === undefined)) {
+    issue.addIssue({ code: "custom", message: "amount_value and amount_unit go together", path: ["amount_value"] });
+  }
+  if (step.amount_value !== undefined && step.food === undefined) {
+    issue.addIssue({ code: "custom", message: "an amount needs the food it measures", path: ["food"] });
+  }
+  if (step.lead_min_h !== undefined && step.lead_max_h !== undefined && step.lead_max_h < step.lead_min_h) {
+    issue.addIssue({ code: "custom", message: "lead_max_h must be at least lead_min_h", path: ["lead_max_h"] });
+  }
+});
+
+/** The food source a prep step acts on: resolved like an amount when it has one, else by ref, name or alias. */
+function prepFood(cat: Catalogue, step: PrepStepIn, path: (string | number)[]): number {
+  if (step.food === undefined) throw new Error("prepFood needs a food");
+  if (step.amount_value !== undefined && step.amount_unit !== undefined) {
+    return cat.resolve({ food: step.food, value: step.amount_value, unit: step.amount_unit }, [...path, "food"]).row.id;
+  }
+  const k = step.food.trim().toLowerCase();
+  const row = cat.rows.find((r) => r.ref.toLowerCase() === k || r.name.toLowerCase() === k || cat.aliasesOf(r.id).some((a) => a.toLowerCase() === k));
+  if (!row) throw new Clarify("unknown_food", `There is no food called ${step.food}.`, [], [...path, "food"]);
+  return row.id;
+}
+
+type PrepStepIn = z.infer<typeof prepStep>;
+
+function prepStepRow(recipeId: number, position: number, step: PrepStepIn, cat: Catalogue, path: (string | number)[]): Row {
+  return {
+    recipe_id: recipeId,
+    position,
+    action: step.action.trim(),
+    lead: step.lead,
+    lead_min_h: step.lead_min_h ?? null,
+    lead_max_h: step.lead_max_h ?? null,
+    duration_min: step.duration_min ?? null,
+    who: step.who ?? "anyone",
+    batchable: step.batchable === true ? 1 : 0,
+    keeps_days: step.keeps_days ?? null,
+    batch_group: step.batch_group?.trim() ?? null,
+    batch_days: step.batch_days ?? null,
+    storage: step.storage ?? null,
+    freezer_ok: step.freezer_ok === true ? 1 : 0,
+    food_source_id: step.food === undefined ? null : prepFood(cat, step, path),
+    amount_value: step.amount_value ?? null,
+    amount_unit: step.amount_unit ?? null,
+    note: step.note ?? null,
+  };
+}
+
 const upsertRecipe = writeTool({
   name: "upsert_recipe",
   group: GROUP,
   description:
-    "Create a reusable recipe template when the dish is likely to recur or the member asks to save it; log a one-off composed dish as a named cook with household_meal instead. The API allocates its ref (R + the next free number). Supply ingredient lines (resolved like any amount; ambiguity asks), or manual per-serving macros with a reason. Names are unique per household. An existing ref is refused, so a recipe is never replaced whole: change its fields or a line's amount with amend. Returns per-serving nutrients. Confirmed on write.",
+    "Create a reusable recipe template when the dish is likely to recur or the member asks to save it; log a one-off composed dish as a named cook with household_meal instead. The API allocates its ref (R + the next free number). Supply ingredient lines (resolved like any amount; ambiguity asks), or manual per-serving macros with a reason, and optional prep_steps: the ordered soak, batch, cook and assembly operations a meal plan schedules. Names are unique per household. An existing ref is refused, so a recipe is never replaced whole: change its fields or a line's amount with amend. Returns per-serving nutrients. Confirmed on write.",
   input: {
     ref: REF_FIELD,
     name: z.string().min(1),
@@ -219,6 +286,7 @@ const upsertRecipe = writeTool({
     method: z.string().optional(),
     source_assumptions: z.string().optional(),
     lines: z.array(recipeLine).max(MAX_RECIPE_LINES).optional(),
+    prep_steps: z.array(prepStep).max(20).optional().describe("Ordered prep operations the plan can schedule (soak, batch, assemble the night before)."),
     manual_macros: z
       .object({ kcal: z.number().min(0), protein_g: z.number().min(0), carbs_g: z.number().min(0), fat_g: z.number().min(0), reason: z.string().min(1) })
       .strict()
@@ -243,6 +311,7 @@ const upsertRecipe = writeTool({
     }
     const cat = await Catalogue.load(ctx);
     const resolved = lines.map((l, i) => ({ line: l, r: cat.resolve(l, ["lines", i]) }));
+    const prepRows = (input.prep_steps ?? []).map((s, i) => prepStepRow(0, i + 1, s, cat, ["prep_steps", i]));
 
     const m = input.manual_macros;
     const row: Row = {
@@ -264,7 +333,7 @@ const upsertRecipe = writeTool({
     };
     // The recipe's and its lines' next ids in one statement, and the lines in one insert (decision 97, 103):
     // a constant number of statements however many lines; their first versions go in finish()'s one statement.
-    await tx.reserve(["recipe", "recipe_line"]);
+    await tx.reserve(["recipe", "recipe_line", "recipe_prep_step"]);
     const id = await tx.create("recipe", row);
     const lineData = resolved.map(({ line, r }, i) => ({
       recipe_id: id,
@@ -276,10 +345,13 @@ const upsertRecipe = writeTool({
     }));
     const lineIds = await tx.createMany("recipe_line", lineData);
     const lineRows: RecipeLineRow[] = lineData.map((data, i) => ({ id: lineIds[i] as number, ...data }));
+    const stepRows: RecipePrepStepRow[] = prepRows.map((data, i) => ({ ...(data as unknown as RecipePrepStepRow), recipe_id: id, id: 0 }));
+    const stepIds = prepRows.length === 0 ? [] : await tx.createMany("recipe_prep_step", prepRows.map((r) => ({ ...r, recipe_id: id })));
+    stepRows.forEach((s, i) => { s.id = stepIds[i]; });
     return {
       action: "created",
       state: "confirmed",
-      recipe: describeRecipe(cat, { id, ...row } as unknown as RecipeRow, lineRows),
+      recipe: describeRecipe(cat, { id, ...row } as unknown as RecipeRow, lineRows, stepRows),
     };
   },
 });
@@ -321,7 +393,7 @@ const addRecipeLine = writeTool({
     const data = { recipe_id: recipe.id, position, food_source_id: r.row.id, ...r.stored, link_status: input.line.link_status ?? null, note: input.line.note ?? null };
     const id = await tx.create("recipe_line", data);
     const after = [...lines, { id, ...data } as RecipeLineRow].sort((a, b) => a.position - b.position);
-    return { state: "confirmed", line: { id, position, food: r.row.ref }, recipe: describeRecipe(cat, recipe, after) };
+    return { state: "confirmed", line: { id, position, food: r.row.ref }, recipe: describeRecipe(cat, recipe, after, await loadRecipeSteps(ctx, recipe.id)) };
   },
 });
 
@@ -343,7 +415,7 @@ const removeRecipeLine = writeTool({
     }
     ctx.txOrThrow.remove("recipe_line", line.id as number, line as unknown as Row, "delete");
     const cat = await Catalogue.load(ctx);
-    return { state: "confirmed", removed: { id: line.id, position: line.position }, recipe: describeRecipe(cat, recipe, left) };
+    return { state: "confirmed", removed: { id: line.id, position: line.position }, recipe: describeRecipe(cat, recipe, left, await loadRecipeSteps(ctx, recipe.id)) };
   },
 });
 
@@ -366,6 +438,7 @@ const recipePatch = z.object({
       reason: z.string().min(1),
     }).strict(),
   ]).optional(),
+  prep_steps: z.array(prepStep).max(20).nullable().optional().describe("Replace the recipe's ordered prep steps; null clears them."),
 }).strict();
 
 const recipeOperation = z.discriminatedUnion("action", [
@@ -390,7 +463,7 @@ const updateRecipe = writeTool({
   name: "update_recipe",
   group: GROUP,
   description:
-    "Update one reusable recipe from a discussion in one atomic call, selected by ref, exact name or alias. Patch its name, kind, servings, preparation metadata or explicit derived/manual macro mode, and add, replace, move or remove ingredient lines using the same public amount shapes as recipe creation. Operations run in order; the final recipe is validated before it is saved. Needs a reason and returns the complete recipe with per-serving nutrients recomputed. Under mutable history, corrected recipe nutrition becomes the current best understanding of prior recipe servings; record versions preserve the previous belief. Confirmed on write.",
+    "Update one reusable recipe from a discussion in one atomic call, selected by ref, exact name or alias. Patch its name, kind, servings, preparation metadata, explicit derived/manual macro mode or prep_steps (a replace-all list; null clears), and add, replace, move or remove ingredient lines using the same public amount shapes as recipe creation. Operations run in order; the final recipe is validated before it is saved. Needs a reason and returns the complete recipe with per-serving nutrients recomputed. Under mutable history, corrected recipe nutrition becomes the current best understanding of prior recipe servings; record versions preserve the previous belief. Confirmed on write.",
   input: {
     recipe: z.string().min(1).describe("The recipe's ref."),
     change_reason: z.string().min(1).optional().describe("Why the member wants this recipe changed; public MCP clients should provide it so the audit history keeps their rationale."),
@@ -419,6 +492,9 @@ const updateRecipe = writeTool({
 
     const cat = await Catalogue.load(ctx);
     const original = await loadRecipeLines(ctx, recipe.id);
+    const plannedSteps = input.patch?.prep_steps === undefined
+      ? null
+      : (input.patch.prep_steps ?? []).map((s, i) => prepStepRow(recipe.id, i + 1, s, cat, ["patch", "prep_steps", i]));
     let planned: PlannedRecipeLine[] = original.map((line) => ({
       ...line,
       id: line.id as number,
@@ -472,7 +548,7 @@ const updateRecipe = writeTool({
       }
     }
 
-    const { manual_macros: macroPatch, ...metadataPatch } = input.patch ?? {};
+    const { manual_macros: macroPatch, prep_steps: _stepsPatch, ...metadataPatch } = input.patch ?? {};
     const macroChanges: Row = macroPatch?.mode === "manual"
       ? {
           manual_macros: 1,
@@ -505,6 +581,7 @@ const updateRecipe = writeTool({
     }
 
     const tx = ctx.txOrThrow;
+    await tx.reserve(["recipe_prep_step"]);
     if (Object.keys(parentChanges).length > 0) tx.update("recipe", recipe.id, parentChanges, afterRecipe as unknown as Row);
 
     let finalLines = planned;
@@ -534,6 +611,15 @@ const updateRecipe = writeTool({
 
     const originalIds = new Set(original.map((line) => line.id as number));
     const finalIds = new Set(finalLines.flatMap((line) => (line.id === null ? [] : [line.id])));
+    let finalSteps = await loadRecipeSteps(ctx, recipe.id);
+    if (plannedSteps !== null) {
+      if (finalSteps.length > 0) {
+        tx.versions("recipe_prep_step", "delete", finalSteps.map((step) => ({ id: step.id as number, data: step as unknown as Row })));
+        tx.exec("DELETE FROM recipe_prep_step WHERE recipe_id = ?", recipe.id);
+      }
+      const stepIds = plannedSteps.length === 0 ? [] : await tx.createMany("recipe_prep_step", plannedSteps);
+      finalSteps = plannedSteps.map((data, i) => ({ ...(data as unknown as RecipePrepStepRow), id: stepIds[i] as number }));
+    }
     return {
       action: "updated",
       state: "confirmed",
@@ -543,7 +629,7 @@ const updateRecipe = writeTool({
         updated_line_ids: [...finalIds].filter((id) => originalIds.has(id) && (input.operations?.length ?? 0) > 0),
         removed_line_ids: [...originalIds].filter((id) => !finalIds.has(id)),
       },
-      recipe: { ...describeRecipe(cat, afterRecipe, finalLines as RecipeLineRow[]), source_assumptions: afterRecipe.source_assumptions ?? null },
+      recipe: { ...describeRecipe(cat, afterRecipe, finalLines as RecipeLineRow[], finalSteps), source_assumptions: afterRecipe.source_assumptions ?? null },
     };
   },
 });
@@ -744,7 +830,7 @@ const catalogueLookup = readTool({
       book ??= await RecipeBook.load(ctx, true);
       const recipe = book.find(ref);
       if (recipe) {
-        recipes.push(describeRecipe(cat, recipe, book.lines(recipe.id)));
+        recipes.push(describeRecipe(cat, recipe, book.lines(recipe.id), book.steps(recipe.id)));
         continue;
       }
       missing.push(ref);

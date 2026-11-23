@@ -13,7 +13,7 @@ import { nutritionFrom, type NutritionData, type NutritionPage } from "./nutriti
 import type { ProgressSummaryData, TrajectoryData } from "./progress";
 import { RANGE_DAYS, type Range } from "./route";
 import type { TrainData } from "./train";
-import type { BloodDraws, BodyTrends, Flags, ProgressSummary, WeekSummary, DayCooks, DayMeals, DayTotals, HouseholdOverview, InboxEntry, InventoryGaps, LiftDetail, LiftTrends, NeedsYou, NextPrescription, NutritionTrends, SessionsList, TodayData, WhoAmI } from "./types";
+import type { BloodDraws, BodyTrends, Flags, ProgressSummary, WeekSummary, DayCooks, DayMeals, DayTotals, HouseholdOverview, InboxEntry, InventoryGaps, LiftDetail, LiftTrends, NeedsYou, NextPrescription, NutritionTrends, PrepTaskView, SessionsList, TodayData, WhoAmI } from "./types";
 
 export type Call = (tool: string, input: Record<string, unknown>) => Promise<Outcome>;
 
@@ -36,10 +36,11 @@ export async function loadToday(call: Call, options: { who: Who; viewing: string
   const own = viewing === who.member;
   const day = { member: viewing, date };
 
-  const [totals, meals, cooks, needs, next, inbox] = await Promise.all([
+  const [totals, meals, cooks, prep, needs, next, inbox] = await Promise.all([
     call("day_totals", day),
     call("day_meals", day),
     call("day_cooks", day),
+    call("day_prep", day),
     own && date === who.today ? call("needs_you", { member: viewing }) : null,
     call("next_prescription", { member: viewing, date }),
     // Your texts still waiting for Claude (decision 75): the Worker gives only the texts you sent, naming nobody (decision 110).
@@ -63,6 +64,7 @@ export async function loadToday(call: Call, options: { who: Who; viewing: string
       meals: optional<DayMeals>(meals) as DayMeals,
       cooks: optional<DayCooks>(cooks) as DayCooks,
       needs: optional<NeedsYou>(needs),
+      prep: optional<{ tasks: PrepTaskView[] }>(prep)?.tasks ?? [],
       timeZone: who.time_zone,
       next: optional<NextPrescription>(next),
       waiting: waitingAbout(optional<{ entries: InboxEntry[] }>(inbox)?.entries ?? [], viewing).filter((e) => e.date === date),

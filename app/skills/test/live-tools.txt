@@ -1,4 +1,4 @@
-# Tool names expected from the current Worker registry: 113 tools, 61 writes, 52 reads.
+# Tool names expected from the current Worker registry: 116 tools, 62 writes, 54 reads.
 # After deployment, verify this list with `npm run smoke -w @myfitnessguide/mcp`.
 analytics
 household_meal
@@ -8,6 +8,7 @@ preview_meal_plan
 save_meal_plan
 meal_plan
 set_meal_plan_archived
+settle_prep_task
 log_intake
 correct_intake
 day_totals
@@ -100,6 +101,8 @@ programme_change
 query
 whoami
 day_meals
+day_prep
+cook_sheet
 day_cooks
 needs_you
 waiting

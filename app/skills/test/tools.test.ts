@@ -119,6 +119,8 @@ const RESULT_VOCABULARY = new Set([
   "known", // a nutrient's coverage: the parts known of `of`
   "of",
   "value_coverage", // analytics: known metric values among the logged rows in a bucket
+  "prep_schedule", // preview_meal_plan / save_meal_plan: the dated tasks a plan derives
+  "next_prep", // log_intake / household_meal: the tasks due now for the member
 ]);
 
 const vocabulary = new Set([...schemaVocabulary(), ...viewNames(), ...RESULT_VOCABULARY]);

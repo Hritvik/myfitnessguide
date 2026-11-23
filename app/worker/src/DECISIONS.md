@@ -1867,3 +1867,44 @@ surface* as closely as possible. Hritvik can veto any line.
    design: `add_legacy_audit_entry` records the imported Sheets history, and
    no read exposes it (a deliberate record, not a gap).
    Test: `owner-note-reads.tools.test.ts`, the browser privacy table.
+
+169. **Prep is structured on the recipe, and its schedule is durable**
+   (handover, 23 Nov 2026). `recipe_prep_step` holds one ordered operation:
+   action, lead (`same_meal` … `day_before`), who (`eater` / `cook` /
+   `anyone`), and the batch fields (`batchable`, `keeps_days`, `batch_days`,
+   `freezer_ok`, `batch_group`). The action is the operation ("Soak"), with
+   food and amount as columns, so two soaks can merge into one task with a
+   combined quantity. `batch_group` keeps two different nights' pulses
+   apart even when both are within one shelf life. Steps are written through
+   `upsert_recipe` / `update_recipe` (a replace-all list, versioned with the
+   reason); a recipe without steps describes exactly as before
+   (`prep_steps: []`).
+   The rule is the domain's `buildPrepSchedule`; `preview_meal_plan` and
+   `save_meal_plan` run it and return `prep_schedule`. A saved plan also
+   stores one `prep_task` per task, keyed by a stable `task_key`, so a
+   successor revision keeps a settled soak settled; task content is
+   immutable and only `status` changes (`settle_prep_task`). Work whose
+   window had to open before the plan starts is not the plan's to ask for.
+   `batch_day` (0 Sunday … 6 Saturday) is an optional plan parameter: a
+   batch moves to that day only when it does not delay the first meal.
+   Test: `prep-plan.tools.test.ts`, `app/domain/test/prep.test.ts`.
+
+170. **The cook is a household role, not a member** (handover, 23 Nov 2026).
+   A step whose `who` is `cook` stays household-level; it is never assigned
+   to a pseudo-member and never appears in a member's `next_prep` or due
+   lines. `cook_sheet` is the cook's list (planned dishes plus every pending cook
+   task, no member needed); `day_prep` and the phone app's Prep strip show
+   the eater's and `anyone` tasks. `next_prep`
+   looks eighteen hours ahead from the household wall clock, so the soak for
+   tomorrow's dinner is offered tonight while the oats for a breakfast two
+   days out are not.
+
+171. **`prepared_batches` is the open cooked batch, not a shopping list**
+   (handover, 23 Nov 2026). `household_planning_context` returns confirmed
+   cooks from the last seven days whose component still has an unaccounted
+   remainder and no disposition, with the unaccounted fraction. It is the
+   first half of layer 3: a real batch is already a `cook`, eaten later
+   through `leftover_serving`. Letting a planned meal draw from a batch by
+   reference is still open and needs its own decision before the plan
+   contract grows.
+   Test: `prep-plan.tools.test.ts`, `query-budget.test.ts`.

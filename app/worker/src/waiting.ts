@@ -13,6 +13,7 @@ import { all, first } from "./db";
 import { draftsAbout, householdDrafts, visibleDrafts, type DraftInfo } from "./drafts";
 import { capHandoffs, groupHandoffs, unitDrafts, waitingCount, type Handoff, type HandoffType, type Logger, type Unit, type Waits } from "./handoffs";
 import { knownValue, NutritionReader, partlyKnown, unknownItems, type IntakeRow } from "./nutrition";
+import { localHoursFromNow, NEXT_PREP_HORIZON_H } from "./prep";
 import { openQuestions } from "./questions";
 import { firstWriteSql, LOGGED_BY } from "./records";
 import { cadenceStatus, nextSessionPlan, progressionsOf, type PrescriptionState } from "./training";
@@ -117,6 +118,7 @@ export const DUE_LIMIT = 2;
 export type DueLine =
   | { kind: "reading"; cadence_id: number; name: string; message: string; metric: string; body_state: string | null; last: string | null; due_since: string | null }
   | { kind: "cadence"; cadence_id: number; name: string; message: string; last: string | null; due_since: string | null }
+  | { kind: "prep"; task_id: number; action: string; who: string; due_on: string; window_start: string; window_end: string; message: string }
   | { kind: "flag"; flag_id: number; subject: string; due_on: string; window_days: number };
 
 /**
@@ -143,7 +145,27 @@ export async function dueLines(ctx: Ctx, member: Member, today: string): Promise
     member.id,
     addDays(today, FLAG_WINDOW_DAYS),
   );
-  return [...lines, ...flags.map((f): DueLine => ({ kind: "flag", flag_id: f.id, subject: f.subject, due_on: f.due_on, window_days: FLAG_WINDOW_DAYS }))];
+  // Prep whose window is open now (or opens within the horizon), one statement.
+  const horizon = localHoursFromNow(ctx, NEXT_PREP_HORIZON_H);
+  const floor = localHoursFromNow(ctx, -24);
+  const prepRows = await all<{ id: number; action: string; who: string; due_on: string; window_start: string; window_end: string; canonical_json: string }>(
+    ctx.db,
+    `SELECT t.id, t.action, t.who, t.due_on, t.window_start, t.window_end, t.canonical_json
+       FROM prep_task t JOIN meal_plan p ON p.id = t.meal_plan_id
+      WHERE t.household_id = ?1 AND p.status = 'active' AND p.archived_at IS NULL AND p.superseded_at IS NULL
+        AND t.status = 'pending' AND t.window_start <= ?2 AND t.window_end >= ?3
+      ORDER BY t.window_start, t.id LIMIT 6`,
+    ctx.householdId, horizon, floor,
+  );
+  const name = member.name.trim().toLowerCase();
+  const prep: DueLine[] = [];
+  for (const row of prepRows) {
+    if (row.who === "cook") continue;
+    const assignees = (JSON.parse(row.canonical_json) as { assignees?: string[] }).assignees ?? [];
+    if (row.who === "eater" && !assignees.some((assignee) => assignee.trim().toLowerCase() === name)) continue;
+    prep.push({ kind: "prep", task_id: row.id, action: row.action, who: row.who, due_on: row.due_on, window_start: row.window_start, window_end: row.window_end, message: row.action });
+  }
+  return [...prep, ...lines, ...flags.map((f): DueLine => ({ kind: "flag", flag_id: f.id, subject: f.subject, due_on: f.due_on, window_days: FLAG_WINDOW_DAYS }))];
 }
 
 // ---------------------------------------------------------------- the read

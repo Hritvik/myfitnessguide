@@ -246,6 +246,37 @@ describe.each([23, 40])("D1 statements per call, gym with %i implements", (imple
     withinBudget(run, READ_BUDGET);
   });
 
+  it(`meal planning and prep reads: at most ${READ_BUDGET}`, async () => {
+    const { x } = await busyHousehold(implementCount);
+    const recipe = x.t.get("SELECT id, ref FROM recipe ORDER BY id LIMIT 1") as { id: number; ref: string };
+    x.t.insert("recipe_prep_step", {
+      recipe_id: recipe.id, position: 1, action: "Soak", lead: "hours_before", lead_min_h: 8, lead_max_h: 12,
+      who: "anyone", batchable: 1, keeps_days: 1, batch_days: 2, storage: "fridge", freezer_ok: 0,
+      food_source_id: 1, amount_value: 100, amount_unit: "g",
+    });
+    const entries = Array.from({ length: 7 }, (_, day) => {
+      const date = new Date(Date.parse(`${MONDAY}T00:00:00Z`) + day * 86_400_000).toISOString().slice(0, 10);
+      return ["breakfast", "lunch", "dinner"].map((meal_slot) => ({
+        date, meal_slot,
+        cooks: [{ name: recipe.ref, recipe: recipe.ref, portions: [{ member: "Hritvik", fraction: 1, provenance: "estimated" }] }],
+        items: [],
+      }));
+    }).flat();
+    withinBudget(await x.counted("household_planning_context", { from: MONDAY, to: MONDAY }), READ_BUDGET);
+    const preview = await x.counted("preview_meal_plan", { entries, batch_day: 1 });
+    expect(preview.body.prep_schedule.length).toBeGreaterThan(0);
+    withinBudget(preview, READ_BUDGET);
+    const saved = await x.counted("save_meal_plan", { name: "Budget week", status: "active", entries, batch_day: 1, change_reason: "budget" });
+    withinBudget(saved, READ_BUDGET);
+    withinBudget(await x.counted("meal_plan", { plan_id: saved.body.plan.id }), READ_BUDGET);
+    withinBudget(await x.counted("day_prep", { member: "Hritvik", date: MONDAY }), READ_BUDGET);
+    withinBudget(await x.counted("cook_sheet", { date: MONDAY }), READ_BUDGET);
+    const task = x.t.get("SELECT id FROM prep_task ORDER BY id LIMIT 1") as { id: number };
+    withinBudget(await x.counted("settle_prep_task", { task_id: task.id, status: "done", reason: "budget" }), READ_BUDGET);
+    withinBudget(await x.counted("needs_you", { member: "Hritvik", date: MONDAY }, "hritvik"), READ_BUDGET);
+    withinBudget(await x.counted("waiting", { member: "Hritvik", date: MONDAY }, "hritvik"), READ_BUDGET);
+  });
+
   it(`body_trends: at most ${READ_BUDGET}`, async () => {
     const { x } = await busyHousehold(implementCount);
     const run = await x.counted("body_trends", { member: "Hritvik", metric: "weight", direction: "decrease" }, "hritvik");

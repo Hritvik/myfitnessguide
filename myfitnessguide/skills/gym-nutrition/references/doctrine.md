@@ -25,11 +25,27 @@ Generic guidance that holds for any member. A member's own numbers
 
 ## Meal prep
 
-- One weekly prep session (about two hours) turns every weekday meal
-  into ten minutes of assembly. Soaking pulses overnight and straining
-  curd ahead save most of the time.
-- A cooked masala base is the whole trick: a weeknight dinner becomes
-  heat the base, add a protein, add a vegetable.
+- Prep is **structured**, not prose: a recipe's ordered `prep_steps` say the
+  action, the lead window (`hours_before` 8–12 for a soak, `evening_before`
+  for overnight oats), who does it, and whether a batch can serve several
+  meals (`batchable`, `keeps_days`, `batch_days`, `freezer_ok`). Write them
+  with `upsert_recipe` / `update_recipe`, never only into this note.
+- `preview_meal_plan` and `save_meal_plan` expand those steps into a dated
+  `prep_schedule`: merged same-night soaks, a batch split into fridge and
+  freezer parts with a thaw task, and the cook's tasks separately from the
+  eater's. A plan with no prep steps returns `prep_schedule: []`.
+- After a meal, `log_intake` / `household_meal` return `next_prep`: the tasks
+  whose window opens now (about the next 18 hours) for that member, including
+  household `anyone` tasks but not the cook's.
+- `day_prep` is the phone app's Prep strip; `needs_you` and `waiting` show a
+  due prep task as a due line. `settle_prep_task` marks one done or skipped.
+  Give a cook who is not a household member `cook_sheet`: the day's dishes and
+  the cook's own pending tasks, with no member or health data.
+- One weekly prep session (about two hours) still turns every weekday meal
+  into ten minutes of assembly: set the plan's `batch_day` so the schedule
+  batches there where shelf life allows. A cooked masala base is the whole
+  trick: a weeknight dinner becomes heat the base, add a protein, add a
+  vegetable.
 - Each thing prepared is a **cook**, logged when eaten through `household_meal`
   portions, so every member's portion is counted from the real quantities.
 - The household's own prep plan, quantities, storage times and

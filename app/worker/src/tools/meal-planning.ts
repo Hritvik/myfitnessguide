@@ -1,10 +1,11 @@
-import { addDays, sumNutrients, type NutrientTotals, type ResolvedTarget } from "@myfitnessguide/domain";
+import { addDays, buildPrepSchedule, sumNutrients, type NutrientTotals, type PrepOccurrence, type PrepStep, type ResolvedTarget } from "@myfitnessguide/domain";
 import { z } from "zod";
 import { Catalogue } from "../catalogue";
 import type { Ctx, Member } from "../context";
 import { all, first, type Row } from "../db";
 import { ToolError } from "../errors";
 import { dayViews, NutritionReader, viewOf } from "../nutrition";
+import { loadPlanPrepTasks, preparedBatches, taskOf, type PrepTaskRow } from "../prep";
 import { RecipeBook } from "../recipes";
 import { readTool, writeTool, type Tool } from "../tool";
 import { MEAL_FIELDS, previewMealInput, type MealInput } from "./nutrition";
@@ -42,7 +43,7 @@ const planningContext = readTool({
   name: "household_planning_context",
   group: GROUP,
   description:
-    "Household members, effective resolved nutrition targets and the current active saved plan for a 1–14 day planning period. Excludes private target reasoning and notes.",
+    "Household members, effective resolved nutrition targets, the current active saved plan for a 1–14 day planning period, and prepared_batches: confirmed cooks from the last week whose shares still have an unaccounted remainder. Excludes private target reasoning and notes.",
   input: { from: date, to: date },
   async run(ctx, input) {
     const period = dates(input.from, input.to);
@@ -71,7 +72,7 @@ const planningContext = readTool({
         }),
       })),
       active_plan: activePlan ? publicPlan(activePlan) : null,
-      prepared_batches: [],
+      prepared_batches: await preparedBatches(ctx, ctx.today()),
     };
   },
 });
@@ -98,6 +99,45 @@ export const mealPlanEntries = z.array(entry).min(1).max(MAX_ENTRIES).superRefin
 
 function orderedEntries(entries: readonly MealInput[]): MealInput[] {
   return [...entries].sort((a, b) => a.date.localeCompare(b.date) || a.meal_slot.localeCompare(b.meal_slot));
+}
+
+/** Sunday is 0, matching the domain's weekday helper. */
+const BATCH_DAY = z.number().int().min(0).max(6).optional().describe("Optional weekly batch day: 0 Sunday … 6 Saturday. The schedule batches there when the shelf life allows.");
+
+/** Every planned cook's recipe steps, resolved into the domain's plain occurrences. */
+function prepOccurrences(ordered: readonly MealInput[], book: RecipeBook, cat: Catalogue): PrepOccurrence[] {
+  const occurrences: PrepOccurrence[] = [];
+  for (const meal of ordered) {
+    for (const cook of meal.cooks) {
+      if (cook.recipe === undefined) continue;
+      const recipe = book.find(cook.recipe);
+      if (!recipe) continue;
+      const eaters = [...new Set((cook.portions ?? []).map((portion) => portion.member))];
+      for (const row of book.steps(recipe.id)) {
+        const food = row.food_source_id === null ? null : cat.row(row.food_source_id);
+        const step: PrepStep = {
+          action: row.action,
+          lead: row.lead,
+          lead_min_h: row.lead_min_h,
+          lead_max_h: row.lead_max_h,
+          duration_min: row.duration_min,
+          who: row.who,
+          batchable: row.batchable === 1,
+          keeps_days: row.keeps_days,
+          batch_group: row.batch_group,
+          batch_days: row.batch_days,
+          storage: row.storage,
+          freezer_ok: row.freezer_ok === 1,
+          food: food === null ? null : food.name,
+          amount_value: row.amount_value,
+          amount_unit: row.amount_unit,
+          note: row.note,
+        };
+        occurrences.push({ date: meal.date, meal_slot: meal.meal_slot, meal: cook.name, recipe: recipe.ref, eaters, step });
+      }
+    }
+  }
+  return occurrences;
 }
 
 function coverage(totals: NutrientTotals): Record<Macro, { known: number; of: number }> {
@@ -132,14 +172,14 @@ const previewMealPlan = readTool({
   name: "preview_meal_plan",
   group: GROUP,
   description:
-    "Preview up to 14 days/84 meal occasions for the household without writing. Uses preview_meal's canonical food, recipe, portion and nutrition resolution. Every cook needs explicit portions; use [] when shares are not decided. Returns per-meal, member and day totals, target deltas, coverage and honest incomplete issues.",
-  input: { entries: mealPlanEntries },
+    "Preview up to 14 days/84 meal occasions for the household without writing. Uses preview_meal's canonical food, recipe, portion and nutrition resolution. Every cook needs explicit portions; use [] when shares are not decided. Returns per-meal, member and day totals, target deltas, coverage, honest incomplete issues, and prep_schedule: the dated prep tasks the planned recipes' prep_steps derive (merged soaks, batched cooks split into fridge and freezer parts with a thaw, and who does each). batch_day (0 Sunday … 6 Saturday) is the optional weekly batch session.",
+  input: { entries: mealPlanEntries, batch_day: BATCH_DAY },
   async run(ctx, input) {
     return previewMealPlanInput(ctx, input);
   },
 });
 
-export async function previewMealPlanInput(ctx: Ctx, input: { entries: MealInput[] }) {
+export async function previewMealPlanInput(ctx: Ctx, input: { entries: MealInput[]; batch_day?: number }) {
     const ordered = orderedEntries(input.entries);
     const firstEntry = ordered[0] as MealInput;
     const lastEntry = ordered[ordered.length - 1] as MealInput;
@@ -215,7 +255,9 @@ export async function previewMealPlanInput(ctx: Ctx, input: { entries: MealInput
       return { member: member.name, totals: honestTotals(sumNutrients(rawTotals)), days };
     });
 
-    return { from, to, meals, members, issues };
+    const prepSchedule = buildPrepSchedule(prepOccurrences(ordered, book, cat), { batch_day: input.batch_day ?? null, from });
+
+    return { from, to, meals, members, issues, prep_schedule: prepSchedule };
 }
 
 type PlanRow = Row & {
@@ -326,7 +368,7 @@ async function stagePlanGraph(ctx: Ctx, args: {
   archivedReason?: string | null;
 }) {
   const tx = ctx.txOrThrow;
-  await tx.reserve(["meal_plan", "meal_plan_entry", "meal_plan_component", "meal_plan_ingredient_snapshot", "meal_plan_allocation"]);
+  await tx.reserve(["meal_plan", "meal_plan_entry", "meal_plan_component", "meal_plan_ingredient_snapshot", "meal_plan_allocation", "prep_task"]);
   if (args.predecessor) {
     const changes = { superseded_at: ctx.nowIso(), superseded_reason: args.changeReason };
     tx.update("meal_plan", args.predecessor.id, changes, { ...args.predecessor, ...changes });
@@ -393,6 +435,36 @@ async function stagePlanGraph(ctx: Ctx, args: {
           .find((resolved) => resolved.member.trim().toLowerCase() === portion.member.trim().toLowerCase() && resolved.component.trim().toLowerCase() === component.name.trim().toLowerCase()) ?? null,
       }),
     }))));
+  // A revision keeps a done soak done: the task key is stable, so state
+  // carries from the predecessor revision.
+  const priorStates = args.predecessor === null
+    ? []
+    : await all<{ task_key: string; status: "pending" | "done" | "skipped"; settled_on: string | null; settled_by: number | null; settled_reason: string | null }>(
+      ctx.db,
+      "SELECT task_key, status, settled_on, settled_by, settled_reason FROM prep_task WHERE meal_plan_id = ?",
+      args.predecessor.id,
+    );
+  const prior = new Map(priorStates.map((state) => [state.task_key, state]));
+  await tx.createMany("prep_task", args.preview.prep_schedule.map((task) => {
+    const state = prior.get(task.task_key);
+    const status = state?.status ?? "pending";
+    return {
+      household_id: ctx.householdId,
+      meal_plan_id: planId,
+      task_key: task.task_key,
+      action: task.action,
+      who: task.who,
+      status,
+      due_on: task.due_by.slice(0, 10),
+      window_start: task.window_start,
+      window_end: task.window_end,
+      settled_on: status === "pending" ? null : state?.settled_on ?? null,
+      settled_by: status === "pending" ? null : state?.settled_by ?? null,
+      settled_reason: status === "pending" ? null : state?.settled_reason ?? null,
+      canonical_json: json(task),
+      created_at: ctx.nowIso(),
+    };
+  }));
   return {
     id: planId!, household_id: ctx.householdId, name: args.name.trim(), status: args.status,
     revision: (args.predecessor?.revision ?? 0) + 1, effective_from: args.preview.from, effective_to: args.preview.to,
@@ -428,7 +500,7 @@ async function stagePlanClone(ctx: Ctx, args: {
       JOIN meal_plan_entry e ON e.id = c.meal_plan_entry_id WHERE e.meal_plan_id = ? ORDER BY e.position, c.position, a.position`, args.predecessor.id,
   );
   const tx = ctx.txOrThrow;
-  await tx.reserve(["meal_plan", "meal_plan_entry", "meal_plan_component", "meal_plan_ingredient_snapshot", "meal_plan_allocation"]);
+  await tx.reserve(["meal_plan", "meal_plan_entry", "meal_plan_component", "meal_plan_ingredient_snapshot", "meal_plan_allocation", "prep_task"]);
   const changes = { superseded_at: ctx.nowIso(), superseded_reason: args.changeReason };
   tx.update("meal_plan", args.predecessor.id, changes, { ...args.predecessor, ...changes });
   const [planId] = await tx.createMany("meal_plan", [{
@@ -464,6 +536,13 @@ async function stagePlanClone(ctx: Ctx, args: {
     meal_plan_component_id: componentId.get(allocation.meal_plan_component_id)!, member_id: allocation.member_id,
     position: allocation.position, canonical_json: allocation.canonical_json,
   })));
+  // The schedule is part of the revision, and its state rides along.
+  tx.exec(
+    `INSERT INTO prep_task (household_id, meal_plan_id, task_key, action, who, status, due_on, window_start, window_end, settled_on, settled_by, settled_reason, canonical_json, created_at)
+     SELECT household_id, ?1, task_key, action, who, status, due_on, window_start, window_end, settled_on, settled_by, settled_reason, canonical_json, created_at
+     FROM prep_task WHERE meal_plan_id = ?2`,
+    planId!, args.predecessor.id,
+  );
   return {
     ...args.predecessor,
     id: planId!, revision: args.predecessor.revision + 1, supersedes_meal_plan_id: args.predecessor.id,
@@ -475,13 +554,14 @@ async function stagePlanClone(ctx: Ctx, args: {
 const saveMealPlan = writeTool({
   name: "save_meal_plan",
   group: GROUP,
-  description: "Save a validated household meal-plan draft or active plan without logging food. Supplying plan_id creates an immutable successor and requires expected_revision.",
+  description: "Save a validated household meal-plan draft or active plan without logging food, with its prep schedule stored as durable prep tasks (a successor keeps a settled task settled). Supplying plan_id creates an immutable successor and requires expected_revision.",
   input: {
     plan_id: z.number().int().positive().optional(),
     expected_revision: z.number().int().positive().optional(),
     name: planName,
     status: z.enum(["draft", "active"]),
     entries: mealPlanEntries,
+    batch_day: BATCH_DAY,
     change_reason: changeReason,
   },
   async run(ctx, input) {
@@ -491,7 +571,7 @@ const saveMealPlan = writeTool({
     const predecessor = input.plan_id === undefined ? null : await planById(ctx, input.plan_id);
     if (predecessor) assertCurrent(predecessor, input.expected_revision!);
     const normalizedEntries = orderedEntries(input.entries as MealInput[]);
-    const preview = await previewMealPlanInput(ctx, { entries: normalizedEntries });
+    const preview = await previewMealPlanInput(ctx, { entries: normalizedEntries, batch_day: input.batch_day });
     if (input.status === "active") await assertNoActiveOverlap(ctx, preview.from, preview.to, predecessor?.id ?? null);
     const row = await stagePlanGraph(ctx, { name: input.name, status: input.status, entries: normalizedEntries, preview, changeReason: input.change_reason, predecessor });
     return { action: predecessor ? "revised" : "created", plan: publicPlan(row), preview };
@@ -501,12 +581,17 @@ const saveMealPlan = writeTool({
 const mealPlan = readTool({
   name: "meal_plan",
   group: GROUP,
-  description: "Read one household meal-plan revision, including its saved canonical proposal and the preview calculated when it was saved.",
+  description: "Read one household meal-plan revision, including its saved canonical proposal, the preview calculated when it was saved, and its prep_tasks with their done/skipped state.",
   input: { plan_id: z.number().int().positive() },
   async run(ctx, input) {
     const row = await planById(ctx, input.plan_id);
     const links = await planLinks(ctx, row);
-    return { plan: publicPlan(row, links.supersededBy, links.currentId), proposal: JSON.parse(row.canonical_json), preview: JSON.parse(row.preview_json) };
+    return {
+      plan: publicPlan(row, links.supersededBy, links.currentId),
+      proposal: JSON.parse(row.canonical_json),
+      preview: JSON.parse(row.preview_json),
+      prep_tasks: (await loadPlanPrepTasks(ctx, row.id)).map(taskOf),
+    };
   },
 });
 
@@ -543,4 +628,28 @@ const setMealPlanArchived = writeTool({
   },
 });
 
-export const MEAL_PLANNING_TOOLS: Tool[] = [planningContext, previewMealPlan, saveMealPlan, mealPlan, setMealPlanArchived];
+const settlePrepTask = writeTool({
+  name: "settle_prep_task",
+  group: GROUP,
+  description: "Mark a prep task done, skipped, or pending again, with a reason (required for a skip). A done or skipped task leaves today's prep list and the 'next prep' hint but stays in the plan's history.",
+  input: {
+    task_id: z.number().int().positive(),
+    status: z.enum(["done", "skipped", "pending"]),
+    reason: z.string().trim().min(1).max(MAX_PLAN_NOTE).optional(),
+  },
+  async run(ctx, input) {
+    const row = await first<PrepTaskRow>(ctx.db, "SELECT * FROM prep_task WHERE id = ? AND household_id = ?", input.task_id, ctx.householdId);
+    if (!row) throw new ToolError("not_found", `no prep task ${input.task_id}`, 404);
+    const pending = input.status === "pending";
+    const changes = {
+      status: input.status,
+      settled_on: pending ? null : ctx.today(),
+      settled_by: pending ? null : ctx.caller.kind === "member" ? ctx.caller.memberId : null,
+      settled_reason: pending ? null : input.reason ?? (input.status === "done" ? "Marked done." : "Marked skipped."),
+    };
+    ctx.txOrThrow.update("prep_task", row.id, changes, { ...row, ...changes });
+    return { state: "confirmed", task: taskOf({ ...row, ...changes }) };
+  },
+});
+
+export const MEAL_PLANNING_TOOLS: Tool[] = [planningContext, previewMealPlan, saveMealPlan, mealPlan, setMealPlanArchived, settlePrepTask];

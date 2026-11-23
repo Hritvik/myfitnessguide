@@ -53,6 +53,7 @@ import {
 } from "../training";
 import { canonical } from "./health";
 import { describeSet } from "../sets";
+import { pendingPrepTasks } from "../prep";
 import { dueLines, loadRule, remainderCookIds, remaindersOf, waitingFor, yesterdayOpen, type DueLine } from "../waiting";
 
 const GROUP = "screens";
@@ -460,6 +461,76 @@ const dayCooks = readTool({
   },
 });
 
+// --------------------------------------------------------------- day_prep
+
+const dayPrep = readTool({
+  name: "day_prep",
+  group: GROUP,
+  description:
+    "One member's pending prep tasks for a date (today by default): the soaks, batch cooks, thawing and evening assemblies whose window opens that day, with who does each, what it is for and its task id. The phone app's Prep strip reads this; settle a finished or skipped task with settle_prep_task.",
+  input: { member: z.string().min(1).optional(), date: date.optional().describe("Today, by default.") },
+  async run(ctx, input) {
+    const member = input.member !== undefined
+      ? await ctx.member(input.member)
+      : ctx.caller.kind === "member" ? await ctx.memberById(ctx.caller.memberId) : null;
+    if (!member) throw new Clarify("member_needed", "Whose prep?", (await ctx.members()).map((m) => m.name), ["member"]);
+    const date = input.date ?? ctx.today();
+    const tasks = await pendingPrepTasks(ctx, { from: date, to: addDays(date, 1), member: member.name });
+    return {
+      member: member.name,
+      date,
+      tasks: tasks.filter((task) => task.window_start.slice(0, 10) <= date && task.window_end.slice(0, 10) >= date),
+    };
+  },
+});
+
+// ------------------------------------------------------------- cook_sheet
+
+const cookSheet = readTool({
+  name: "cook_sheet",
+  group: GROUP,
+  description:
+    "A cook's list for a date or up to seven days: the household's planned meals (dish, date, slot, portions) and every pending cook prep task (pressure-cooking, the masala base, thawing) with its window. Household-level and member-free, for a cook who is not a household member; it names no health or private data.",
+  input: { date: date.optional().describe("The first day; today by default."), to: date.optional().describe("The last day, at most six days after the first.") },
+  async run(ctx, input) {
+    const from = input.date ?? ctx.today();
+    const to = input.to ?? from;
+    if (to < from || (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000 > 6) {
+      throw new ToolError("invalid_period", "a cook sheet covers one to seven days", 400);
+    }
+    const tasks = await all<{ canonical_json: string }>(
+      ctx.db,
+      `SELECT t.canonical_json FROM prep_task t JOIN meal_plan p ON p.id = t.meal_plan_id
+        WHERE t.household_id = ?1 AND p.status = 'active' AND p.archived_at IS NULL AND p.superseded_at IS NULL
+          AND t.status = 'pending' AND t.who = 'cook' AND t.window_start <= ?3 AND t.window_end >= ?2
+        ORDER BY t.window_start, t.id`,
+      ctx.householdId, `${from}T00:00`, `${to}T23:59`,
+    );
+    const entries = await all<{ planned_on: string; meal_slot: string; canonical_json: string }>(
+      ctx.db,
+      `SELECT e.planned_on, e.meal_slot, e.canonical_json
+         FROM meal_plan_entry e JOIN meal_plan p ON p.id = e.meal_plan_id
+        WHERE p.household_id = ?1 AND p.status = 'active' AND p.archived_at IS NULL AND p.superseded_at IS NULL
+          AND e.planned_on BETWEEN ?2 AND ?3
+        ORDER BY e.planned_on, e.position`,
+      ctx.householdId, from, to,
+    );
+    return {
+      from, to,
+      tasks: tasks.map((t) => JSON.parse(t.canonical_json)),
+      meals: entries.map((e) => {
+        const meal = JSON.parse(e.canonical_json) as { cooks?: { name: string; portions?: { member: string }[] }[] };
+        return {
+          date: e.planned_on,
+          meal_slot: e.meal_slot,
+          dishes: (meal.cooks ?? []).map((cook) => cook.name),
+          portions: [...new Set((meal.cooks ?? []).flatMap((cook) => (cook.portions ?? []).map((p) => p.member)))],
+        };
+      }),
+    };
+  },
+});
+
 // ------------------------------------------------------------- needs_you
 
 const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
@@ -470,18 +541,21 @@ type NeedsCard =
   | { rule: "yesterday_open"; date: string; items: number; message: string }
   | { rule: "load"; session: string; date: string | null; prescriptions: { prescription_id: number; exercise: string; state: PrescriptionState }[]; message: string }
   | { rule: "flag"; flag_id: number; subject: string; due_on: string; more: number; message: string }
+  | { rule: "prep"; count: number; tasks: { task_id: number; action: string; due_on: string }[]; message: string }
   | { rule: "measurement"; cadence: string; metric: string | null; body_state: string | null; last: string | null; message: string };
 
 const needsYou = readTool({
   name: "needs_you",
   group: GROUP,
   description:
-    "What needs a member's attention, ranked: drafts about them (the count and the oldest's auto-confirm deadline, or why it never auto-confirms), an unaccounted pot remainder (with the pot's date) in the last three days' pots they cooked or ate from, yesterday still open, loads to act on in the next session (ready, needing confirmation, or an unverified step to check at the gym), and, for the member themselves or the agent, a flag due within 7 days and the most overdue measurement. `cards` holds at most 3; `more` the rest.",
+    "What needs a member's attention, ranked: drafts about them (the count and the oldest's auto-confirm deadline, or why it never auto-confirms), an unaccounted pot remainder (with the pot's date) in the last three days' pots they cooked or ate from, yesterday still open, loads to act on in the next session (ready, needing confirmation, or an unverified step to check at the gym), prep that is due now, and, for the member themselves or the agent, a flag due within 7 days and the most overdue measurement. `cards` holds at most 3; `more` the rest.",
   input: { member: z.string().min(1), date: date.optional().describe("Today, by default.") },
   async run(ctx, input) {
     const member = await ctx.member(input.member);
     const today = input.date ?? ctx.today();
     const cards: NeedsCard[] = [];
+    // One due-lines read, used twice: prep now, then the flag and measurement cards.
+    const due = ctx.canSee(member.id) ? await dueLines(ctx, member, today) : [];
 
     // 1. Drafts about the member that the caller may see, oldest first: one statement.
     const drafts = draftsAbout(visibleDrafts(ctx, await householdDrafts(ctx)), member.id);
@@ -513,6 +587,16 @@ const needsYou = readTool({
     const y = await yesterdayOpen(ctx, member.id, today);
     if (y) cards.push({ rule: "yesterday_open", date: y.date, items: y.items, message: `${y.date} is still open (${plural(y.items, "item", "items")}): complete it, or mark a meal skipped.` });
 
+    // 2.5 Prep that is due now, so a soak is not missed behind a reminder.
+    const prep = due.filter((d): d is Extract<DueLine, { kind: "prep" }> => d.kind === "prep");
+    if (prep.length > 0) {
+      cards.push({
+        rule: "prep", count: prep.length,
+        tasks: prep.map((p) => ({ task_id: p.task_id, action: p.action, due_on: p.due_on })),
+        message: `${plural(prep.length, "prep task", "prep tasks")} due now: ${prep[0]!.action}.`,
+      });
+    }
+
     // 4. Loads to act on in the next session.
     const load = await loadRule(ctx, member, today);
     if (load) {
@@ -521,11 +605,10 @@ const needsYou = readTool({
 
     // 5 and 6 are owner-only, and the projection of the shared due lines (waiting.ts, R6).
     if (ctx.canSee(member.id)) {
-      const due = await dueLines(ctx, member, today);
       const flags = due.filter((d): d is Extract<DueLine, { kind: "flag" }> => d.kind === "flag");
       const soonest = flags[0];
       if (soonest) cards.push({ rule: "flag", flag_id: soonest.flag_id, subject: soonest.subject, due_on: soonest.due_on, more: flags.length - 1, message: `${soonest.subject} is due on ${soonest.due_on}.` });
-      const m = due.find((d): d is Exclude<DueLine, { kind: "flag" }> => d.kind !== "flag");
+      const m = due.find((d): d is Exclude<DueLine, { kind: "flag" } | { kind: "prep" }> => d.kind !== "flag" && d.kind !== "prep");
       // A computed metric (waist to height) isn't loggable, so its card names no metric and the app links to Progress.
       if (m) cards.push({ rule: "measurement", cadence: m.name, metric: m.kind === "reading" ? m.metric : null, body_state: m.kind === "reading" ? m.body_state : null, last: m.last, message: m.message });
     }
@@ -1111,4 +1194,4 @@ const waitingTool = readTool({
   },
 });
 
-export const SCREEN_TOOLS: Tool[] = [whoami, dayMeals, dayCooks, needsYou, weekSummary, nutritionTrendsTool, householdOverview, sessionsTool, liftTrends, waitingTool];
+export const SCREEN_TOOLS: Tool[] = [whoami, dayMeals, dayCooks, dayPrep, cookSheet, needsYou, weekSummary, nutritionTrendsTool, householdOverview, sessionsTool, liftTrends, waitingTool];

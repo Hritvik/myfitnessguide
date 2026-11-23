@@ -5,7 +5,7 @@ import { describeTools } from "../src/tool";
 
 describe("the canonical MCP capability manifest", () => {
   it("explicitly classifies every routed tool and no stale tool", () => {
-    expect(TOOLS).toHaveLength(117);
+    expect(TOOLS).toHaveLength(120);
     expect(Object.keys(TOOL_CAPABILITIES).sort()).toEqual(TOOLS.map((tool) => tool.name).sort());
   });
 

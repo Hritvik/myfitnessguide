@@ -42,6 +42,14 @@ describe("amend keeps every version", () => {
     expect(history.versions[0].data.amount_value).toBe(150);
   });
 
+  it("names the singular table when a plural is given", async () => {
+    const x = await ready();
+    const reply = await x.call("amend", { record: { table: "food_sources", id: 1 }, changes: { name: "Rice" }, reason: "fix" });
+    expect([reply.http, reply.body.error.code]).toEqual([400, "unknown_table"]);
+    expect(reply.body.error.message).toContain("unknown table food_sources (did you mean food_source?)");
+    expect(reply.body.error.message).toContain("food_source");
+  });
+
   it("refuses a field that isn't amendable", async () => {
     const x = await ready();
     const logged = await x.ok("log_intake", { member: "Hritvik", date: DAY, meal_slot: "lunch", items: [rice(150)] });

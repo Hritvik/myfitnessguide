@@ -260,8 +260,25 @@ export interface TodayData {
   /** The household's time zone, for clock times such as a draft's deadline. */
   timeZone: string;
   next: NextPrescription | null;
+  /** Pending prep for the viewed member on this date (day_prep). */
+  prep: PrepTaskView[];
   /** Your Tell Claude texts about the viewed member for this day still waiting for Claude (pending inbox entries you sent); empty when the read failed. */
   waiting: InboxEntry[];
+}
+
+/** One scheduled prep job from the plan: what to do, for which meals, and when. */
+export interface PrepTaskView {
+  id: number;
+  action: string;
+  who: "eater" | "cook" | "anyone";
+  assignees: string[];
+  quantity: { food: string | null; value: number | null; unit: string | null }[];
+  for: { date: string; meal_slot: string; meal: string }[];
+  storage: string | null;
+  note: string | null;
+  due_by: string;
+  window_start: string;
+  window_end: string;
 }
 
 /**

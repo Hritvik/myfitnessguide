@@ -351,7 +351,13 @@ const amend = writeTool({
   async run(ctx, input) {
     const { table, id } = canonicalRecord(input.record);
     const fields = Object.hasOwn(AMENDABLE, table) ? AMENDABLE[table] : undefined;
-    if (!fields) throw new ToolError("not_amendable", `${table} records can't be amended`, 400);
+    if (!fields) {
+      const singular = table.endsWith("s") ? table.slice(0, -1) : null;
+      if (singular !== null && Object.hasOwn(AMENDABLE, singular)) {
+        throw new ToolError("unknown_table", `unknown table ${table} (did you mean ${singular}?); amendable: ${Object.keys(AMENDABLE).join(", ")}`, 400);
+      }
+      throw new ToolError("not_amendable", `${table} records can't be amended`, 400);
+    }
     const words = table === "intake_item" ? AMOUNT_WORDS : table === "reading" ? MEASURER_WORDS : [];
     const bad = Object.keys(input.changes).filter((k) => !fields.includes(k) && !words.includes(k));
     if (bad.length > 0) throw new ToolError("not_amendable", `can't amend ${bad.join(", ")} on ${table}; amendable: ${fields.join(", ")}`, 400);

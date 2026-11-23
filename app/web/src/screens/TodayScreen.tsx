@@ -5,6 +5,7 @@ import { DayClose } from "../components/DayClose";
 import { HouseholdGlance } from "../components/HouseholdGlance";
 import { Footer, LeftLine, Macros } from "../components/Parts";
 import { PotCard } from "../components/PotCard";
+import { PrepStrip } from "../components/PrepStrip";
 import { Split } from "../components/Split";
 import { NeedsStrip } from "../components/Strip";
 import { Tiers } from "../components/Tiers";
@@ -55,7 +56,12 @@ export function TodayScreen({ who, viewing, date, go }: { who: Who; viewing: str
         <DayNav date={shown} today={who.today} onDate={toDate} />
       </div>
     ),
-    strip: view.strip ? <NeedsStrip strip={view.strip} writes={writes} online={online} go={go} /> : null,
+    strip: view.strip || state.data.prep.length > 0 ? (
+      <>
+        {state.data.prep.length > 0 ? <PrepStrip tasks={state.data.prep} /> : null}
+        {view.strip ? <NeedsStrip strip={view.strip} writes={writes} online={online} go={go} /> : null}
+      </>
+    ) : null,
     left: <LeftLine left={view.left} notes={view.notes} />,
     macros: <Macros macros={view.macros} />,
     pots:

@@ -20,7 +20,7 @@ describe("loadToday", () => {
     const f = fake(full);
     const out = await loadToday(f.call, { who: WHO, viewing: "Asha", date: null });
     expect(out.kind === "ok" && out.data.needs).toEqual({ status: "ok", member: "Asha", date: "2026-10-06", cards: [], more: [] });
-    expect(f.calls.map((c) => c.tool).sort()).toEqual(["day_cooks", "day_meals", "day_totals", "inbox_entries", "needs_you", "next_prescription"]);
+    expect(f.calls.map((c) => c.tool).sort()).toEqual(["day_cooks", "day_meals", "day_prep", "day_totals", "inbox_entries", "needs_you", "next_prescription"]);
   });
 
   it("keeps your texts about the viewed member still waiting for Claude on the day shown, naming nobody, and none when that read fails (decisions 75, 110)", async () => {

@@ -4,6 +4,7 @@ import { AMOUNT, Catalogue, MEAL_SLOTS, PROVENANCE, type ResolvedAmount } from "
 import type { Ctx, Member } from "../context";
 import { all, first, type Row } from "../db";
 import { Clarify, ToolError } from "../errors";
+import { nextPrepFor } from "../prep";
 import {
   computeCook,
   cookProblemsToClarify,
@@ -37,7 +38,7 @@ const logIntake = writeTool({
   name: "log_intake",
   group: GROUP,
   description:
-    "Log standalone foods or existing recipe servings: a food source by amount (unit or measure, and state when ambiguous), a saved recipe by servings, or manual macros with a reason. Do not flatten named composed dishes such as sandwiches, salads, smoothies, curries, or omelettes into separate intake items; record each as a named cook with household_meal, even when only one person eats it. Returns each item's nutrients and the day so far.",
+    "Log standalone foods or existing recipe servings: a food source by amount (unit or measure, and state when ambiguous), a saved recipe by servings, or manual macros with a reason. Do not flatten named composed dishes such as sandwiches, salads, smoothies, curries, or omelettes into separate intake items; record each as a named cook with household_meal, even when only one person eats it. Returns each item's nutrients, the day so far, and next_prep: the pending plan prep due now for that member.",
   input: {
     member: z.string().min(1),
     date,
@@ -59,7 +60,7 @@ const logIntake = writeTool({
       items.push(describeItem(cat, { id, ...row, recipe_ref: r.display.ref, recipe_name: r.display.name }, r.nutrients, member.name));
     }
     const day = await dayView(ctx, new NutritionReader(ctx, cat), member, input.date, resolved.map((r) => ({ nutrients: r.nutrients, state: stamp.state })));
-    return { items, day };
+    return { items, day, next_prep: await nextPrepFor(ctx, member, input.date) };
   },
 });
 
@@ -372,7 +373,7 @@ const householdMeal = writeTool({
   name: "household_meal",
   group: GROUP,
   description:
-    "Record one meal occasion with named preparations made from ingredients as cooks, plus any direct items. Use a named cook for sandwiches, salads, smoothies, curries, omelettes, and other composed dishes even when only one person eats them; give that member a 100% portion. Use portions: [] when a dish or pot is prepared before its shares are known, then allocate the unaccounted remainder later with mark_remainder. Portions about members other than the speaker are drafts. Returns each portion's nutrients, the remainder, and each member's total.",
+    "Record one meal occasion with named preparations made from ingredients as cooks, plus any direct items. Use a named cook for sandwiches, salads, smoothies, curries, omelettes, and other composed dishes even when only one person eats them; give that member a 100% portion. Use portions: [] when a dish or pot is prepared before its shares are known, then allocate the unaccounted remainder later with mark_remainder. Portions about members other than the speaker are drafts. Returns each portion's nutrients, the remainder, each member's total, and next_prep: the pending plan prep due now for the speaker.",
   input: MEAL_FIELDS,
   async run(ctx, input) {
     const tx = ctx.txOrThrow;
@@ -464,11 +465,13 @@ const householdMeal = writeTool({
     await tx.createMany("cook_line", rows.cook_line);
     await tx.createMany("portion", rows.portion);
     await tx.createMany("intake_item", rows.intake_item);
+    const speaker = ctx.write?.speaker ?? (ctx.caller.kind === "member" ? await ctx.memberById(ctx.caller.memberId) : null);
     return {
       household_meal: { id: mealId, date: input.date, meal_slot: input.meal_slot, state: mealStamp.state },
       cooks,
       items,
       members: Object.fromEntries([...perMember].map(([name, parts]) => [name, sumNutrients(parts)])),
+      next_prep: speaker === null ? [] : await nextPrepFor(ctx, speaker, input.date),
     };
   },
 });

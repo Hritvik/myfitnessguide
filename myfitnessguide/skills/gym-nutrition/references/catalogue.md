@@ -78,11 +78,19 @@ send it again with `energy_override_reason` saying so.
 
 ## Restaurant and vendor food
 
-No label exists. Build the estimate from its components (bread, filling,
-sauce, cheese) as a recipe or as separate items, and name the **swing
-factor** as the dominant uncertainty: "mayonnaise and cheese are most of
-the fat; without them it's far lower". That sentence makes an estimate
-correctable instead of merely wrong.
+Restaurant food is bought in, so its macros are recorded **directly** on the
+food source tagged `Restaurant`: there is no recipe to derive them from, and
+splitting the dish into bread, filling, sauce and cheese invents a precision
+the vendor never gave. Record the whole dish as one source, name the
+**swing-factor** as the dominant uncertainty ("mayonnaise and cheese are most
+of the fat; without them it's far lower"), and log it by amount. That sentence
+makes an estimate correctable instead of merely wrong.
+
+A source tagged `Home-style` is a stand-in for a dish the household cooks
+itself. It should become a derived recipe (ingredient lines, `derived: true`)
+rather than keep typed macros; when you meet a Home-style source with direct
+macros, propose the recipe that replaces it. Never decompose a `Restaurant`
+source into components or rebuild it as a recipe.
 
 ## Correcting a food
 

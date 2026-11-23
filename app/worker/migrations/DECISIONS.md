@@ -256,3 +256,14 @@ Choices made while turning the schema tickets into D1 migrations, where the spec
     A piece in use cannot change how its loads are read (kind, loading)
     without changing the meaning of past sets, so `update_implement` refuses
     that until it is unused; renaming and notes are always safe.
+
+74. **Prep is a child of the recipe, and the plan's schedule is a table**
+    (0039). `recipe_prep_step` is an ordered child of `recipe`, so a step
+    moves and versions with the recipe it belongs to; the action is the
+    operation and food/amount are columns, which lets two same-night soaks
+    merge into one task. `prep_task` holds the schedule a saved plan
+    derives, one row per task keyed by `task_key`; its content columns are
+    immutable (a plan revision inserts a successor's rows and carries the
+    old state), and only `status`/`settled_*` may change. Nothing existing
+    is rewritten: a recipe with no steps and a plan with no prep read
+    exactly as before.

@@ -19,6 +19,21 @@ export { scaleNutrients, scaleTotals, sumNutrients, totalsFrom } from "./nutriti
 export { recomputeCook } from "./nutrition/cook";
 export { LABEL_ENERGY_MIN_TOLERANCE_KCAL, LABEL_ENERGY_TOLERANCE_FRACTION, labelEnergyCheck } from "./nutrition/label";
 export { recipeIntake, type RecipeSource } from "./nutrition/recipe";
+export {
+  buildPrepSchedule,
+  FREEZER_DAYS,
+  prepTaskKey,
+  prepWindow,
+  type PrepFor,
+  type PrepLead,
+  type PrepOccurrence,
+  type PrepPart,
+  type PrepQuantity,
+  type PrepStep,
+  type PrepStorage,
+  type PrepTask,
+  type PrepWho,
+} from "./nutrition/prep";
 export { belowBmr, dayTotals, KCAL_PER_G, leftToday, resolveTarget } from "./nutrition/day";
 export {
   BEHIND_AFTER_WEEKS,
