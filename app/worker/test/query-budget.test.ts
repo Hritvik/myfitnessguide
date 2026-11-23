@@ -636,6 +636,14 @@ describe("app display: amends that re-open a leftover", () => {
     withinBudget(run, READ_BUDGET);
   });
 
+  it(`amending a household meal's slot with its items cascading (the write batch included): at most ${READ_BUDGET}`, async () => {
+    const { x } = await busyHousehold(40);
+    const meal = x.t.get("SELECT id FROM household_meal WHERE eaten_on = ? ORDER BY id LIMIT 1", MONDAY) as { id: number };
+    const run = await x.counted("amend", { record: { table: "household_meal", id: meal.id }, changes: { meal_slot: "snack" }, reason: "budget" }, "hritvik");
+    expect(run.body.computed.cascaded).toBeDefined();
+    withinBudget(run, READ_BUDGET);
+  });
+
   it(`amending a cook line of a pot with a settled leftover still in it (the re-open in the write batch): at most ${READ_BUDGET}`, async () => {
     const { x, component, line, settled } = await eatenUpPot();
     x.t.run("UPDATE component SET cooked_weight_g = 800 WHERE id = ?", component);

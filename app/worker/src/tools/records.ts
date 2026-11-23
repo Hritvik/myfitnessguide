@@ -341,7 +341,7 @@ const amend = writeTool({
   name: "amend",
   group: GROUP,
   description:
-    "Change fields of one record with a reason, keeping every version. Returns before, after, the new version number and whatever it recomputed (nutrients, cook remainder, set total/volume/e1RM). A food item's amount takes a new measure as log_intake does: amount_value with measure (a named measure of the food) or unit, never both. A reading's measurer can be set after the fact: measurer with measurer_member (a member's name, as log_reading takes it; null clears it) when it is \"member\". The member's own edit of a draft about them confirms it; anyone else's edit of a member's confirmed record makes it a draft for that member again (state, draft_for).",
+    "Change fields of one record with a reason, keeping every version. Returns before, after, the new version number and whatever it recomputed (nutrients, cook remainder, set total/volume/e1RM). A food item's amount takes a new measure as log_intake does: amount_value with measure (a named measure of the food) or unit, never both. A reading's measurer can be set after the fact: measurer with measurer_member (a member's name, as log_reading takes it; null clears it) when it is \"member\". The member's own edit of a draft about them confirms it; anyone else's edit of a member's confirmed record makes it a draft for that member again (state, draft_for). Changing a household meal's eaten_on or meal_slot moves its intake items with it in the same write (computed.cascaded).",
   input: {
     record: RECORD,
     changes: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])),
@@ -492,6 +492,20 @@ const amend = writeTool({
     }
     const version = await nextVersion(ctx, table, id);
     ctx.txOrThrow.update(table, id, changes, after);
+    // A meal's items belong to it: moving the meal's date or slot moves them too,
+    // in the same write, so day_meals never leaves food under the old slot.
+    let cascaded: { table: "intake_item"; ids: number[]; eaten_on: string; meal_slot: string } | null = null;
+    if (table === "household_meal" && ("eaten_on" in changes || "meal_slot" in changes)) {
+      const items = await all<Row & { id: number }>(ctx.db, "SELECT * FROM intake_item WHERE household_meal_id = ? ORDER BY id", id);
+      if (items.length > 0) {
+        const eatenOn = String(after.eaten_on);
+        const mealSlot = String(after.meal_slot);
+        const moved = items.map((item) => ({ ...item, eaten_on: eatenOn, meal_slot: mealSlot }));
+        ctx.txOrThrow.exec("UPDATE intake_item SET eaten_on = ?1, meal_slot = ?2 WHERE household_meal_id = ?3", eatenOn, mealSlot, id);
+        ctx.txOrThrow.versions("intake_item", "amend", moved.map((item) => ({ id: item.id, data: item })));
+        cascaded = { table: "intake_item", ids: moved.map((item) => item.id), eaten_on: eatenOn, meal_slot: mealSlot };
+      }
+    }
     // A smaller portion may bring back a leftover a serving had eaten up.
     if (table === "portion" && ("fraction" in changes || "weighed_g" in changes)) reopenLeftovers(ctx, [before.component_id as number]);
     // A changed cooked weight (or a cook line) can leave food in a pot a weighed serving had eaten up: re-open
@@ -507,7 +521,7 @@ const amend = writeTool({
     // A state record says what it is now, and whose draft when it is a draft about another member (as log_intake's items say).
     const state = (STATE_TABLES as readonly string[]).includes(table) ? { state: after.state } : {};
     const draftFor = after.state === "draft" && owner !== null && owner !== ctx.writeInfo.speaker?.id ? { draft_for: (await ctx.memberById(owner)).name } : {};
-    return { record: { table, id }, version, ...state, ...draftFor, before: withoutOwnerText(ctx, table, owner, before), after: shown(after), computed };
+    return { record: { table, id }, version, ...state, ...draftFor, before: withoutOwnerText(ctx, table, owner, before), after: shown(after), computed: cascaded ? { ...(computed ?? {}), cascaded } : computed };
   },
 });
 

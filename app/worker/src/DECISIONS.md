@@ -1932,3 +1932,11 @@ surface* as closely as possible. Hritvik can veto any line.
    overlap's midpoint: the earlier step ends and the later begins there, so
    the schedule never claims a prep step can start before its predecessor
    finished. Test: `app/domain/test/prep.test.ts`.
+
+174. **A household meal's items move with the meal** (23 Nov 2026). Amending
+   `household_meal.eaten_on` or `meal_slot` cascades to every `intake_item`
+   with that `household_meal_id` in the same write, with an amend version for
+   each item, so `day_meals` never leaves food under the old slot or day.
+   The response names what moved (`computed.cascaded`). A leftover serving's
+   item has `household_meal_id` null and is corrected through its serving.
+   Test: `nutrition.tools.test.ts`, `query-budget.test.ts`.

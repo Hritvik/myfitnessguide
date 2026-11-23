@@ -463,3 +463,38 @@ describe("mark_remainder", () => {
     expect(body.portion).toMatchObject({ member: "Kabir", fraction: 0.5, state: "draft" });
   });
 });
+
+describe("amend household_meal moves its intake items", () => {
+  it("cascades meal_slot and eaten_on to the meal's items in the same write", async () => {
+    const x = await ready();
+    const meal = await x.ok("household_meal", {
+      date: DAY, meal_slot: "dinner",
+      cooks: [{
+        name: "Dal",
+        lines: [{ food: "peas", value: 400, unit: "g", provenance: "weighed" }],
+        portions: [
+          { member: "Hritvik", fraction: 0.5, provenance: "estimated" },
+          { member: "Asha", fraction: 0.4, provenance: "estimated" },
+        ],
+      }],
+    });
+    const id = meal.household_meal.id;
+    const ids = meal.cooks[0].portions.map((p: { intake_item_id: number }) => p.intake_item_id).sort();
+
+    const moved = await x.ok("amend", { record: { table: "household_meal", id }, changes: { meal_slot: "lunch" }, reason: "moved to lunch" }, "hritvik");
+    expect(moved.computed.cascaded).toMatchObject({ table: "intake_item", ids, meal_slot: "lunch" });
+
+    const day = await x.ok("day_meals", { member: "Hritvik", date: DAY }, "hritvik");
+    expect(day.slots.find((s: { slot: string }) => s.slot === "lunch").items).toHaveLength(1);
+    expect(day.slots.find((s: { slot: string }) => s.slot === "dinner").items).toEqual([]);
+
+    const nextDay = "2026-10-06";
+    const movedDay = await x.ok("amend", { record: { table: "household_meal", id }, changes: { eaten_on: nextDay }, reason: "moved to the next day" }, "hritvik");
+    expect(movedDay.computed.cascaded).toMatchObject({ table: "intake_item", ids, eaten_on: nextDay });
+
+    const dayAfter = await x.ok("day_meals", { member: "Hritvik", date: nextDay }, "hritvik");
+    expect(dayAfter.slots.find((s: { slot: string }) => s.slot === "lunch").items).toHaveLength(1);
+    const oldDay = await x.ok("day_meals", { member: "Hritvik", date: DAY }, "hritvik");
+    expect(oldDay.slots.find((s: { slot: string }) => s.slot === "lunch").items).toEqual([]);
+  });
+});
